@@ -28,3 +28,8 @@ build/
 
 # Local-only review-gate opt-out (not published)
 .no-review-gate
+
+# .NET (Windows port)
+bin/
+obj/
+*.user
