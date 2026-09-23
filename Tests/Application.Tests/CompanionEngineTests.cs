@@ -428,4 +428,320 @@ public class CompanionEngineTests : IDisposable
         Assert.Contains(view.RecentEvents, item => item.Text.Contains("Speciemon hatched"));
         Assert.Contains(view.RecentEvents, item => item.Text.Contains("Specimature"));
     }
+
+    [Fact]
+    public void ShopBuyUsesWalletSemanticsAndBlocksInsufficientFundsAndRepurchase()
+    {
+        var statePath = Path.Combine(_dir, "shop-state.json");
+        var engine = BuildEngine(fileName: "shop-state.json");
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        engine.ApplyUsage(Map(("claude_code", 600_000_000)), "2026-09-23", true);
+
+        Assert.Equal(600_000_000, engine.View().AvailableTokens);
+
+        Assert.True(engine.Buy(ItemKind.RareCandy));
+        var state = engine.State;
+        Assert.Equal(500_000_000, state.SpentTokens);
+        Assert.Equal(600_000_000, state.UsedSinceInstall);
+        Assert.Equal(1, state.Inventory[ItemKinds.Raw(ItemKind.RareCandy)]);
+        Assert.Equal(100_000_000, engine.View().AvailableTokens);
+
+        Assert.False(engine.Buy(ItemKind.ShinyCharm));
+        Assert.Equal(500_000_000, engine.State.SpentTokens);
+        Assert.False(engine.State.Inventory.TryGetValue(ItemKinds.Raw(ItemKind.ShinyCharm), out _));
+
+        engine.State.UsedSinceInstall = 4_000_000_000;
+        engine.State.Inventory[ItemKinds.Raw(ItemKind.ShinyCharm)] = 1;
+        Assert.False(engine.Buy(ItemKind.ShinyCharm));
+        Assert.Equal(3_500_000_000, engine.View().AvailableTokens);
+
+        Assert.True(engine.Buy(ItemKind.Mint));
+        Assert.Equal(600_000_000, engine.State.SpentTokens);
+        Assert.Equal(1, engine.State.Inventory[ItemKinds.Raw(ItemKind.Mint)]);
+
+        var reloaded = BuildEngine(fileName: "shop-state.json");
+        Assert.Equal(600_000_000, reloaded.State.SpentTokens);
+        Assert.Equal(1, reloaded.State.Inventory[ItemKinds.Raw(ItemKind.RareCandy)]);
+        Assert.Equal(1, reloaded.State.Inventory[ItemKinds.Raw(ItemKind.ShinyCharm)]);
+        Assert.Equal(1, reloaded.State.Inventory[ItemKinds.Raw(ItemKind.Mint)]);
+        Assert.Equal(3_400_000_000, reloaded.View().AvailableTokens);
+    }
+
+    [Fact]
+    public void RareCandyPlanMatchesStageCostsAndUseSpendsOnlyNeededCandies()
+    {
+        var engine = BuildEngine();
+        engine.State.Language = AppLanguage.En;
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        engine.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+        engine.State.Inventory[ItemKinds.Raw(ItemKind.RareCandy)] = 10;
+
+        Assert.Equal(8, engine.MaxRareCandyUseCount());
+        var plan = engine.PlanRareCandyUse(10);
+        Assert.NotNull(plan);
+        Assert.Equal(8, plan!.Count);
+        Assert.Equal(800_000_000, plan.Xp);
+        Assert.True(plan.Evolves);
+        Assert.True(plan.Graduates);
+        Assert.Equal(50_000_000, plan.DiscardedXP);
+
+        var result = engine.UseRareCandy(10);
+
+        Assert.Equal(CandyUseResult.Graduated, result);
+        var state = engine.State;
+        Assert.Null(state.Active);
+        Assert.Single(state.Dex);
+        Assert.Equal([1, 2, 3], state.Dex[0].ChainOrder);
+        Assert.Equal(3, state.Dex[0].FinalID);
+        Assert.Contains("1:3", state.CollectedFinals);
+        Assert.Equal(2, state.Inventory[ItemKinds.Raw(ItemKind.RareCandy)]);
+        Assert.Equal(5_000_000, state.UsedSinceInstall);
+        Assert.Equal(0, state.SpentTokens);
+        Assert.Equal(0, state.EggUsage);
+    }
+
+    [Fact]
+    public void PartialCandyProgressDoesNotEvolveOrMoveLedger()
+    {
+        var engine = BuildEngine();
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        engine.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+        engine.State.Inventory[ItemKinds.Raw(ItemKind.RareCandy)] = 1;
+
+        Assert.Equal(CandyUseResult.Progressed, engine.UseRareCandy(1));
+
+        var active = engine.State.Active!;
+        Assert.NotNull(active);
+        Assert.Equal(0, active.StageIndex);
+        Assert.Equal(100_000_000, active.UsedAtStage);
+        Assert.Equal(0, engine.State.Inventory[ItemKinds.Raw(ItemKind.RareCandy)]);
+        Assert.Equal(5_000_000, engine.State.UsedSinceInstall);
+
+        Assert.Equal(CandyUseResult.Unavailable, engine.UseRareCandy(1));
+        Assert.Equal(100_000_000, engine.State.Active!.UsedAtStage);
+    }
+
+    [Fact]
+    public void CandyOnDisguisedDittoCapsAtRevealThreshold()
+    {
+        var engine = BuildEngine(new SequenceRng(1, 1, 1, 128));
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        engine.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+        Assert.Equal(1, engine.State.Active!.DittoDisguise);
+        engine.State.Inventory[ItemKinds.Raw(ItemKind.RareCandy)] = 8;
+
+        var result = engine.UseRareCandy(8);
+
+        var active = engine.State.Active!;
+        Assert.NotNull(active);
+        Assert.NotEqual(CandyUseResult.Graduated, result);
+        Assert.Equal(PokemonOdds.DittoSpeciesID, active.BaseID);
+        Assert.True(active.DittoRevealed);
+        Assert.Equal(75_000_000, active.UsedAtStage);
+        Assert.Equal(6, engine.State.Inventory[ItemKinds.Raw(ItemKind.RareCandy)]);
+    }
+
+    [Fact]
+    public void MintRerollsToDifferentNatureWithoutSideEffects()
+    {
+        var engine = BuildEngine();
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+
+        Assert.Null(engine.UseMint());
+
+        engine.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+        var active = engine.State.Active!;
+        var oldNature = active.Nature!;
+        Assert.Null(engine.UseMint());
+
+        engine.State.Inventory[ItemKinds.Raw(ItemKind.Mint)] = 2;
+        var picked = engine.UseMint();
+
+        Assert.NotNull(picked);
+        Assert.NotEqual(oldNature, picked);
+        Assert.Equal(picked, engine.State.Active!.Nature);
+        Assert.Equal(1, engine.State.Inventory[ItemKinds.Raw(ItemKind.Mint)]);
+        Assert.Equal(0, engine.State.Active.UsedAtStage);
+        Assert.Equal(5_000_000, engine.State.UsedSinceInstall);
+        Assert.Equal(0, engine.State.SpentTokens);
+    }
+
+    [Fact]
+    public void EggPurchaseReleasesActiveIntoDexAndResetsIncubation()
+    {
+        var engine = BuildEngine();
+        engine.State.Language = AppLanguage.En;
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        engine.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+        engine.ApplyUsage(Map(("claude_code", 130_000_000)), "2026-09-23", true);
+        Assert.Equal(2, engine.State.Active!.CurrentID);
+        engine.State.UsedSinceInstall = 2_000_000_000;
+
+        Assert.True(engine.CanBuyEgg(null));
+        Assert.False(engine.CanBuyEgg(Rarity.Legendary));
+        Assert.True(engine.BuyEgg(null));
+
+        var state = engine.State;
+        Assert.Null(state.Active);
+        Assert.Equal(1_000_000_000, state.SpentTokens);
+        Assert.Single(state.Dex);
+        var released = state.Dex[0];
+        Assert.True(released.IsReleased);
+        Assert.Equal([1, 2], released.ChainOrder);
+        Assert.Equal(2, released.FinalID);
+        Assert.Equal(Rarity.Common, released.Rarity);
+        Assert.Equal(Now, released.CaughtAt);
+        Assert.Equal(Now, released.ReleasedAt);
+        Assert.Empty(state.CollectedFinals);
+        Assert.Equal(0, state.EggUsage);
+        Assert.Null(state.EggTier);
+        var view = engine.View();
+        Assert.True(view.IsEgg);
+        Assert.Equal(1_000_000_000, view.AvailableTokens);
+        Assert.Contains(view.RecentEvents, item => item.Text.Contains("released"));
+
+        Assert.False(engine.CanBuyEgg(null));
+    }
+
+    [Fact]
+    public void EggTierGuaranteePurchaseRecordsTierAndBlocksTooExpensiveTiers()
+    {
+        var engine = BuildEngine();
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        engine.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+        engine.State.UsedSinceInstall = 3_500_000_000;
+
+        Assert.Equal(2_500_000_000, FreshEggs.PriceGuaranteeing(Rarity.Uncommon));
+        Assert.False(engine.CanBuyEgg(Rarity.Rare));
+
+        Assert.True(engine.BuyEgg(Rarity.Uncommon));
+
+        Assert.Equal(Rarity.Uncommon, engine.State.EggTier);
+        Assert.Equal(2_500_000_000, engine.State.SpentTokens);
+        Assert.False(engine.CanBuyEgg(Rarity.Uncommon));
+    }
+
+    [Fact]
+    public void GrowthDifficultyRescalesEggBankedGrowthKeepingFraction()
+    {
+        var engine = BuildEngine();
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        engine.State.EggUsage = 2_500_000;
+
+        engine.SetGrowthDifficulty(2.0);
+
+        Assert.Null(engine.State.Active);
+        Assert.Equal(5_000_000, engine.State.EggUsage);
+        var view = engine.View();
+        Assert.Equal(10_000_000, view.EggThreshold);
+        Assert.Equal(5_000_000, view.EggUsed);
+        Assert.Equal(0.5, view.EggProgress, 6);
+    }
+
+    [Fact]
+    public void GrowthDifficultyRescaleNeverCompletesIncompleteStage()
+    {
+        var engine = BuildEngine();
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        engine.State.EggUsage = 4_999_999;
+
+        engine.SetGrowthDifficulty(2.0);
+
+        Assert.Null(engine.State.Active);
+        Assert.Equal(9_999_998, engine.State.EggUsage);
+
+        engine.SetGrowthDifficulty(0.1);
+
+        Assert.Null(engine.State.Active);
+        Assert.Equal(499_999, engine.State.EggUsage);
+    }
+
+    [Fact]
+    public void GrowthDifficultyRescalesActiveStageAndSavesProgression()
+    {
+        var first = BuildEngine(fileName: "rescale-state.json");
+        first.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        first.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+        first.State.Active!.UsedAtStage = 124_999_999;
+
+        first.SetGrowthDifficulty(2.0);
+
+        Assert.NotNull(first.State.Active);
+        Assert.Equal(0, first.State.Active!.StageIndex);
+        Assert.Equal(249_999_998, first.State.Active.UsedAtStage);
+        Assert.Equal(250_000_000, first.View().StageThreshold);
+
+        var second = BuildEngine(fileName: "rescale-state.json");
+        Assert.Equal(249_999_998, second.State.Active!.UsedAtStage);
+        Assert.Equal(125_000_000, second.View().StageThreshold);
+    }
+
+    [Fact]
+    public void ShopDifficultyScalesPricesWithoutTouchingState()
+    {
+        var engine = BuildEngine();
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        engine.State.EggUsage = 1_000_000;
+
+        engine.SetShopDifficulty(2.0);
+
+        var view = engine.View();
+        Assert.Equal(2.0, view.ShopDifficulty);
+        Assert.Contains(view.ShopRows, row => row.Label == "Mint" && row.Price == 200_000_000);
+        Assert.Contains(view.ShopRows, row => row.Label == "Rare Candy" && row.Price == 1_000_000_000);
+        Assert.Contains(view.ShopRows,
+            row => row.Label == "Fresh Egg" && row.Price == 2_000_000_000);
+        Assert.Equal(1_000_000, engine.State.EggUsage);
+        Assert.Equal(0, engine.State.SpentTokens);
+        Assert.Equal(0, engine.State.UsedSinceInstall);
+    }
+
+    [Fact]
+    public void ViewExposesSortedShopRowsBagAndWallet()
+    {
+        var engine = BuildEngine();
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        engine.State.UsedSinceInstall = 5_000_000_000;
+
+        var view = engine.View();
+        Assert.Equal(
+        [
+            "Mint", "Rare Candy", "Fresh Egg", "Fresh Egg (uncommon+)", "Shiny Charm",
+            "Fresh Egg (rare+)",
+        ], view.ShopRows.Select(row => row.Label).ToList());
+        Assert.All(view.ShopRows.Where(row => row.Item is not null), row => Assert.True(row.CanBuy));
+        Assert.All(view.ShopRows.Where(row => row.Item is null), row => Assert.False(row.CanBuy));
+        Assert.Equal(5_000_000_000, view.AvailableTokens);
+
+        Assert.True(engine.Buy(ItemKind.ShinyCharm));
+        engine.State.Inventory[ItemKinds.Raw(ItemKind.RareCandy)] = 2;
+
+        view = engine.View();
+        Assert.Equal(
+        [
+            "Mint", "Rare Candy", "Fresh Egg", "Fresh Egg (uncommon+)", "Fresh Egg (rare+)",
+            "Shiny Charm",
+        ], view.ShopRows.Select(row => row.Label).ToList());
+        var charmRow = view.ShopRows.Single(row => row.Label == "Shiny Charm");
+        Assert.False(charmRow.CanBuy);
+        Assert.Equal(2_000_000_000, view.AvailableTokens);
+        Assert.Equal(2, view.Bag.Count);
+        var candy = view.Bag.Single(item => item.Kind == ItemKind.RareCandy);
+        Assert.Equal(2, candy.Count);
+        Assert.False(candy.CanUse);
+        Assert.Contains(view.Bag, item => item.Kind == ItemKind.ShinyCharm && !item.CanUse);
+    }
+
+    [Fact]
+    public void BagCandyBecomesUsableAfterHatch()
+    {
+        var engine = BuildEngine();
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        engine.State.Inventory[ItemKinds.Raw(ItemKind.RareCandy)] = 2;
+        Assert.DoesNotContain(engine.View().Bag, item => item.CanUse);
+
+        engine.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+
+        Assert.Contains(engine.View().Bag, item => item.Kind == ItemKind.RareCandy && item.CanUse);
+    }
 }

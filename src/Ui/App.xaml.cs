@@ -6,6 +6,7 @@ using System.Windows.Media.Imaging;
 using Hardcodet.Wpf.TaskbarNotification;
 using PokeTokenBar.Application;
 using PokeTokenBar.Core;
+using PokeTokenBar.Platform.Windows;
 
 namespace PokeTokenBar.Ui;
 
@@ -13,6 +14,7 @@ public partial class App : System.Windows.Application
 {
     private UsageRefreshService _service = null!;
     private CompanionEngine _engine = null!;
+    private AppSettings _settings = null!;
     private TaskbarIcon _trayIcon = null!;
     private DashboardWindow? _dashboard;
     private readonly CancellationTokenSource _shutdown = new();
@@ -25,7 +27,12 @@ public partial class App : System.Windows.Application
             AppLog.Write($"ui unhandled exception: {args.Exception}");
             args.Handled = true;
         };
-        _engine = new CompanionEngine();
+        _settings = AppSettingsFile.Load(AppSettingsFile.DefaultPath());
+        _engine = new CompanionEngine(new CompanionEngineOptions
+        {
+            GrowthDifficulty = _settings.GrowthDifficulty,
+            ShopDifficulty = _settings.ShopDifficulty,
+        });
         _engine.Changed += OnCompanionChanged;
         _service = new UsageRefreshService();
         _service.StateChanged += OnStateChanged;
@@ -124,18 +131,40 @@ public partial class App : System.Windows.Application
 
     private void ShowDashboard()
     {
-        if (_dashboard is null)
+        try
         {
-            _dashboard = new DashboardWindow(_engine);
-            _dashboard.Closed += (_, _) => _dashboard = null;
-            if (_service.Current is { } state)
-                _dashboard.Update(state);
-            else
-                _dashboard.ShowRefreshing();
-            _dashboard.UpdateGame(_engine.View());
+            if (_dashboard is null)
+            {
+                _dashboard = new DashboardWindow(_engine);
+                _dashboard.Closed += (_, _) => _dashboard = null;
+                if (_service.Current is { } state)
+                    _dashboard.Update(state);
+                else
+                    _dashboard.ShowRefreshing();
+                _dashboard.UpdateGame(_engine.View());
+            }
+            _dashboard.Show();
+            _dashboard.Activate();
         }
-        _dashboard.Show();
-        _dashboard.Activate();
+        catch (Exception ex)
+        {
+            _dashboard = null;
+            AppLog.Write($"dashboard open failed: {ex}");
+        }
+    }
+
+    public void ApplyDifficulty(double growth, double shop)
+    {
+        _settings.GrowthDifficulty = growth;
+        _settings.ShopDifficulty = shop;
+        try
+        {
+            AppSettingsFile.Save(AppSettingsFile.DefaultPath(), _settings);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Write($"app settings save failed: {ex.Message}");
+        }
     }
 
     private void OpenDiagnosticsFolder()

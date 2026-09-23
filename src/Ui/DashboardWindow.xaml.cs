@@ -9,6 +9,9 @@ namespace PokeTokenBar.Ui;
 public partial class DashboardWindow : Window
 {
     private readonly CompanionEngine _engine;
+    private CompanionGameView? _lastView;
+    private bool _updatingDifficulty;
+    private string _feedback = "";
 
     public DashboardWindow(CompanionEngine engine)
     {
@@ -73,7 +76,140 @@ public partial class DashboardWindow : Window
         EventsList.Items.Clear();
         foreach (var item in view.RecentEvents)
             EventsList.Items.Add($"{item.At.ToLocalTime():MM-dd HH:mm}  {item.Text}");
-        GameFooter.Text = $"Lifetime {TokenFormatter.Grouped(view.LifetimeTokens)} tokens";
+        UpdateShop(view);
+        GameFooter.Text = _feedback.Length > 0
+            ? $"{_feedback} · Lifetime {TokenFormatter.Grouped(view.LifetimeTokens)} tokens"
+            : $"Lifetime {TokenFormatter.Grouped(view.LifetimeTokens)} tokens";
+    }
+
+    private void UpdateShop(CompanionGameView view)
+    {
+        _lastView = view;
+        BagText.Text = view.Bag.Count == 0
+            ? "Bag: empty"
+            : "Bag: " + string.Join(" · ", view.Bag.Select(item =>
+                $"{item.Label} ×{item.Count}"));
+        ShopList.Items.Clear();
+        foreach (var row in view.ShopRows)
+        {
+            var suffix = row.CanBuy ? ""
+                : row.Item is { } owned && owned.IsPassive() && BagHas(owned, view)
+                    ? "  (owned)"
+                    : "  (need more tokens)";
+            ShopList.Items.Add($"{row.Label} — {TokenFormatter.Grouped(row.Price)}{suffix}");
+        }
+
+        _updatingDifficulty = true;
+        try
+        {
+            GrowthSlider.Value = view.GrowthDifficulty;
+            ShopSlider.Value = view.ShopDifficulty;
+        }
+        finally
+        {
+            _updatingDifficulty = false;
+        }
+
+        GrowthValue.Text = view.GrowthDifficulty.ToString("0.00");
+        ShopValue.Text = view.ShopDifficulty.ToString("0.00");
+    }
+
+    private static bool BagHas(ItemKind kind, CompanionGameView view) =>
+        view.Bag.Any(item => item.Kind == kind);
+
+    private void OnBuyClick(object sender, RoutedEventArgs e)
+    {
+        if (_lastView is not { } view) return;
+        var index = ShopList.SelectedIndex;
+        if (index < 0 || index >= view.ShopRows.Count)
+        {
+            _feedback = "Select a shop row first";
+            UpdateGame(_engine.View());
+            return;
+        }
+        var row = view.ShopRows[index];
+        var bought = row.Item is { } kind ? _engine.Buy(kind) : _engine.BuyEgg(row.EggTier);
+        _feedback = bought ? $"Bought {row.Label}" : $"Cannot buy {row.Label} yet";
+        UpdateGame(_engine.View());
+    }
+
+    private void OnUseCandyClick(object sender, RoutedEventArgs e)
+    {
+        var result = _engine.UseRareCandy(1);
+        _feedback = result switch
+        {
+            CandyUseResult.Graduated => "Candy used — graduated into the dex!",
+            CandyUseResult.Evolved => "Candy used — evolved!",
+            CandyUseResult.Progressed => "Candy used — +100M XP",
+            _ => "No candy to use",
+        };
+        UpdateGame(_engine.View());
+    }
+
+    private void OnUseAllCandyClick(object sender, RoutedEventArgs e)
+    {
+        var count = _engine.MaxRareCandyUseCount();
+        if (count <= 0)
+        {
+            _feedback = "No candy to use";
+        }
+        else
+        {
+            _engine.UseRareCandy(count);
+            _feedback = $"Used {count} candies";
+        }
+        UpdateGame(_engine.View());
+    }
+
+    private void OnUseMintClick(object sender, RoutedEventArgs e)
+    {
+        var nature = _engine.UseMint();
+        _feedback = nature is { } picked ? $"Mint used — nature is now {picked}" : "No mint to use";
+        UpdateGame(_engine.View());
+    }
+
+    private void OnGrowthDifficultyChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_updatingDifficulty || _engine is null) return;
+        var value = PokemonBalance.SnapDifficulty(e.NewValue);
+        _updatingDifficulty = true;
+        try
+        {
+            GrowthSlider.Value = value;
+            GrowthValue.Text = value.ToString("0.00");
+            _engine.SetGrowthDifficulty(value);
+            PersistDifficulty();
+            UpdateGame(_engine.View());
+        }
+        finally
+        {
+            _updatingDifficulty = false;
+        }
+    }
+
+    private void OnShopDifficultyChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_updatingDifficulty || _engine is null) return;
+        var value = PokemonBalance.SnapDifficulty(e.NewValue);
+        _updatingDifficulty = true;
+        try
+        {
+            ShopSlider.Value = value;
+            ShopValue.Text = value.ToString("0.00");
+            _engine.SetShopDifficulty(value);
+            PersistDifficulty();
+            UpdateGame(_engine.View());
+        }
+        finally
+        {
+            _updatingDifficulty = false;
+        }
+    }
+
+    private void PersistDifficulty()
+    {
+        if (System.Windows.Application.Current is App app)
+            app.ApplyDifficulty(GrowthSlider.Value, ShopSlider.Value);
     }
 
     private static string ItemText(CompanionStageItem item) =>

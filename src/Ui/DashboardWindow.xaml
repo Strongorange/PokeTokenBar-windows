@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="PokeTokenBar"
-        Width="420" Height="480"
+        Width="470" Height="580"
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanMinimize">
     <Grid Margin="14">
@@ -34,6 +34,7 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
@@ -46,12 +47,37 @@
                         <ProgressBar x:Name="ProgressBar" Height="14" Minimum="0" Maximum="1" Margin="0,4,0,0" />
                         <TextBlock x:Name="StageLine" FontSize="11" Foreground="#666" Margin="0,4,0,0" TextWrapping="Wrap" />
                     </StackPanel>
-                    <StackPanel Grid.Row="2" Margin="0,10,0,0" Orientation="Horizontal">
-                        <TextBlock x:Name="DexHeader" FontWeight="Bold" VerticalAlignment="Center" />
-                        <Button Content="E_xport save…" Margin="12,0,0,0" MinWidth="90" Click="OnExportClick" />
-                        <Button Content="_Import save…" Margin="6,0,0,0" MinWidth="90" Click="OnImportClick" />
+                    <StackPanel Grid.Row="2" Margin="0,10,0,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="DexHeader" FontWeight="Bold" VerticalAlignment="Center" />
+                            <Button Content="E_xport save…" Margin="12,0,0,0" MinWidth="90" Click="OnExportClick" />
+                            <Button Content="_Import save…" Margin="6,0,0,0" MinWidth="90" Click="OnImportClick" />
+                        </StackPanel>
+                        <TextBlock x:Name="BagText" FontSize="11" Foreground="#666" Margin="0,6,0,0" />
                     </StackPanel>
-                    <Grid Grid.Row="3" Margin="0,8,0,0">
+                    <StackPanel Grid.Row="3" Margin="0,8,0,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Shop" FontWeight="Bold" VerticalAlignment="Center" />
+                            <Button Content="_Buy selected" Margin="10,0,0,0" MinWidth="90" Click="OnBuyClick" />
+                            <Button Content="Use _candy" Margin="6,0,0,0" MinWidth="80" Click="OnUseCandyClick" />
+                            <Button Content="Use _mint" Margin="6,0,0,0" MinWidth="70" Click="OnUseMintClick" />
+                            <Button Content="Use a_ll" Margin="6,0,0,0" MinWidth="60" Click="OnUseAllCandyClick" />
+                        </StackPanel>
+                        <ListBox x:Name="ShopList" Height="92" Margin="0,4,0,0" />
+                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                            <TextBlock Text="Growth" VerticalAlignment="Center" FontSize="11" />
+                            <Slider x:Name="GrowthSlider" Width="120" Minimum="0.1" Maximum="2"
+                                    TickFrequency="0.05" IsSnapToTickEnabled="True" VerticalAlignment="Center"
+                                    Margin="6,0,4,0" ValueChanged="OnGrowthDifficultyChanged" />
+                            <TextBlock x:Name="GrowthValue" VerticalAlignment="Center" FontSize="11" MinWidth="32" />
+                            <TextBlock Text="Shop" VerticalAlignment="Center" FontSize="11" Margin="14,0,0,0" />
+                            <Slider x:Name="ShopSlider" Width="120" Minimum="0.1" Maximum="2"
+                                    TickFrequency="0.05" IsSnapToTickEnabled="True" VerticalAlignment="Center"
+                                    Margin="6,0,4,0" ValueChanged="OnShopDifficultyChanged" />
+                            <TextBlock x:Name="ShopValue" VerticalAlignment="Center" FontSize="11" MinWidth="32" />
+                        </StackPanel>
+                    </StackPanel>
+                    <Grid Grid.Row="4" Margin="0,8,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="*" />
@@ -59,7 +85,7 @@
                         <ListBox Grid.Column="0" x:Name="DexList" />
                         <ListBox Grid.Column="1" x:Name="EventsList" Margin="8,0,0,0" />
                     </Grid>
-                    <TextBlock Grid.Row="4" x:Name="GameFooter" FontSize="11" Foreground="#666" Margin="0,8,0,0" />
+                    <TextBlock Grid.Row="5" x:Name="GameFooter" FontSize="11" Foreground="#666" Margin="0,8,0,0" />
                 </Grid>
             </TabItem>
         </TabControl>

@@ -23,6 +23,10 @@ public sealed class CompanionEngineOptions
         System.Reflection.Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "dev";
 
     public string DeviceName { get; init; } = Environment.MachineName;
+
+    public double GrowthDifficulty { get; init; } = PokemonBalance.DefaultDifficulty;
+
+    public double ShopDifficulty { get; init; } = PokemonBalance.DefaultDifficulty;
 }
 
 public sealed record CompanionEvent(DateTimeOffset At, string Text);
@@ -30,6 +34,10 @@ public sealed record CompanionEvent(DateTimeOffset At, string Text);
 public sealed record CompanionStageItem(string Label, bool Done, bool Current, bool Mystery);
 
 public sealed record CompanionDexRow(int SpeciesID, string Name, Rarity Rarity, bool IsShiny, bool IsRaising);
+
+public sealed record CompanionShopRow(ItemKind? Item, Rarity? EggTier, string Label, long Price, bool CanBuy);
+
+public sealed record CompanionBagItem(ItemKind Kind, string Label, long Count, bool CanUse);
 
 public sealed record CompanionGameView(
     bool HasActive,
@@ -49,9 +57,26 @@ public sealed record CompanionGameView(
     int DexCount,
     long LifetimeTokens,
     long AvailableTokens,
+    double GrowthDifficulty,
+    double ShopDifficulty,
     IReadOnlyList<CompanionStageItem> StageItems,
     IReadOnlyList<CompanionDexRow> DexRows,
-    IReadOnlyList<CompanionEvent> RecentEvents);
+    IReadOnlyList<CompanionEvent> RecentEvents,
+    IReadOnlyList<CompanionShopRow> ShopRows,
+    IReadOnlyList<CompanionBagItem> Bag);
+
+public enum CandyUseResult
+{
+    Unavailable,
+    Progressed,
+    Evolved,
+    Graduated
+}
+
+public sealed record RareCandyUsePlan(int Count, bool Evolves, bool Graduates, long CarryoverXP, long DiscardedXP)
+{
+    public long Xp => (long)Count * RareCandies.Xp;
+}
 
 public sealed class CompanionEngine
 {
@@ -65,10 +90,14 @@ public sealed class CompanionEngine
     private IReadOnlyDictionary<string, long>? _lastMap;
     private string _lastDate = "";
     private bool _lastHasUsage;
+    private double _growthDifficulty;
+    private double _shopDifficulty;
 
     public CompanionEngine(CompanionEngineOptions? options = null)
     {
         _options = options ?? new CompanionEngineOptions();
+        _growthDifficulty = PokemonBalance.ClampDifficulty(_options.GrowthDifficulty);
+        _shopDifficulty = PokemonBalance.ClampDifficulty(_options.ShopDifficulty);
         _state = CompanionStateFile.Load(_options.StateFilePath);
         var changed = NormalizeActive();
         changed |= MigrateProfilesIfNeeded();
@@ -198,7 +227,7 @@ public sealed class CompanionEngine
     private bool HatchIfReady()
     {
         if (_state.Active is not null || !_state.InstallBaselineSet) return false;
-        if (_state.EggUsage < PokemonBalance.EggHatchThreshold) return false;
+        if (_state.EggUsage < EggHatchThresholdCore) return false;
 
         for (var attempt = 0; attempt < HatchRollAttempts; attempt++)
         {
@@ -232,7 +261,7 @@ public sealed class CompanionEngine
             var pendingForm = pendingID == baseID ? _state.PendingUnownForm : null;
             _state.PendingHatchID = null;
             _state.PendingUnownForm = null;
-            var overflow = Math.Max(0, _state.EggUsage - PokemonBalance.EggHatchThreshold);
+            var overflow = Math.Max(0, _state.EggUsage - EggHatchThresholdCore);
             _state.EggUsage = 0;
             _state.EggTier = null;
             var isShiny = PokemonOdds.RollsShiny(_options.NextRoll(), OwnsShinyCharm);
@@ -537,7 +566,11 @@ public sealed class CompanionEngine
             completedGrowth + Math.Min(SaveTransfer.MaxTokenValue, Math.Max(0, currentStageUsage)));
     }
 
-    private static long StageThreshold(MonState mon) => mon.PhaseThreshold;
+    private long StageThreshold(MonState mon) =>
+        PokemonBalance.Scaled(mon.PhaseThreshold, _growthDifficulty);
+
+    private long EggHatchThresholdCore =>
+        PokemonBalance.Scaled(PokemonBalance.EggHatchThreshold, _growthDifficulty);
 
     private bool OwnsShinyCharm =>
         _state.Inventory.TryGetValue(ItemKinds.Raw(ItemKind.ShinyCharm), out var count) && count > 0;
@@ -560,6 +593,7 @@ public sealed class CompanionEngine
             EventText.DittoReveal => shiny
                 ? $"{name} was a shiny Ditto in disguise!"
                 : $"{name} was a Ditto in disguise!",
+            EventText.Release => $"{name} released — a new egg is incubating.",
             _ => name
         };
         _events.Add(new CompanionEvent(_options.Clock(), text));
@@ -572,7 +606,304 @@ public sealed class CompanionEngine
         public const string Evolve = "evolve";
         public const string Graduate = "graduate";
         public const string DittoReveal = "ditto";
+        public const string Release = "release";
     }
+
+    public long Price(ShopEntry entry) => PokemonBalance.Scaled(entry.Price, _shopDifficulty);
+
+    public bool CanBuy(ItemKind kind)
+    {
+        lock (_gate) return CanBuyCore(ShopEntry.FromItem(kind));
+    }
+
+    public bool Buy(ItemKind kind)
+    {
+        lock (_gate)
+        {
+            if (!CanBuyCore(ShopEntry.FromItem(kind))) return false;
+            var price = Price(ShopEntry.FromItem(kind));
+            _state.SpentTokens += price;
+            _state.Inventory[ItemKinds.Raw(kind)] = ItemCount(kind) + 1;
+            AppLog.Write($"shop: bought {ItemKinds.Raw(kind)} for {price}");
+            SaveCore();
+        }
+        Changed?.Invoke();
+        return true;
+    }
+
+    public bool CanBuyEgg(Rarity? tier)
+    {
+        lock (_gate) return CanBuyEggCore(tier);
+    }
+
+    public bool BuyEgg(Rarity? tier)
+    {
+        lock (_gate)
+        {
+            if (!CanBuyEggCore(tier)) return false;
+            var price = Price(ShopEntry.FromEgg(tier));
+            _state.SpentTokens += price;
+            var releasedName = "egg";
+            if (_state.Active is { } active)
+            {
+                releasedName = DisplayName(_options.Lines.Line(active.BaseID), active.CurrentID,
+                    active.UnownForm);
+                _state.Dex.Add(ReleasedDexEntry(active));
+                _state.Active = null;
+                _state.ReconcileRepresentativeSelection();
+            }
+            _state.EggUsage = 0;
+            _state.EggTier = tier;
+            _state.PendingHatchID = null;
+            _state.PendingUnownForm = null;
+            AppLog.Write($"egg purchased: discarded active, tier=" +
+                         $"{(tier is { } value ? Rarities.Raw(value) : "none")} price={price}");
+            AddEvent(EventText.Release, releasedName);
+            SaveCore();
+        }
+        Changed?.Invoke();
+        return true;
+    }
+
+    public int MaxRareCandyUseCount()
+    {
+        lock (_gate)
+        {
+            var costs = RareCandyStageCosts();
+            var remaining = Math.Max(0, costs.Sum() - (_state.Active?.UsedAtStage ?? 0));
+            var needed = remaining / RareCandies.Xp + (remaining % RareCandies.Xp == 0 ? 0 : 1);
+            return (int)Math.Min(ItemCount(ItemKind.RareCandy), needed);
+        }
+    }
+
+    public RareCandyUsePlan? PlanRareCandyUse(int requested)
+    {
+        lock (_gate)
+        {
+            var costs = RareCandyStageCosts();
+            var count = (int)Math.Min(Math.Max(0, requested), Math.Min(ItemCount(ItemKind.RareCandy),
+                NeededCandies(costs, _state.Active?.UsedAtStage ?? 0)));
+            if (count == 0 || _state.Active is not { } mon) return null;
+            var remaining = mon.UsedAtStage + (long)count * RareCandies.Xp;
+            var evolves = false;
+            for (var index = 0; index < costs.Count; index++)
+            {
+                if (remaining < costs[index]) break;
+                remaining -= costs[index];
+                if (index == costs.Count - 1)
+                    return new RareCandyUsePlan(count, evolves, true, 0, remaining);
+                evolves = true;
+            }
+            return new RareCandyUsePlan(count, evolves, false, evolves ? remaining : 0, 0);
+        }
+    }
+
+    public CandyUseResult UseRareCandy(int count = 1)
+    {
+        CandyUseResult result;
+        lock (_gate)
+        {
+            var preview = PlanRareCandyUse(count);
+            if (preview is null) return CandyUseResult.Unavailable;
+            var consumed = preview.Count;
+            if (_state.Active is { } mon && mon.DittoDisguise is not null && !mon.DittoRevealed)
+            {
+                var remaining = Math.Max(0, StageThreshold(mon) - mon.UsedAtStage);
+                var needed = remaining / RareCandies.Xp + (remaining % RareCandies.Xp == 0 ? 0 : 1);
+                consumed = (int)Math.Min(consumed, needed);
+            }
+            var xp = (long)consumed * RareCandies.Xp;
+            _state.Inventory[ItemKinds.Raw(ItemKind.RareCandy)] = ItemCount(ItemKind.RareCandy) - consumed;
+            var beforeStage = _state.Active?.StageIndex ?? 0;
+            ApplyGrowth(xp);
+            SaveCore();
+            result = _state.Active is null
+                ? CandyUseResult.Graduated
+                : _state.Active.StageIndex > beforeStage
+                    ? CandyUseResult.Evolved
+                    : CandyUseResult.Progressed;
+        }
+        Changed?.Invoke();
+        return result;
+    }
+
+    public PokemonNature? UseMint()
+    {
+        PokemonNature? picked;
+        lock (_gate)
+        {
+            if (_state.Active is not { } mon || ItemCount(ItemKind.Mint) <= 0) return null;
+            PokemonNature[] pool = PokemonNatures.All
+                .Where(nature => mon.Nature is null || nature != mon.Nature)
+                .ToArray();
+            picked = pool[(int)(_options.NextRoll() % (ulong)pool.Length)];
+            mon.Nature = picked;
+            _state.Inventory[ItemKinds.Raw(ItemKind.Mint)] = ItemCount(ItemKind.Mint) - 1;
+            SaveCore();
+        }
+        Changed?.Invoke();
+        return picked;
+    }
+
+    public void SetGrowthDifficulty(double value)
+    {
+        var clamped = PokemonBalance.ClampDifficulty(value);
+        lock (_gate)
+        {
+            if (clamped == _growthDifficulty) return;
+            RescaleBankedGrowth(_growthDifficulty, clamped);
+            _growthDifficulty = clamped;
+            SaveCore();
+        }
+        Changed?.Invoke();
+    }
+
+    public void SetShopDifficulty(double value)
+    {
+        var clamped = PokemonBalance.ClampDifficulty(value);
+        lock (_gate)
+        {
+            if (clamped == _shopDifficulty) return;
+            _shopDifficulty = clamped;
+        }
+        Changed?.Invoke();
+    }
+
+    private void RescaleBankedGrowth(double old, double @new)
+    {
+        long Rescaled(long credits, long baseline)
+        {
+            var oldThreshold = Math.Max(1, PokemonBalance.Scaled(baseline, old));
+            var newThreshold = Math.Max(1, PokemonBalance.Scaled(baseline, @new));
+            var value = credits / (double)oldThreshold * newThreshold;
+            var rounded = (long)Math.Floor(Math.Min((double)SaveTransfer.MaxTokenValue,
+                Math.Max(0, value)));
+            return credits < oldThreshold ? Math.Min(newThreshold - 1, rounded) : rounded;
+        }
+
+        if (_state.Active is { } active)
+            active.UsedAtStage = Rescaled(active.UsedAtStage, active.PhaseThreshold);
+        else
+            _state.EggUsage = Rescaled(_state.EggUsage, PokemonBalance.EggHatchThreshold);
+    }
+
+    private long ItemCount(ItemKind kind) =>
+        _state.Inventory.TryGetValue(ItemKinds.Raw(kind), out var count) ? count : 0;
+
+    private long WalletCore => Math.Max(0, _state.UsedSinceInstall - _state.SpentTokens);
+
+    private bool CanBuyCore(ShopEntry entry)
+    {
+        if (entry.Item is not { } kind) return CanBuyEggCore(entry.EggTier);
+        if (kind.ShopPrice() is null) return false;
+        if (kind.IsPassive() && ItemCount(kind) > 0) return false;
+        return WalletCore >= Price(entry);
+    }
+
+    private bool CanBuyEggCore(Rarity? tier)
+    {
+        if (!FreshEggs.ShopTiers.Contains(tier)) return false;
+        return _state.Active is not null && WalletCore >= Price(ShopEntry.FromEgg(tier));
+    }
+
+    private static long NeededCandies(List<long> costs, long usedAtStage)
+    {
+        var remaining = Math.Max(0, costs.Sum() - usedAtStage);
+        return remaining / RareCandies.Xp + (remaining % RareCandies.Xp == 0 ? 0 : 1);
+    }
+
+    private List<long> RareCandyStageCosts()
+    {
+        if (_state.Active is not { } mon || _options.Lines.Line(mon.BaseID) is null) return [];
+        if (mon.DittoDisguise is not null && !mon.DittoRevealed
+            && mon.UsedAtStage >= StageThreshold(mon))
+            return [];
+        var copy = new MonState(mon.BaseID, mon.PathIDs, mon.PlannedPathIDs, mon.StageIndex,
+            mon.UsedAtStage, mon.Rarity, mon.TotalForms, mon.IsShiny, mon.Nature, mon.Profile,
+            mon.HasGrowthBoost, mon.DittoDisguise, mon.DittoRevealed, mon.UnownForm);
+        var costs = new List<long>();
+        for (var stage = mon.StageIndex; stage < mon.TotalForms; stage++)
+        {
+            copy.StageIndex = stage;
+            costs.Add(StageThreshold(copy));
+        }
+        return costs;
+    }
+
+    private DexEntry ReleasedDexEntry(MonState mon)
+    {
+        var reached = mon.PathIDs.Take(Math.Max(1, mon.StageIndex + 1)).ToList();
+        if (reached.Count == 0) reached = [mon.BaseID];
+        Dictionary<int, Dictionary<string, string>>? names = null;
+        if (_options.Lines.Line(mon.BaseID) is { } line)
+        {
+            names = [];
+            foreach (var id in reached)
+                if (line.Names.TryGetValue(id, out var byLang))
+                    names[id] = byLang;
+        }
+        var now = _options.Clock();
+        var isShiny = (mon.DittoDisguise is null || mon.DittoRevealed) && mon.IsShiny;
+        return new DexEntry(
+            mon.BaseID, reached[^1], reached, mon.Rarity, now, isShiny, mon.Nature, mon.Profile,
+            names, releasedAt: now, unownForm: mon.UnownForm,
+            id: mon.Profile?.InstanceID ?? Guid.NewGuid().ToString());
+    }
+
+    private IReadOnlyList<CompanionShopRow> BuildShopRows()
+    {
+        var entries = Enum.GetValues<ItemKind>()
+            .Where(kind => kind.ShopPrice() is not null)
+            .Select(ShopEntry.FromItem)
+            .ToList();
+        entries.AddRange(FreshEggs.ShopTiers.Select(ShopEntry.FromEgg));
+        return entries
+            .OrderBy(entry => IsPurchasedPassive(entry) ? 1 : 0)
+            .ThenBy(entry => Price(entry))
+            .Select(entry => new CompanionShopRow(
+                entry.Item, entry.EggTier, ShopRowLabel(entry), Price(entry), CanBuyCore(entry)))
+            .ToList();
+    }
+
+    private bool IsPurchasedPassive(ShopEntry entry) =>
+        entry.Item is { } kind && kind.IsPassive() && ItemCount(kind) > 0;
+
+    private static string ShopRowLabel(ShopEntry entry) => entry.Item switch
+    {
+        ItemKind.RareCandy => "Rare Candy",
+        ItemKind.Mint => "Mint",
+        ItemKind.ShinyCharm => "Shiny Charm",
+        _ => entry.EggTier switch
+        {
+            Rarity.Uncommon => "Fresh Egg (uncommon+)",
+            Rarity.Rare => "Fresh Egg (rare+)",
+            _ => "Fresh Egg",
+        }
+    };
+
+    private IReadOnlyList<CompanionBagItem> BuildBag() =>
+        Enum.GetValues<ItemKind>()
+            .Where(kind => ItemCount(kind) > 0)
+            .Select(kind => new CompanionBagItem(
+                kind, BagItemLabel(kind), ItemCount(kind), CanUseItem(kind)))
+            .ToList();
+
+    private bool CanUseItem(ItemKind kind) => kind switch
+    {
+        ItemKind.RareCandy => RareCandyStageCosts().Count > 0
+            && NeededCandies(RareCandyStageCosts(), _state.Active?.UsedAtStage ?? 0) > 0
+            && ItemCount(kind) > 0,
+        ItemKind.Mint => _state.Active is not null && ItemCount(kind) > 0,
+        _ => false,
+    };
+
+    private static string BagItemLabel(ItemKind kind) => kind switch
+    {
+        ItemKind.RareCandy => "Rare Candy",
+        ItemKind.Mint => "Mint",
+        ItemKind.ShinyCharm => "Shiny Charm",
+        _ => kind.ToString()
+    };
 
     public byte[] ExportSave()
     {
@@ -647,7 +978,8 @@ public sealed class CompanionEngine
         var stageUsed = active?.UsedAtStage ?? 0;
         var stageProgress = hasActive ? Math.Min(1, stageUsed / (double)stageThreshold) : 0;
         var eggUsed = _state.EggUsage;
-        var eggProgress = Math.Min(1, eggUsed / (double)PokemonBalance.EggHatchThreshold);
+        var eggThreshold = EggHatchThresholdCore;
+        var eggProgress = Math.Min(1, eggUsed / (double)eggThreshold);
         return new CompanionGameView(
             hasActive,
             hasActive ? DisplayName(line, active!.CurrentID, active.UnownForm) : "Token Egg",
@@ -661,14 +993,18 @@ public sealed class CompanionEngine
             stageProgress,
             !hasActive,
             eggUsed,
-            PokemonBalance.EggHatchThreshold,
+            eggThreshold,
             eggProgress,
             _state.Dex.Count,
             _state.UsedSinceInstall,
             Math.Max(0, _state.UsedSinceInstall - _state.SpentTokens),
+            _growthDifficulty,
+            _shopDifficulty,
             hasActive ? BuildStageItems(active!, line) : [],
             BuildDexRows(),
-            _events.ToList());
+            _events.ToList(),
+            BuildShopRows(),
+            BuildBag());
     }
 
     private IReadOnlyList<CompanionStageItem> BuildStageItems(MonState active, EvoLine? line)
