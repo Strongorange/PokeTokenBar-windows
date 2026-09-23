@@ -42,7 +42,7 @@ public class ClaudeScannerIntegrationTests : IDisposable
     }
 
     private static UsageProviderSnapshot SnapshotOf(IReadOnlyList<ScannedFile<List<UsageEntry>>> files) =>
-        new ClaudeUsageProvider().BuildSnapshot(files.SelectMany(f => f.Payload ?? []));
+        new ClaudeUsageProvider().BuildSnapshot(files.Select(f => f.Payload ?? []));
 
     [Fact]
     public void WindowsOnlyFixtureProducesHandVerifiedTotals()

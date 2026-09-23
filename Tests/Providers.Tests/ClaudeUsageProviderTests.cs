@@ -23,7 +23,7 @@ public class ClaudeUsageProviderTests
         {
             new UsageEntry("a|", DateTimeOffset.UtcNow, "2026-09-01", "claude-opus-5", 10, 200, 0, 0),
         };
-        var snapshot = provider.BuildSnapshot(fileA.Concat(fileB));
+        var snapshot = provider.BuildSnapshot([[.. fileA], [.. fileB]]);
 
         Assert.Equal("claude_code", snapshot.ProviderId);
         Assert.Equal("Claude Code", snapshot.DisplayName);

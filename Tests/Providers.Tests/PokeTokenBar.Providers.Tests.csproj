@@ -25,6 +25,8 @@
 
   <ItemGroup>
     <None Include="..\..\docs\windows-port-research\fixtures\*.jsonl" CopyToOutputDirectory="PreserveNewest" LinkBase="fixtures" />
+    <None Include="..\PokeTokenBarTests\Fixtures\CodexFork\*.jsonl" CopyToOutputDirectory="PreserveNewest" LinkBase="fixtures\CodexFork" />
+    <None Include="..\PokeTokenBarTests\Fixtures\CodexSubagent\*.jsonl" CopyToOutputDirectory="PreserveNewest" LinkBase="fixtures\CodexSubagent" />
   </ItemGroup>
 
 </Project>

@@ -7,12 +7,12 @@ public sealed record UsageProviderSnapshot(
     string DisplayName,
     IReadOnlyList<UsageEntry> Entries);
 
-public interface IUsageProvider
+public interface IUsageProvider<TPayload>
 {
     string ProviderId { get; }
     string DisplayName { get; }
 
-    List<UsageEntry> ParseFile(string path, IReadOnlyList<string> lines);
+    TPayload ParseFile(string path, IReadOnlyList<string> lines);
 
-    UsageProviderSnapshot BuildSnapshot(IEnumerable<UsageEntry> fileEntries);
+    UsageProviderSnapshot BuildSnapshot(IEnumerable<TPayload> filePayloads);
 }
