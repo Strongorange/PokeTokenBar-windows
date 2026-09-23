@@ -1,5 +1,8 @@
 <Solution>
   <Folder Name="/src/" />
+  <Folder Name="/src/Application/">
+    <Project Path="src/Application/PokeTokenBar.Application.csproj" />
+  </Folder>
   <Folder Name="/src/Core/">
     <Project Path="src/Core/PokeTokenBar.Core.csproj" />
   </Folder>
@@ -9,7 +12,13 @@
   <Folder Name="/src/Providers/">
     <Project Path="src/Providers/PokeTokenBar.Providers.csproj" />
   </Folder>
+  <Folder Name="/src/Ui/">
+    <Project Path="src/Ui/PokeTokenBar.Ui.csproj" />
+  </Folder>
   <Folder Name="/tests/" />
+  <Folder Name="/tests/Application.Tests/">
+    <Project Path="tests/Application.Tests/PokeTokenBar.Application.Tests.csproj" />
+  </Folder>
   <Folder Name="/tests/Core.Tests/">
     <Project Path="tests/Core.Tests/PokeTokenBar.Core.Tests.csproj" />
   </Folder>
