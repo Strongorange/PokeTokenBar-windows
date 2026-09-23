@@ -3,8 +3,14 @@
   <Folder Name="/src/Core/">
     <Project Path="src/Core/PokeTokenBar.Core.csproj" />
   </Folder>
+  <Folder Name="/src/Platform.Windows/">
+    <Project Path="src/Platform.Windows/PokeTokenBar.Platform.Windows.csproj" />
+  </Folder>
   <Folder Name="/tests/" />
   <Folder Name="/tests/Core.Tests/">
     <Project Path="tests/Core.Tests/PokeTokenBar.Core.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Platform.Windows.Tests/">
+    <Project Path="tests/Platform.Windows.Tests/PokeTokenBar.Platform.Windows.Tests.csproj" />
   </Folder>
 </Solution>
