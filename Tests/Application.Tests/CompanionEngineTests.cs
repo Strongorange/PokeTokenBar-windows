@@ -304,6 +304,90 @@ public class CompanionEngineTests : IDisposable
     }
 
     [Fact]
+    public void NoticesFireExactlyOncePerCompanionEvent()
+    {
+        var engine = BuildEngine();
+        engine.State.Language = AppLanguage.En;
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        Assert.Empty(engine.DrainNotices());
+
+        engine.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+        var hatch = Assert.Single(engine.DrainNotices());
+        Assert.Equal(NoticeKinds.Hatch, hatch.Kind);
+        Assert.Contains("hatched", hatch.Text);
+        Assert.Empty(engine.DrainNotices());
+
+        engine.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+        Assert.Empty(engine.DrainNotices());
+
+        engine.ApplyUsage(Map(("claude_code", 130_000_000)), "2026-09-23", true);
+        Assert.Equal(NoticeKinds.Evolve, Assert.Single(engine.DrainNotices()).Kind);
+
+        engine.ApplyUsage(Map(("claude_code", 380_000_000)), "2026-09-23", true);
+        Assert.Equal(NoticeKinds.Evolve, Assert.Single(engine.DrainNotices()).Kind);
+
+        engine.ApplyUsage(Map(("claude_code", 755_000_000)), "2026-09-23", true);
+        var graduate = Assert.Single(engine.DrainNotices());
+        Assert.Equal(NoticeKinds.Graduate, graduate.Kind);
+        Assert.Empty(engine.DrainNotices());
+    }
+
+    [Fact]
+    public void DittoRevealAndEggReleaseProduceTheirNotices()
+    {
+        var ditto = BuildEngine(new SequenceRng(1, 1, 1, 128));
+        ditto.State.Language = AppLanguage.En;
+        ditto.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        ditto.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+        Assert.Equal(NoticeKinds.Hatch, Assert.Single(ditto.DrainNotices()).Kind);
+
+        ditto.ApplyUsage(Map(("claude_code", 130_000_000)), "2026-09-23", true);
+        var reveal = Assert.Single(ditto.DrainNotices());
+        Assert.Equal(NoticeKinds.DittoReveal, reveal.Kind);
+        Assert.Contains("Ditto in disguise", reveal.Text);
+
+        ditto.State.UsedSinceInstall = 2_000_000_000;
+        Assert.True(ditto.BuyEgg(null));
+        var release = Assert.Single(ditto.DrainNotices());
+        Assert.Equal(NoticeKinds.Release, release.Kind);
+        Assert.Contains("released", release.Text);
+    }
+
+    [Fact]
+    public void ImportSaveClearsPendingNotices()
+    {
+        var engine = BuildEngine();
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        engine.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+        Assert.NotEmpty(engine.DrainNotices());
+        engine.ApplyUsage(Map(("claude_code", 130_000_000)), "2026-09-23", true);
+        Assert.True(engine.View().HasActive);
+
+        var imported = new CompanionState { InstallBaselineSet = true, UsedSinceInstall = 1 };
+        engine.ImportSave(SaveTransfer.Encode(imported, "test", "other-device", Now));
+
+        Assert.Empty(engine.DrainNotices());
+    }
+
+    [Fact]
+    public void ViewExposesSpriteCoordinatesForThePet()
+    {
+        var engine = BuildEngine();
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+
+        var eggView = engine.View();
+        Assert.True(eggView.IsEgg);
+        Assert.Equal(0, eggView.ActiveSpeciesID);
+        Assert.Null(eggView.ActiveUnownForm);
+
+        engine.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+        var monView = engine.View();
+        Assert.True(monView.HasActive);
+        Assert.Equal(1, monView.ActiveSpeciesID);
+        Assert.Null(monView.ActiveUnownForm);
+    }
+
+    [Fact]
     public void StateFileRoundTripsAcrossEngineRestart()
     {
         var statePath = Path.Combine(_dir, "companion-state.json");

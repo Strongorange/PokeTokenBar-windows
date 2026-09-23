@@ -74,4 +74,64 @@ public class AppSettingsFileTests : IDisposable
             Environment.SetEnvironmentVariable("PTB_STATE_DIR", previous);
         }
     }
+
+    [Fact]
+    public void MissingFileYieldsPetDefaults()
+    {
+        var settings = AppSettingsFile.Load(SettingsPath);
+
+        Assert.False(settings.PetEnabled);
+        Assert.Null(settings.PetX);
+        Assert.Null(settings.PetY);
+        Assert.Equal(AppSettingsFile.DefaultPetSize, settings.PetSize);
+    }
+
+    [Fact]
+    public void RoundTripsPetPreferencesAcrossRestart()
+    {
+        var saved = new AppSettings
+        {
+            PetEnabled = true,
+            PetX = 1234.5,
+            PetY = -42,
+            PetSize = 128,
+        };
+        AppSettingsFile.Save(SettingsPath, saved);
+
+        var loaded = AppSettingsFile.Load(SettingsPath);
+
+        Assert.True(loaded.PetEnabled);
+        Assert.Equal(1234.5, loaded.PetX);
+        Assert.Equal(-42, loaded.PetY);
+        Assert.Equal(128, loaded.PetSize);
+    }
+
+    [Fact]
+    public void RoundTripsDisabledPetWithNoPosition()
+    {
+        var saved = new AppSettings { PetEnabled = false };
+        AppSettingsFile.Save(SettingsPath, saved);
+
+        var loaded = AppSettingsFile.Load(SettingsPath);
+
+        Assert.False(loaded.PetEnabled);
+        Assert.Null(loaded.PetX);
+        Assert.Null(loaded.PetY);
+    }
+
+    [Fact]
+    public void OutOfRangePetSizeClampsAndGarbageFallsBack()
+    {
+        File.WriteAllText(SettingsPath,
+            """{"petEnabled": true, "petSize": 9999, "petX": 10}""");
+        var clamped = AppSettingsFile.Load(SettingsPath);
+        Assert.Equal(AppSettingsFile.PetSizeMaximum, clamped.PetSize);
+        Assert.True(clamped.PetEnabled);
+        Assert.Equal(10, clamped.PetX);
+        Assert.Null(clamped.PetY);
+
+        File.WriteAllText(SettingsPath, """{"petSize": 1}""");
+        var floored = AppSettingsFile.Load(SettingsPath);
+        Assert.Equal(AppSettingsFile.PetSizeMinimum, floored.PetSize);
+    }
 }

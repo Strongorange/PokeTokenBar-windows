@@ -31,6 +31,17 @@ public sealed class CompanionEngineOptions
 
 public sealed record CompanionEvent(DateTimeOffset At, string Text);
 
+public sealed record CompanionNotice(string Kind, string Text);
+
+public static class NoticeKinds
+{
+    public const string Hatch = "hatch";
+    public const string Evolve = "evolve";
+    public const string Graduate = "graduate";
+    public const string DittoReveal = "ditto";
+    public const string Release = "release";
+}
+
 public sealed record CompanionStageItem(string Label, bool Done, bool Current, bool Mystery);
 
 public sealed record CompanionDexRow(int SpeciesID, string Name, Rarity Rarity, bool IsShiny, bool IsRaising);
@@ -63,7 +74,9 @@ public sealed record CompanionGameView(
     IReadOnlyList<CompanionDexRow> DexRows,
     IReadOnlyList<CompanionEvent> RecentEvents,
     IReadOnlyList<CompanionShopRow> ShopRows,
-    IReadOnlyList<CompanionBagItem> Bag);
+    IReadOnlyList<CompanionBagItem> Bag,
+    int ActiveSpeciesID,
+    UnownForm? ActiveUnownForm);
 
 public enum CandyUseResult
 {
@@ -86,6 +99,7 @@ public sealed class CompanionEngine
     private readonly CompanionEngineOptions _options;
     private readonly object _gate = new();
     private readonly List<CompanionEvent> _events = [];
+    private readonly List<CompanionNotice> _pendingNotices = [];
     private CompanionState _state = new();
     private IReadOnlyDictionary<string, long>? _lastMap;
     private string _lastDate = "";
@@ -105,6 +119,16 @@ public sealed class CompanionEngine
     }
 
     public event Action? Changed;
+
+    public IReadOnlyList<CompanionNotice> DrainNotices()
+    {
+        lock (_gate)
+        {
+            var drained = _pendingNotices.ToList();
+            _pendingNotices.Clear();
+            return drained;
+        }
+    }
 
     public CompanionState State
     {
@@ -598,6 +622,7 @@ public sealed class CompanionEngine
         };
         _events.Add(new CompanionEvent(_options.Clock(), text));
         if (_events.Count > MaxEvents) _events.RemoveRange(0, _events.Count - MaxEvents);
+        _pendingNotices.Add(new CompanionNotice(kind, text));
     }
 
     private static class EventText
@@ -940,6 +965,7 @@ public sealed class CompanionEngine
             NormalizeActive();
             MigrateProfilesIfNeeded();
             _events.Clear();
+            _pendingNotices.Clear();
             SaveCore();
             AppLog.Write($"save imported from {envelope.SourceDevice}: " +
                          $"dex={_state.Dex.Count} lifetime={_state.UsedSinceInstall}");
@@ -1004,7 +1030,9 @@ public sealed class CompanionEngine
             BuildDexRows(),
             _events.ToList(),
             BuildShopRows(),
-            BuildBag());
+            BuildBag(),
+            active?.CurrentID ?? 0,
+            active?.UnownForm);
     }
 
     private IReadOnlyList<CompanionStageItem> BuildStageItems(MonState active, EvoLine? line)

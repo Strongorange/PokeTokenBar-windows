@@ -104,6 +104,12 @@ public partial class DashboardWindow : Window
         {
             GrowthSlider.Value = view.GrowthDifficulty;
             ShopSlider.Value = view.ShopDifficulty;
+            if (System.Windows.Application.Current is App app)
+            {
+                PetEnabledCheck.IsChecked = app.PetEnabled;
+                PetSizeSlider.Value = app.PetSize;
+                PetSizeValue.Text = $"{(int)app.PetSize}px";
+            }
         }
         finally
         {
@@ -204,6 +210,21 @@ public partial class DashboardWindow : Window
         {
             _updatingDifficulty = false;
         }
+    }
+
+    private void OnPetEnabledChanged(object sender, RoutedEventArgs e)
+    {
+        if (_updatingDifficulty || _engine is null) return;
+        if (System.Windows.Application.Current is App app)
+            app.SetPetEnabled(PetEnabledCheck.IsChecked == true);
+    }
+
+    private void OnPetSizeChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_updatingDifficulty || _engine is null) return;
+        PetSizeValue.Text = $"{(int)e.NewValue}px";
+        if (System.Windows.Application.Current is App app)
+            app.ApplyPetSize(e.NewValue);
     }
 
     private void PersistDifficulty()
