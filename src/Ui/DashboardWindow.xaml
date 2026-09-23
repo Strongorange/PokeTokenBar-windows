@@ -2,25 +2,68 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="PokeTokenBar"
-        Width="360" Height="280"
+        Width="420" Height="480"
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanMinimize">
     <Grid Margin="14">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        <TextBlock Grid.Row="0" Text="Providers" FontWeight="Bold" Margin="0,0,0,6" />
-        <ListBox Grid.Row="1" x:Name="ProvidersList" />
-        <Border Grid.Row="2" BorderBrush="#DDD" BorderThickness="0,1,0,0" Margin="0,10,0,8" Padding="0,8,0,0">
-            <StackPanel>
-                <TextBlock Text="Combined" FontWeight="Bold" />
-                <TextBlock x:Name="CombinedText" FontSize="16" />
-            </StackPanel>
-        </Border>
-        <DockPanel Grid.Row="3" Margin="0,4,0,0">
+        <TabControl Grid.Row="0">
+            <TabItem Header="_Usage">
+                <Grid Margin="0,10,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="Providers" FontWeight="Bold" Margin="0,0,0,6" />
+                    <ListBox Grid.Row="1" x:Name="ProvidersList" />
+                    <Border Grid.Row="2" BorderBrush="#DDD" BorderThickness="0,1,0,0" Margin="0,10,0,0" Padding="0,8,0,0">
+                        <StackPanel>
+                            <TextBlock Text="Combined" FontWeight="Bold" />
+                            <TextBlock x:Name="CombinedText" FontSize="16" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+            <TabItem Header="_Game">
+                <Grid Margin="0,10,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <StackPanel Grid.Row="0">
+                        <TextBlock x:Name="CompanionName" Text="Token Egg" FontSize="18" FontWeight="Bold" />
+                        <TextBlock x:Name="CompanionDetail" Foreground="#666" />
+                    </StackPanel>
+                    <StackPanel Grid.Row="1" Margin="0,10,0,0">
+                        <TextBlock x:Name="ProgressLabel" />
+                        <ProgressBar x:Name="ProgressBar" Height="14" Minimum="0" Maximum="1" Margin="0,4,0,0" />
+                        <TextBlock x:Name="StageLine" FontSize="11" Foreground="#666" Margin="0,4,0,0" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <StackPanel Grid.Row="2" Margin="0,10,0,0" Orientation="Horizontal">
+                        <TextBlock x:Name="DexHeader" FontWeight="Bold" VerticalAlignment="Center" />
+                        <Button Content="E_xport save…" Margin="12,0,0,0" MinWidth="90" Click="OnExportClick" />
+                        <Button Content="_Import save…" Margin="6,0,0,0" MinWidth="90" Click="OnImportClick" />
+                    </StackPanel>
+                    <Grid Grid.Row="3" Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <ListBox Grid.Column="0" x:Name="DexList" />
+                        <ListBox Grid.Column="1" x:Name="EventsList" Margin="8,0,0,0" />
+                    </Grid>
+                    <TextBlock Grid.Row="4" x:Name="GameFooter" FontSize="11" Foreground="#666" Margin="0,8,0,0" />
+                </Grid>
+            </TabItem>
+        </TabControl>
+        <DockPanel Grid.Row="1" Margin="0,10,0,0">
             <Button DockPanel.Dock="Right" Content="_Refresh" MinWidth="80" Click="OnRefreshClick" />
             <TextBlock x:Name="RefreshedText" VerticalAlignment="Center" Foreground="#666" />
         </DockPanel>

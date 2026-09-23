@@ -12,6 +12,7 @@ namespace PokeTokenBar.Ui;
 public partial class App : System.Windows.Application
 {
     private UsageRefreshService _service = null!;
+    private CompanionEngine _engine = null!;
     private TaskbarIcon _trayIcon = null!;
     private DashboardWindow? _dashboard;
     private readonly CancellationTokenSource _shutdown = new();
@@ -24,6 +25,8 @@ public partial class App : System.Windows.Application
             AppLog.Write($"ui unhandled exception: {args.Exception}");
             args.Handled = true;
         };
+        _engine = new CompanionEngine();
+        _engine.Changed += OnCompanionChanged;
         _service = new UsageRefreshService();
         _service.StateChanged += OnStateChanged;
         _ = RefreshSafelyAsync();
@@ -98,6 +101,14 @@ public partial class App : System.Windows.Application
 
     private void OnStateChanged(UsageDisplayState state)
     {
+        try
+        {
+            _engine.ApplyUsage(state);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Write($"companion update failed: {ex.Message}");
+        }
         Dispatcher.BeginInvoke(() =>
         {
             _trayIcon.ToolTipText =
@@ -106,16 +117,22 @@ public partial class App : System.Windows.Application
         });
     }
 
+    private void OnCompanionChanged()
+    {
+        Dispatcher.BeginInvoke(() => _dashboard?.UpdateGame(_engine.View()));
+    }
+
     private void ShowDashboard()
     {
         if (_dashboard is null)
         {
-            _dashboard = new DashboardWindow();
+            _dashboard = new DashboardWindow(_engine);
             _dashboard.Closed += (_, _) => _dashboard = null;
             if (_service.Current is { } state)
                 _dashboard.Update(state);
             else
                 _dashboard.ShowRefreshing();
+            _dashboard.UpdateGame(_engine.View());
         }
         _dashboard.Show();
         _dashboard.Activate();

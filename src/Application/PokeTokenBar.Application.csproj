@@ -12,4 +12,8 @@
     <ProjectReference Include="..\Providers\PokeTokenBar.Providers.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\assets\pokemon-snapshot.json" Link="Assets\pokemon-snapshot.json" />
+  </ItemGroup>
+
 </Project>
