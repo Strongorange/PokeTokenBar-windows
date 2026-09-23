@@ -62,6 +62,11 @@ public partial class App : System.Windows.Application
     private ContextMenu BuildMenu()
     {
         var menu = new ContextMenu();
+        var header = new MenuItem
+        {
+            Header = "PokeTokenBar " + (typeof(App).Assembly.GetName().Version ?? new Version()).ToString(3),
+            IsEnabled = false,
+        };
         var refresh = new MenuItem { Header = "_Refresh" };
         refresh.Click += async (_, _) => await RefreshFromUiAsync();
         var dashboard = new MenuItem { Header = "Open _dashboard" };
@@ -72,6 +77,7 @@ public partial class App : System.Windows.Application
         diagnostics.Click += (_, _) => OpenDiagnosticsFolder();
         var exit = new MenuItem { Header = "E_xit" };
         exit.Click += (_, _) => Shutdown();
+        menu.Items.Add(header);
         menu.Items.Add(refresh);
         menu.Items.Add(dashboard);
         menu.Items.Add(_petToggle);

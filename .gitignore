@@ -32,4 +32,5 @@ build/
 # .NET (Windows port)
 bin/
 obj/
+artifacts/
 *.user

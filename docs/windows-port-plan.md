@@ -185,6 +185,18 @@ large logs.
 **Exit criteria:** stable personal daily use with recoverable local diagnostic
 evidence for failures.
 
+### Personal packaging (added after M7)
+
+Daily use no longer runs from the Debug build output. `scripts/publish-windows.ps1`
+stops a running installed instance, publishes the UI project as a single-file
+self-contained win-x64 exe (`src/Ui/Properties/PublishProfiles/win-x64.pubxml`),
+verifies the staged exe version against the `<Version>` in the Ui csproj, installs
+it to `%LOCALAPPDATA%\Programs\PokeTokenBar`, and refreshes a Start Menu shortcut.
+Version lives in the Ui csproj and shows at the top of the tray context menu. App state, settings,
+sprites, and diagnostics stay under `%LOCALAPPDATA%\PokeTokenBar` (`PTB_STATE_DIR`
+to override), so installs never touch user data. Public distribution (MSIX,
+winget, automatic updates) remains deferred.
+
 ### Later: OpenCode
 
 Add an `OpenCodeUsageProvider` only after its Windows/WSL storage locations and
