@@ -16,10 +16,9 @@ activity.
 
 - Claude Code
 - Codex
-
-OpenCode is intentionally deferred. The provider architecture must allow it to
-be added later without adding provider-specific branches to common aggregation,
-game progression, or UI code.
+- OpenCode (added in M9; reads `opencode.db` under
+  `%USERPROFILE%\.local\share\opencode` and each WSL distro's
+  `/home/<user>/.local/share/opencode`)
 
 ### Initial features
 
@@ -199,6 +198,12 @@ winget, automatic updates) remains deferred.
 
 ### Later: OpenCode
 
-Add an `OpenCodeUsageProvider` only after its Windows/WSL storage locations and
-sanitized fixtures are established. It must use the existing provider contract
-and must not change generic totals, game progression, or UI architecture.
+Done in M9 (`OpenCodeUsageProvider` + `OpenCodeDbReader`). Storage research
+established that OpenCode 1.x keeps everything in a WAL-mode SQLite
+`opencode.db` (message rows carry tokens/cost in `data` JSON; the old
+`storage/` JSON layout is legacy). Local disks are opened read-only directly;
+UNC paths (WSL `\\wsl.localhost\...`) cannot host SQLite locks, so the reader
+copies db+wal to a scratch folder under `%LOCALAPPDATA%\PokeTokenBar\opencode`
+ gated by db+wal fingerprints. Sanitized fixtures live under
+`docs/windows-port-research/fixtures/opencode/`. No generic totals, game
+progression, or UI architecture changes were made.
