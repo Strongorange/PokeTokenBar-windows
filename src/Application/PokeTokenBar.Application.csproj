@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.12" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Core\PokeTokenBar.Core.csproj" />
     <ProjectReference Include="..\Platform.Windows\PokeTokenBar.Platform.Windows.csproj" />
     <ProjectReference Include="..\Providers\PokeTokenBar.Providers.csproj" />

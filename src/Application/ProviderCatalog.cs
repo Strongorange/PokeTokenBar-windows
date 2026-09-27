@@ -16,6 +16,9 @@ public static class ProviderCatalog
     public static string CodexCachePath(string cacheDirectory) =>
         Path.Combine(cacheDirectory, CodexCacheFileName);
 
+    public static string OpenCodeScratchDirectory(string cacheDirectory) =>
+        Path.Combine(cacheDirectory, "opencode");
+
     public static IReadOnlyList<ProviderRegistration> Default(
         string cacheDirectory,
         IFileSystemSource? fileSystem = null,
@@ -28,6 +31,7 @@ public static class ProviderCatalog
                 ClaudeCachePath(cacheDirectory), ClaudeLogParser.ParserVersion)),
             Codex(fs, new UsageScanCache<CodexParsedRollout>(
                 CodexCachePath(cacheDirectory), CodexLogParser.ParserVersion), probeSessionId),
+            OpenCode(fs, OpenCodeScratchDirectory(cacheDirectory)),
         ];
     }
 
@@ -87,6 +91,27 @@ public static class ProviderCatalog
                 cache.Save();
                 return new ProviderRefreshOutcome(true,
                     new UsageProviderSnapshot(provider.ProviderId, provider.DisplayName, entries));
+            });
+    }
+
+    public static ProviderRegistration OpenCode(IFileSystemSource fileSystem, string scratchDirectory)
+    {
+        var provider = new OpenCodeUsageProvider();
+        var reader = new OpenCodeDbReader();
+        return new ProviderRegistration(
+            provider.ProviderId,
+            provider.DisplayName,
+            new HashSet<UsageRootKind> { UsageRootKind.OpenCodeData },
+            (now, timeZone, roots) =>
+            {
+                var available = roots.Count > 0;
+                if (!available)
+                    return new ProviderRefreshOutcome(false, EmptySnapshot(provider));
+                var floorMillis = UsageAggregation.EnrichmentScanStart(now, timeZone).ToUnixTimeMilliseconds();
+                var payloads = roots
+                    .Select(root => reader.ReadEntries(root.Path, fileSystem, floorMillis, timeZone, scratchDirectory))
+                    .ToList();
+                return new ProviderRefreshOutcome(true, provider.BuildSnapshot(payloads));
             });
     }
 

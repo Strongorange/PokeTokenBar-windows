@@ -31,6 +31,8 @@ public static class UsageRootDiscovery
             Path.Combine(o.UserProfile, ".codex", "sessions"));
         yield return new UsageRoot(UsageRootKind.CodexArchivedSessions,
             Path.Combine(o.UserProfile, ".codex", "archived_sessions"), Optional: true);
+        yield return new UsageRoot(UsageRootKind.OpenCodeData,
+            Path.Combine(o.UserProfile, ".local", "share", "opencode"));
     }
 
     private static IEnumerable<UsageRoot> ExistingExtraRoots(UsageRootOptions o)
@@ -43,6 +45,11 @@ public static class UsageRootDiscovery
         foreach (var raw in o.ExtraCodexRoots)
         {
             var root = ExtraCandidate(o, raw, UsageRootKind.CodexSessions);
+            if (root is not null) yield return root.Value;
+        }
+        foreach (var raw in o.ExtraOpenCodeRoots)
+        {
+            var root = ExtraCandidate(o, raw, UsageRootKind.OpenCodeData);
             if (root is not null) yield return root.Value;
         }
     }
@@ -132,6 +139,8 @@ public static class UsageRootDiscovery
                 Path.Combine(userDirectory, ".codex", "sessions"));
             AddWslRoot(roots, fileSystem, UsageRootKind.CodexArchivedSessions,
                 Path.Combine(userDirectory, ".codex", "archived_sessions"));
+            AddWslRoot(roots, fileSystem, UsageRootKind.OpenCodeData,
+                Path.Combine(userDirectory, ".local", "share", "opencode"));
         }
         return roots;
     }

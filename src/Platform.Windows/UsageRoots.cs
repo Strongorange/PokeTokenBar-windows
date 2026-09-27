@@ -5,6 +5,7 @@ public enum UsageRootKind
     ClaudeProjects,
     CodexSessions,
     CodexArchivedSessions,
+    OpenCodeData,
 }
 
 public readonly record struct UsageRoot(UsageRootKind Kind, string Path, bool Optional = false);
@@ -17,6 +18,8 @@ public sealed class UsageRootOptions
     public IReadOnlyList<string> ExtraClaudeRoots { get; init; } = [];
 
     public IReadOnlyList<string> ExtraCodexRoots { get; init; } = [];
+
+    public IReadOnlyList<string> ExtraOpenCodeRoots { get; init; } = [];
 
     public IWslDistroSource? WslDistroSource { get; init; }
 
