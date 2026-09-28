@@ -238,3 +238,21 @@ personal-use scope. The unused `OPENCODE_DATA_DIR` compatibility nicety was
 checked and deliberately skipped: this machine does not set it anywhere
 (Windows env and WSL shell rc files verified), so the fixed-path discovery
 covers actual usage.
+
+## Reopened: UI parity polish (M12+, 2026-09-28)
+
+After closure the user reopened the project for UI polish toward the macOS
+original. First slice (M12, version 0.11.0): dashboard/tray/pet/detail
+localization via `src/Core/DashboardText.cs` (seven languages, values copied
+from the macOS `Localization.swift` so both apps read identically; the engine
+localizes events, notices, shop and bag labels from the saved language) and
+sprites through a cached-first `SpriteSlot` helper reusing `SpriteStore`
+(animated active mon + detail header, static dex row thumbnails, egg image).
+
+Remaining UI-parity candidates, in rough value order (each is its own slice;
+confirm with the user first): dex grid view with sprites instead of a list;
+usage trend chart and model breakdown; a settings window (language picker,
+scan folders, difficulty) instead of sliders in the game tab; shiny banner
+and evolution-line visuals; per-form Unown sprites in dex rows. Windows keeps
+the tray + dashboard model — inline menu-bar text stays out of scope by
+design.
