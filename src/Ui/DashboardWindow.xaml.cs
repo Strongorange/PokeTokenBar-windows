@@ -65,7 +65,7 @@ public partial class DashboardWindow : Window
             StageLine.Text = "";
         }
 
-        DexHeader.Text = $"Dex: {view.DexCount} species · wallet {TokenFormatter.Grouped(view.AvailableTokens)}";
+        DexHeader.Text = $"Dex: {view.DexCount} species · wallet {TokenFormatter.Grouped(view.AvailableTokens)} · double-click for details";
         DexList.Items.Clear();
         foreach (var row in view.DexRows)
         {
@@ -73,6 +73,7 @@ public partial class DashboardWindow : Window
             var raising = row.IsRaising ? "  ← raising" : "";
             DexList.Items.Add($"#{row.SpeciesID} {row.Name}{star} · {RarityText(row.Rarity)}{raising}");
         }
+        UpdateCombatText(view);
         EventsList.Items.Clear();
         foreach (var item in view.RecentEvents)
             EventsList.Items.Add($"{item.At.ToLocalTime():MM-dd HH:mm}  {item.Text}");
@@ -122,6 +123,53 @@ public partial class DashboardWindow : Window
 
     private static bool BagHas(ItemKind kind, CompanionGameView view) =>
         view.Bag.Any(item => item.Kind == kind);
+
+    private void UpdateCombatText(CompanionGameView view)
+    {
+        if (!view.HasActive || _engine.Detail(view.ActiveSpeciesID) is not { } detail)
+        {
+            CombatText.Text = "";
+            return;
+        }
+        var raising = detail.Individuals.FirstOrDefault(individual => individual.IsRaising);
+        var parts = new List<string>();
+        if (raising is not null)
+        {
+            parts.Add($"Lv. {raising.Level}");
+            if (raising.Gender.Length > 0) parts.Add(raising.Gender);
+            if (raising.Nature.Length > 0) parts.Add(raising.Nature);
+            if (raising.Ability.Length > 0)
+                parts.Add(raising.Ability + (raising.AbilityIsHidden ? " (hidden)" : ""));
+        }
+        if (detail.Types.Count > 0) parts.Add(string.Join("/", detail.Types));
+        parts.Add($"BST {detail.BaseStatTotal}");
+        CombatText.Text = string.Join(" · ", parts);
+    }
+
+    private void OnDexDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (_lastView is not { } view) return;
+        var index = DexList.SelectedIndex;
+        if (index < 0 || index >= view.DexRows.Count) return;
+        var row = view.DexRows[index];
+        try
+        {
+            if (_engine.Detail(row.SpeciesID) is { } detail)
+            {
+                var window = new SpeciesDetailWindow(detail) { Owner = this };
+                window.Show();
+            }
+            else
+            {
+                _feedback = $"No combat details for #{row.SpeciesID}";
+                UpdateGame(_engine.View());
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLog.Write($"species detail window failed: {ex.Message}");
+        }
+    }
 
     private void OnBuyClick(object sender, RoutedEventArgs e)
     {

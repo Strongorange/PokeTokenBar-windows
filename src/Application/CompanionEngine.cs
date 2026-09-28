@@ -50,6 +50,39 @@ public sealed record CompanionShopRow(ItemKind? Item, Rarity? EggTier, string La
 
 public sealed record CompanionBagItem(ItemKind Kind, string Label, long Count, bool CanUse);
 
+public sealed record CompanionDetailStat(string Name, int Base, int Iv, int Value);
+
+public sealed record CompanionDetailAbility(string Name, bool IsHidden);
+
+public sealed record CompanionDetailMoveOption(string Name, IReadOnlyList<string> Methods);
+
+public sealed record CompanionDetailKnownMove(string Name, int LearnedAtLevel);
+
+public sealed record CompanionDetailIndividual(
+    string Label,
+    bool IsShiny,
+    bool IsRaising,
+    int Level,
+    string Gender,
+    string Nature,
+    string Ability,
+    bool AbilityIsHidden,
+    IReadOnlyList<CompanionDetailStat> Stats,
+    IReadOnlyList<CompanionDetailKnownMove> Moves);
+
+public sealed record CompanionDetailSnapshot(
+    int SpeciesID,
+    string Name,
+    Rarity? Rarity,
+    IReadOnlyList<string> Types,
+    int Height,
+    int Weight,
+    int BaseStatTotal,
+    IReadOnlyList<CompanionDetailStat> BaseStats,
+    IReadOnlyList<CompanionDetailAbility> Abilities,
+    IReadOnlyList<CompanionDetailMoveOption> Moves,
+    IReadOnlyList<CompanionDetailIndividual> Individuals);
+
 public sealed record CompanionGameView(
     bool HasActive,
     string ActiveName,
@@ -115,6 +148,7 @@ public sealed class CompanionEngine
         _state = CompanionStateFile.Load(_options.StateFilePath);
         var changed = NormalizeActive();
         changed |= MigrateProfilesIfNeeded();
+        changed |= EnrichCombatProfiles();
         if (changed) SaveCore();
     }
 
@@ -305,6 +339,7 @@ public sealed class CompanionEngine
             AppLog.Write($"hatch: base={line.BaseID} rarity={Rarities.Raw(line.Rarity)} shiny={isShiny} " +
                          $"forms={plan.Count} boost={hasGrowthBoost} ditto={dittoDisguise is not null}");
             AddEvent(EventText.Hatch, DisplayName(line, line.BaseID, unownForm), isShiny);
+            EnrichActiveProfile();
             if (overflow > 0) ApplyGrowth(overflow);
             return true;
         }
@@ -386,9 +421,11 @@ public sealed class CompanionEngine
             _state.Active.UsedAtStage = active.UsedAtStage - threshold;
             var newName = DisplayName(line, next.SpeciesID, _state.Active.UnownForm);
             AddEvent(EventText.Evolve, newName);
+            EnrichActiveProfile();
             mutated = true;
         }
         ReconcileActiveProfileGrowth();
+        mutated |= EnrichActiveProfile();
         return mutated;
     }
 
@@ -426,6 +463,8 @@ public sealed class CompanionEngine
     {
         if (_state.Active is not { } active) return;
         active.Profile?.AdvanceGrowth(PokemonBalance.GraduationTotal(active.Rarity), active.Rarity);
+        if (active.Profile is { } profile && _options.Lines.Details(active.CurrentID) is { } finalDetails)
+            profile.Enrich(finalDetails);
         var finalID = active.CurrentID;
         _state.CollectedFinals.Add($"{active.BaseID}:{finalID}");
         Dictionary<int, Dictionary<string, string>>? names = null;
@@ -589,6 +628,37 @@ public sealed class CompanionEngine
         return Math.Min(SaveTransfer.MaxTokenValue,
             completedGrowth + Math.Min(SaveTransfer.MaxTokenValue, Math.Max(0, currentStageUsage)));
     }
+
+    private bool EnrichCombatProfiles()
+    {
+        var changed = EnrichActiveProfile();
+        foreach (var entry in _state.Dex)
+        {
+            if (entry.Profile is not { } profile) continue;
+            if (_options.Lines.Details(entry.FinalID) is not { } details) continue;
+            var before = CombatFingerprint(profile);
+            profile.Enrich(details);
+            if (CombatFingerprint(profile) != before) changed = true;
+        }
+        return changed;
+    }
+
+    private bool EnrichActiveProfile()
+    {
+        if (_state.Active is not { } active || active.Profile is not { } profile) return false;
+        if (_options.Lines.Details(active.CurrentID) is not { } details) return false;
+        var before = CombatFingerprint(profile);
+        profile.Enrich(details);
+        return CombatFingerprint(profile) != before;
+    }
+
+    private static string CombatFingerprint(PokemonProfile profile) =>
+        string.Join('|',
+            profile.Gender is { } gender ? PokemonGenders.Raw(gender) : "",
+            profile.AbilitySlot,
+            profile.AbilityName,
+            profile.AbilityIsHidden,
+            string.Join(',', profile.Moves.Select(move => $"{move.Name}:{move.LearnedAtLevel}")));
 
     private long StageThreshold(MonState mon) =>
         PokemonBalance.Scaled(mon.PhaseThreshold, _growthDifficulty);
@@ -859,6 +929,8 @@ public sealed class CompanionEngine
     {
         var reached = mon.PathIDs.Take(Math.Max(1, mon.StageIndex + 1)).ToList();
         if (reached.Count == 0) reached = [mon.BaseID];
+        if (mon.Profile is { } profile && _options.Lines.Details(reached[^1]) is { } releasedDetails)
+            profile.Enrich(releasedDetails);
         Dictionary<int, Dictionary<string, string>>? names = null;
         if (_options.Lines.Line(mon.BaseID) is { } line)
         {
@@ -964,6 +1036,7 @@ public sealed class CompanionEngine
                 _lastMap ?? new Dictionary<string, long>(), _lastDate, _lastHasUsage);
             NormalizeActive();
             MigrateProfilesIfNeeded();
+            EnrichCombatProfiles();
             _events.Clear();
             _pendingNotices.Clear();
             SaveCore();
@@ -993,6 +1066,101 @@ public sealed class CompanionEngine
     public CompanionGameView View()
     {
         lock (_gate) return BuildView();
+    }
+
+    public CompanionDetailSnapshot? Detail(int speciesID)
+    {
+        lock (_gate) return BuildDetail(speciesID);
+    }
+
+    private CompanionDetailSnapshot? BuildDetail(int speciesID)
+    {
+        if (_options.Lines.Details(speciesID) is not { } details) return null;
+        var language = _state.Language;
+
+        var individuals = new List<CompanionDetailIndividual>();
+        var name = "";
+        Rarity? rarity = null;
+        foreach (var entry in _state.Dex.Where(entry => entry.FinalID == speciesID))
+        {
+            rarity ??= entry.Rarity;
+            if (name.Length == 0 && entry.Names is not null
+                && entry.Names.TryGetValue(speciesID, out var byLang)
+                && language.ResolveName(byLang) is { } dexName)
+                name = dexName;
+            if (entry.Profile is not { } profile) continue;
+            individuals.Add(BuildIndividual(individuals.Count + 1, entry.IsShiny, false,
+                profile, entry.Nature, details, language));
+        }
+        if (_state.Active is { } active && active.CurrentID == speciesID && active.Profile is { } activeProfile)
+        {
+            rarity ??= active.Rarity;
+            if (name.Length == 0)
+                name = DisplayName(_options.Lines.Line(active.BaseID), speciesID, active.UnownForm);
+            individuals.Add(BuildIndividual(individuals.Count + 1,
+                (active.DittoDisguise is null || active.DittoRevealed) && active.IsShiny,
+                true, activeProfile, active.Nature, details, language));
+        }
+        if (name.Length == 0) name = PokemonNameLocalization.Identifier(details.Name);
+
+        var baseStats = new List<CompanionDetailStat>();
+        foreach (var stat in PokemonStatCalculator.Order)
+            if (details.BaseStats.TryGetValue(stat, out var value))
+                baseStats.Add(new CompanionDetailStat(stat, value, 0, value));
+
+        return new CompanionDetailSnapshot(
+            speciesID,
+            name,
+            rarity,
+            details.Types.Select(type => _options.Lines.ResourceName(PokemonResourceKinds.Type, type, language)).ToList(),
+            details.Height,
+            details.Weight,
+            details.BaseStatTotal,
+            baseStats,
+            details.Abilities
+                .Select(ability => new CompanionDetailAbility(
+                    _options.Lines.ResourceName(PokemonResourceKinds.Ability, ability.Name, language),
+                    ability.IsHidden))
+                .ToList(),
+            details.Moves
+                .Select(move => new CompanionDetailMoveOption(
+                    _options.Lines.ResourceName(PokemonResourceKinds.Move, move.Name, language),
+                    MoveMethodLabels(move).ToList()))
+                .ToList(),
+            individuals);
+    }
+
+    private CompanionDetailIndividual BuildIndividual(int position, bool isShiny, bool isRaising,
+        PokemonProfile profile, PokemonNature? nature, PokemonDetails details, AppLanguage language)
+    {
+        var ability = profile.AbilityName is { } abilityName
+            ? _options.Lines.ResourceName(PokemonResourceKinds.Ability, abilityName, language)
+            : "";
+        return new CompanionDetailIndividual(
+            $"#{position}",
+            isShiny,
+            isRaising,
+            profile.Level,
+            profile.Gender is { } gender ? PokemonGenders.Raw(gender) : "",
+            nature is { } value ? PokemonNatures.Name(value, language) : "",
+            ability,
+            profile.AbilityIsHidden,
+            PokemonStatCalculator.Stats(details, profile, nature)
+                .Select(stat => new CompanionDetailStat(stat.Name, stat.Base, stat.Iv, stat.Value))
+                .ToList(),
+            profile.Moves.Select(move => new CompanionDetailKnownMove(
+                _options.Lines.ResourceName(PokemonResourceKinds.Move, move.Name, language),
+                move.LearnedAtLevel)).ToList());
+    }
+
+    private static IEnumerable<string> MoveMethodLabels(PokemonMoveOption option)
+    {
+        var seen = new HashSet<string>();
+        foreach (var method in option.LearnMethods)
+        {
+            var label = method.Method == "level-up" ? $"Lv. {method.Level}" : method.Method;
+            if (seen.Add(label)) yield return label;
+        }
     }
 
     private CompanionGameView BuildView()

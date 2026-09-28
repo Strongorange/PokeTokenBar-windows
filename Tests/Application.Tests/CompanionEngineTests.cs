@@ -44,10 +44,10 @@ public class CompanionEngineTests : IDisposable
     }
 
     private CompanionEngine BuildEngine(SequenceRng? rng = null, string? fileName = null,
-        TickingClock? clock = null)
+        TickingClock? clock = null, string? snapshot = null)
     {
         var lines = PokemonLineSource.Load(
-            new MemoryStream(Encoding.UTF8.GetBytes(PokemonLineSourceTests.MinimalSnapshot)));
+            new MemoryStream(Encoding.UTF8.GetBytes(snapshot ?? PokemonLineSourceTests.MinimalSnapshot)));
         return new CompanionEngine(new CompanionEngineOptions
         {
             StateFilePath = Path.Combine(_dir, fileName ?? "companion-state.json"),
@@ -250,6 +250,129 @@ public class CompanionEngineTests : IDisposable
         var active = engine.State.Active!;
         Assert.NotNull(active);
         Assert.Equal(1_000_000, active.UsedAtStage);
+    }
+
+    [Fact]
+    public void HatchedProfileIsEnrichedWithCombatDetails()
+    {
+        var engine = BuildEngine(snapshot: PokemonLineSourceTests.CombatSnapshot);
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+
+        engine.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+
+        var profile = engine.State.Active!.Profile!;
+        Assert.NotNull(profile);
+        Assert.NotNull(profile.Gender);
+        Assert.NotNull(profile.AbilityName);
+        Assert.Equal(5, profile.Level);
+        Assert.Equal("tackle", profile.Moves.Single().Name);
+        Assert.Equal(1, profile.Moves.Single().LearnedAtLevel);
+    }
+
+    [Fact]
+    public void EvolutionEnrichesProfileForNewSpeciesDetails()
+    {
+        var engine = BuildEngine(snapshot: PokemonLineSourceTests.CombatSnapshot);
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        engine.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+
+        engine.ApplyUsage(Map(("claude_code", 130_000_000)), "2026-09-23", true);
+
+        var profile = engine.State.Active!.Profile!;
+        Assert.Equal(2, engine.State.Active!.CurrentID);
+        Assert.Equal(["tackle", "vine-whip"],
+            profile.Moves.Select(move => move.Name));
+    }
+
+    [Fact]
+    public void GraduatedDexEntryCarriesEnrichedProfile()
+    {
+        var engine = BuildEngine(snapshot: PokemonLineSourceTests.CombatSnapshot);
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        engine.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+        engine.ApplyUsage(Map(("claude_code", 130_000_000)), "2026-09-23", true);
+        engine.ApplyUsage(Map(("claude_code", 380_000_000)), "2026-09-23", true);
+
+        engine.ApplyUsage(Map(("claude_code", 755_000_000)), "2026-09-23", true);
+
+        var entry = engine.State.Dex.Single();
+        var profile = entry.Profile!;
+        Assert.Equal(3, entry.FinalID);
+        Assert.Equal(100, profile.Level);
+        Assert.Equal(["tackle", "razor-leaf"],
+            profile.Moves.Select(move => (move.Name, move.LearnedAtLevel))
+                .Select(pair => pair.Name)
+                .ToList());
+        Assert.All(profile.Moves, move => Assert.True(move.LearnedAtLevel <= 100));
+        engine.State.Language = AppLanguage.Ko;
+        var detail = engine.Detail(3)!;
+        Assert.Contains(detail.Moves, move => move.Name == "솔라빔" && move.Methods.Contains("machine"));
+    }
+
+    [Fact]
+    public void ConstructorEnrichesPreExistingProfiles()
+    {
+        var statePath = Path.Combine(_dir, "combat-state.json");
+        var plain = new CompanionEngine(new CompanionEngineOptions
+        {
+            StateFilePath = statePath,
+            Clock = () => Now,
+            NextRoll = new SequenceRng().Next,
+            Lines = PokemonLineSource.Load(new MemoryStream(
+                Encoding.UTF8.GetBytes(PokemonLineSourceTests.MinimalSnapshot))),
+        });
+        plain.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        plain.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+        Assert.Empty(plain.State.Active!.Profile!.Moves);
+
+        var enriched = new CompanionEngine(new CompanionEngineOptions
+        {
+            StateFilePath = statePath,
+            Clock = () => Now,
+            NextRoll = new SequenceRng().Next,
+            Lines = PokemonLineSource.Load(new MemoryStream(
+                Encoding.UTF8.GetBytes(PokemonLineSourceTests.CombatSnapshot))),
+        });
+
+        Assert.Equal("tackle", enriched.State.Active!.Profile!.Moves.Single().Name);
+    }
+
+    [Fact]
+    public void DetailSnapshotLocalizesAndComputesStats()
+    {
+        var engine = BuildEngine(snapshot: PokemonLineSourceTests.CombatSnapshot);
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        engine.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+        engine.State.Language = AppLanguage.Ko;
+
+        var detail = engine.Detail(1)!;
+
+        Assert.NotNull(detail);
+        Assert.Equal("테스트몬", detail.Name);
+        Assert.Equal(Rarity.Common, detail.Rarity);
+        Assert.Equal(["풀"], detail.Types);
+        Assert.Equal(318, detail.BaseStatTotal);
+        Assert.Equal(45, detail.BaseStats[0].Base);
+        var abilityNames = detail.Abilities.Select(ability => ability.Name).ToList();
+        Assert.Equal(["심록", "Chlorophyll"], abilityNames);
+        Assert.Contains(detail.Moves, move => move.Name == "몸통박치기"
+            && move.Methods.Contains("Lv. 1"));
+        var individual = Assert.Single(detail.Individuals);
+        Assert.True(individual.IsRaising);
+        Assert.Equal(5, individual.Level);
+        Assert.Equal("심록", individual.Ability);
+        var hp = individual.Stats.Single(stat => stat.Name == "hp");
+        Assert.Equal(45, hp.Base);
+        Assert.Equal(engine.State.Active!.Profile!.IVs.Hp, hp.Iv);
+        Assert.Equal(["몸통박치기"], individual.Moves.Select(move => move.Name));
+    }
+
+    [Fact]
+    public void DetailReturnsNullForSpeciesWithoutDetails()
+    {
+        var engine = BuildEngine(snapshot: PokemonLineSourceTests.CombatSnapshot);
+
+        Assert.Null(engine.Detail(999));
     }
 
     [Fact]

@@ -42,6 +42,8 @@
                     <StackPanel Grid.Row="0">
                         <TextBlock x:Name="CompanionName" Text="Token Egg" FontSize="18" FontWeight="Bold" />
                         <TextBlock x:Name="CompanionDetail" Foreground="#666" />
+                        <TextBlock x:Name="CombatText" FontSize="11" Foreground="#666" Margin="0,2,0,0"
+                                   TextWrapping="Wrap" />
                     </StackPanel>
                     <StackPanel Grid.Row="1" Margin="0,10,0,0">
                         <TextBlock x:Name="ProgressLabel" />
@@ -95,7 +97,13 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <ListBox Grid.Column="0" x:Name="DexList" />
+                        <ListBox Grid.Column="0" x:Name="DexList">
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <EventSetter Event="MouseDoubleClick" Handler="OnDexDoubleClick" />
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                        </ListBox>
                         <ListBox Grid.Column="1" x:Name="EventsList" Margin="8,0,0,0" />
                     </Grid>
                     <TextBlock Grid.Row="6" x:Name="GameFooter" FontSize="11" Foreground="#666" Margin="0,8,0,0" />
