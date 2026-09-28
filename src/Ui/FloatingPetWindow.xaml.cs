@@ -33,11 +33,15 @@ public partial class FloatingPetWindow : Window
         _store = store;
         _onMoved = onMoved;
         ApplySize(size);
-        var lang = engine.State.Language;
-        ((MenuItem) ContextMenu.Items[0]).Header = DashboardText.OpenDashboard(lang);
-        ((MenuItem) ContextMenu.Items[2]).Header = DashboardText.HidePet(lang);
+        Relocalize(engine.State.Language);
         SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
         Closed += (_, _) => SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
+    }
+
+    public void Relocalize(AppLanguage lang)
+    {
+        ((MenuItem) ContextMenu.Items[0]).Header = DashboardText.OpenDashboard(lang);
+        ((MenuItem) ContextMenu.Items[2]).Header = DashboardText.HidePet(lang);
     }
 
     public void ApplySize(double size)

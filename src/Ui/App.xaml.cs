@@ -19,7 +19,9 @@ public partial class App : System.Windows.Application
     private TaskbarIcon _trayIcon = null!;
     private MenuItem _petToggle = null!;
     private DashboardWindow? _dashboard;
+    private SettingsWindow? _settingsWindow;
     private FloatingPetWindow? _pet;
+    private readonly UsageRootOptions _rootOptions = new();
     private readonly CancellationTokenSource _shutdown = new();
 
     protected override void OnStartup(StartupEventArgs e)
@@ -31,6 +33,7 @@ public partial class App : System.Windows.Application
             args.Handled = true;
         };
         _settings = AppSettingsFile.Load(AppSettingsFile.DefaultPath());
+        ScanRootSettings.Apply(_rootOptions, _settings.ScanRoots);
         _sprites = new SpriteStore();
         _engine = new CompanionEngine(new CompanionEngineOptions
         {
@@ -38,7 +41,7 @@ public partial class App : System.Windows.Application
             ShopDifficulty = _settings.ShopDifficulty,
         });
         _engine.Changed += OnCompanionChanged;
-        _service = new UsageRefreshService();
+        _service = new UsageRefreshService(new UsageRefreshOptions { RootOptions = _rootOptions });
         _service.StateChanged += OnStateChanged;
         _ = RefreshSafelyAsync();
         _ = RunLoopAsync();
@@ -72,6 +75,8 @@ public partial class App : System.Windows.Application
         refresh.Click += async (_, _) => await RefreshFromUiAsync();
         var dashboard = new MenuItem { Header = DashboardText.OpenDashboard(lang) };
         dashboard.Click += (_, _) => ShowDashboard();
+        var settingsItem = new MenuItem { Header = DashboardText.SettingsTitle(lang) };
+        settingsItem.Click += (_, _) => ShowSettings();
         _petToggle = new MenuItem { Header = DashboardText.FloatingPet(lang), IsCheckable = true };
         _petToggle.Click += (_, _) => SetPetEnabled(_petToggle.IsChecked);
         var diagnostics = new MenuItem { Header = DashboardText.OpenDiagnosticsFolder(lang) };
@@ -81,6 +86,7 @@ public partial class App : System.Windows.Application
         menu.Items.Add(header);
         menu.Items.Add(refresh);
         menu.Items.Add(dashboard);
+        menu.Items.Add(settingsItem);
         menu.Items.Add(_petToggle);
         menu.Items.Add(diagnostics);
         menu.Items.Add(new Separator());
@@ -133,8 +139,10 @@ public partial class App : System.Windows.Application
         }
         Dispatcher.BeginInvoke(() =>
         {
+            var lang = _engine.State.Language;
             _trayIcon.ToolTipText =
-                $"Today: {TokenFormatter.Compact(state.TodayTokens)} · Month: {TokenFormatter.Compact(state.MonthTokens)}";
+                $"{DashboardText.TodayLabel(lang)}: {TokenFormatter.Compact(state.TodayTokens)} · " +
+                $"{DashboardText.MonthLabel(lang)}: {TokenFormatter.Compact(state.MonthTokens)}";
             _dashboard?.Update(state);
         });
     }
@@ -168,6 +176,59 @@ public partial class App : System.Windows.Application
     public bool PetEnabled => _settings.PetEnabled;
 
     public double PetSize => _settings.PetSize;
+
+    public IReadOnlyList<ScanRootEntry> ScanRoots => _settings.ScanRoots;
+
+    public void ApplyLanguage(AppLanguage language)
+    {
+        try
+        {
+            _trayIcon.ContextMenu = BuildMenu();
+            _dashboard?.Relocalize(language);
+            if (_service.Current is { } state) _dashboard?.Update(state);
+            _pet?.Relocalize(language);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Write($"language apply failed: {ex.Message}");
+        }
+    }
+
+    public void ApplyScanRoots(IReadOnlyList<ScanRootEntry> entries)
+    {
+        try
+        {
+            _settings.ScanRoots = entries;
+            ScanRootSettings.Apply(_rootOptions, entries);
+            SaveSettings();
+            _ = RefreshFromUiAsync();
+        }
+        catch (Exception ex)
+        {
+            AppLog.Write($"scan roots apply failed: {ex.Message}");
+        }
+    }
+
+    public void ShowSettings()
+    {
+        try
+        {
+            if (_settingsWindow is null)
+            {
+                _settingsWindow = new SettingsWindow(_engine);
+                if (_dashboard is not null) _settingsWindow.Owner = _dashboard;
+                else _settingsWindow.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+                _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+            }
+            _settingsWindow.Show();
+            _settingsWindow.Activate();
+        }
+        catch (Exception ex)
+        {
+            _settingsWindow = null;
+            AppLog.Write($"settings window open failed: {ex}");
+        }
+    }
 
     public void SetPetEnabled(bool enabled)
     {

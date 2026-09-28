@@ -11,6 +11,7 @@ public sealed class AppSettings
     public double? PetX { get; set; }
     public double? PetY { get; set; }
     public double PetSize { get; set; } = AppSettingsFile.DefaultPetSize;
+    public IReadOnlyList<ScanRootEntry> ScanRoots { get; set; } = [];
 }
 
 public static class AppSettingsFile
@@ -61,6 +62,9 @@ public static class AppSettingsFile
                     settings.PetY = petY.GetDouble();
                 if (root.TryGetProperty("petSize", out var petSize) && petSize.ValueKind == JsonValueKind.Number)
                     settings.PetSize = petSize.GetDouble();
+                if (root.TryGetProperty("scanRoots", out var scanRoots)
+                    && scanRoots.ValueKind == JsonValueKind.Array)
+                    settings.ScanRoots = ParseScanRoots(scanRoots);
             }
             settings.GrowthDifficulty = PokemonBalance.ClampDifficulty(settings.GrowthDifficulty);
             settings.ShopDifficulty = PokemonBalance.ClampDifficulty(settings.ShopDifficulty);
@@ -74,8 +78,39 @@ public static class AppSettingsFile
         }
     }
 
+    private static IReadOnlyList<ScanRootEntry> ParseScanRoots(JsonElement array)
+    {
+        var entries = new List<ScanRootEntry>();
+        foreach (var item in array.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.Object) continue;
+            if (!item.TryGetProperty("provider", out var provider)
+                || provider.ValueKind != JsonValueKind.String) continue;
+            if (!item.TryGetProperty("path", out var path)
+                || path.ValueKind != JsonValueKind.String) continue;
+            var normalizedProvider = ScanRootSettings.NormalizeProvider(provider.GetString());
+            var normalizedPath = path.GetString()?.Trim();
+            if (normalizedProvider is null || string.IsNullOrEmpty(normalizedPath)) continue;
+            var entry = new ScanRootEntry(normalizedProvider, normalizedPath);
+            if (!entries.Contains(entry)) entries.Add(entry);
+        }
+        return entries;
+    }
+
     public static void Save(string path, AppSettings settings)
     {
+        var scanRoots = new System.Text.Json.Nodes.JsonArray();
+        foreach (var entry in settings.ScanRoots)
+        {
+            var provider = ScanRootSettings.NormalizeProvider(entry.Provider);
+            var entryPath = entry.Path?.Trim();
+            if (provider is null || string.IsNullOrEmpty(entryPath)) continue;
+            scanRoots.Add(new System.Text.Json.Nodes.JsonObject
+            {
+                ["provider"] = provider,
+                ["path"] = entryPath,
+            });
+        }
         var json = new System.Text.Json.Nodes.JsonObject
         {
             ["growthDifficulty"] = PokemonBalance.ClampDifficulty(settings.GrowthDifficulty),
@@ -84,6 +119,7 @@ public static class AppSettingsFile
             ["petX"] = settings.PetX,
             ["petY"] = settings.PetY,
             ["petSize"] = ClampPetSize(settings.PetSize),
+            ["scanRoots"] = scanRoots,
         };
         var directory = Path.GetDirectoryName(path);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);

@@ -134,4 +134,73 @@ public class AppSettingsFileTests : IDisposable
         var floored = AppSettingsFile.Load(SettingsPath);
         Assert.Equal(AppSettingsFile.PetSizeMinimum, floored.PetSize);
     }
+
+    [Fact]
+    public void MissingFileYieldsNoScanRoots()
+    {
+        var settings = AppSettingsFile.Load(SettingsPath);
+
+        Assert.Empty(settings.ScanRoots);
+    }
+
+    [Fact]
+    public void RoundTripsScanRootsAcrossRestart()
+    {
+        var saved = new AppSettings
+        {
+            ScanRoots =
+            [
+                new ScanRootEntry("claude", @"D:\logs\claude"),
+                new ScanRootEntry("codex", @"D:\logs\codex"),
+            ],
+        };
+        AppSettingsFile.Save(SettingsPath, saved);
+
+        var loaded = AppSettingsFile.Load(SettingsPath);
+
+        Assert.Equal(
+            new ScanRootEntry("claude", @"D:\logs\claude"), loaded.ScanRoots[0]);
+        Assert.Equal(
+            new ScanRootEntry("codex", @"D:\logs\codex"), loaded.ScanRoots[1]);
+    }
+
+    [Fact]
+    public void ScanRootGarbageEntriesAreDropped()
+    {
+        File.WriteAllText(SettingsPath, """
+            {"scanRoots": [
+                {"provider": "claude", "path": "D:\\logs\\ok"},
+                {"provider": "unknown-provider", "path": "D:\\logs\\x"},
+                {"provider": " CLAUDE ", "path": "D:\\logs\\normalized"},
+                {"provider": "codex"},
+                {"path": "D:\\logs\\no-provider"},
+                "not-an-object"
+            ]}
+            """);
+        var loaded = AppSettingsFile.Load(SettingsPath);
+
+        Assert.Equal(2, loaded.ScanRoots.Count);
+        Assert.Equal(new ScanRootEntry("claude", @"D:\logs\ok"), loaded.ScanRoots[0]);
+        Assert.Equal(new ScanRootEntry("claude", @"D:\logs\normalized"), loaded.ScanRoots[1]);
+    }
+
+    [Fact]
+    public void SavingDropsInvalidScanRoots()
+    {
+        var saved = new AppSettings
+        {
+            ScanRoots =
+            [
+                new ScanRootEntry("claude", @"D:\logs\keep"),
+                new ScanRootEntry("bogus", @"D:\logs\drop"),
+                new ScanRootEntry("opencode", "   "),
+            ],
+        };
+        AppSettingsFile.Save(SettingsPath, saved);
+
+        var loaded = AppSettingsFile.Load(SettingsPath);
+
+        var entry = Assert.Single(loaded.ScanRoots);
+        Assert.Equal(new ScanRootEntry("claude", @"D:\logs\keep"), entry);
+    }
 }

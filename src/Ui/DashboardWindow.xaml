@@ -53,7 +53,6 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
@@ -94,33 +93,8 @@
                             <Button x:Name="UseAllButton" Content="Use a_ll" Margin="6,0,0,0" MinWidth="60" Click="OnUseAllCandyClick" />
                         </StackPanel>
                         <ListBox x:Name="ShopList" Height="92" Margin="0,4,0,0" />
-                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                            <TextBlock x:Name="GrowthLabel" Text="Growth" VerticalAlignment="Center" FontSize="11" />
-                            <Slider x:Name="GrowthSlider" Width="120" Minimum="0.1" Maximum="2"
-                                    TickFrequency="0.05" IsSnapToTickEnabled="True" VerticalAlignment="Center"
-                                    Margin="6,0,4,0" ValueChanged="OnGrowthDifficultyChanged" />
-                            <TextBlock x:Name="GrowthValue" VerticalAlignment="Center" FontSize="11" MinWidth="32" />
-                            <TextBlock x:Name="ShopDifficultyLabel" Text="Shop" VerticalAlignment="Center" FontSize="11" Margin="14,0,0,0" />
-                            <Slider x:Name="ShopSlider" Width="120" Minimum="0.1" Maximum="2"
-                                    TickFrequency="0.05" IsSnapToTickEnabled="True" VerticalAlignment="Center"
-                                    Margin="6,0,4,0" ValueChanged="OnShopDifficultyChanged" />
-                            <TextBlock x:Name="ShopValue" VerticalAlignment="Center" FontSize="11" MinWidth="32" />
-                        </StackPanel>
                     </StackPanel>
-                    <StackPanel Grid.Row="4" Margin="0,8,0,0">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock x:Name="PetHeader" Text="Floating pet" VerticalAlignment="Center" Margin="0,0,10,0" />
-                            <CheckBox x:Name="PetEnabledCheck"
-                                      VerticalAlignment="Center"
-                                      Checked="OnPetEnabledChanged" Unchecked="OnPetEnabledChanged" />
-                            <TextBlock x:Name="PetSizeLabel" Text="Size" VerticalAlignment="Center" FontSize="11" Margin="14,0,0,0" />
-                            <Slider x:Name="PetSizeSlider" Width="120" Minimum="48" Maximum="384"
-                                    TickFrequency="8" IsSnapToTickEnabled="True" VerticalAlignment="Center"
-                                    Margin="6,0,4,0" ValueChanged="OnPetSizeChanged" />
-                            <TextBlock x:Name="PetSizeValue" VerticalAlignment="Center" FontSize="11" MinWidth="36" />
-                        </StackPanel>
-                    </StackPanel>
-                    <Grid Grid.Row="5" Margin="0,8,0,0">
+                    <Grid Grid.Row="4" Margin="0,8,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="1.15*" />
                             <ColumnDefinition Width="0.85*" />
@@ -141,11 +115,13 @@
                         </ListBox>
                         <ListBox Grid.Column="1" x:Name="EventsList" Margin="8,0,0,0" />
                     </Grid>
-                    <TextBlock Grid.Row="6" x:Name="GameFooter" FontSize="11" Foreground="#666" Margin="0,8,0,0" />
+                    <TextBlock Grid.Row="5" x:Name="GameFooter" FontSize="11" Foreground="#666" Margin="0,8,0,0" />
                 </Grid>
             </TabItem>
         </TabControl>
         <DockPanel Grid.Row="1" Margin="0,10,0,0">
+            <Button x:Name="SettingsButton" DockPanel.Dock="Right" Content="_Settings…"
+                    Margin="0,0,6,0" MinWidth="80" Click="OnSettingsClick" />
             <Button x:Name="RefreshButton" DockPanel.Dock="Right" Content="_Refresh" MinWidth="80" Click="OnRefreshClick" />
             <TextBlock x:Name="RefreshedText" VerticalAlignment="Center" Foreground="#666" />
         </DockPanel>

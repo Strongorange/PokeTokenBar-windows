@@ -14,7 +14,6 @@ public partial class DashboardWindow : Window
     private readonly SpriteStore _sprites;
     private readonly SpriteSlot _companionSprite;
     private CompanionGameView? _lastView;
-    private bool _updatingDifficulty;
     private Func<AppLanguage, string>? _feedback;
 
     public DashboardWindow(CompanionEngine engine, SpriteStore sprites)
@@ -24,6 +23,11 @@ public partial class DashboardWindow : Window
         _sprites = sprites;
         _companionSprite = new SpriteSlot(CompanionSprite, CompanionSpritePlaceholder);
         LocalizeStaticText(engine.State.Language);
+    }
+
+    public void Relocalize(AppLanguage lang)
+    {
+        LocalizeStaticText(lang);
     }
 
     private void LocalizeStaticText(AppLanguage lang)
@@ -41,11 +45,8 @@ public partial class DashboardWindow : Window
         UseMintButton.Content = DashboardText.UseItem(lang, DashboardText.ItemName(lang, ItemKind.Mint));
         UseAllButton.Content = DashboardText.UseAll(lang);
         ShopHeader.Text = DashboardText.ShopTitle(lang);
-        GrowthLabel.Text = DashboardText.GrowthLabel(lang);
-        ShopDifficultyLabel.Text = DashboardText.ShopTitle(lang);
-        PetHeader.Text = DashboardText.FloatingPet(lang);
-        PetSizeLabel.Text = DashboardText.SizeLabel(lang);
         RefreshButton.Content = "_" + DashboardText.RefreshButton(lang);
+        SettingsButton.Content = "_" + DashboardText.SettingsTitle(lang) + "…";
     }
 
     public void Update(UsageDisplayState state)
@@ -252,26 +253,6 @@ public partial class DashboardWindow : Window
                     : "  " + DashboardText.NeedMoreTokens(lang);
             ShopList.Items.Add($"{row.Label} — {TokenFormatter.Grouped(row.Price)}{suffix}");
         }
-
-        _updatingDifficulty = true;
-        try
-        {
-            GrowthSlider.Value = view.GrowthDifficulty;
-            ShopSlider.Value = view.ShopDifficulty;
-            if (System.Windows.Application.Current is App app)
-            {
-                PetEnabledCheck.IsChecked = app.PetEnabled;
-                PetSizeSlider.Value = app.PetSize;
-                PetSizeValue.Text = $"{(int)app.PetSize}px";
-            }
-        }
-        finally
-        {
-            _updatingDifficulty = false;
-        }
-
-        GrowthValue.Text = view.GrowthDifficulty.ToString("0.00");
-        ShopValue.Text = view.ShopDifficulty.ToString("0.00");
     }
 
     private static bool BagHas(ItemKind kind, CompanionGameView view) =>
@@ -331,65 +312,6 @@ public partial class DashboardWindow : Window
             ? language => DashboardText.MintUsed(language, picked.ToString())
             : DashboardText.NoMint;
         UpdateGame(_engine.View());
-    }
-
-    private void OnGrowthDifficultyChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-    {
-        if (_updatingDifficulty || _engine is null) return;
-        var value = PokemonBalance.SnapDifficulty(e.NewValue);
-        _updatingDifficulty = true;
-        try
-        {
-            GrowthSlider.Value = value;
-            GrowthValue.Text = value.ToString("0.00");
-            _engine.SetGrowthDifficulty(value);
-            PersistDifficulty();
-            UpdateGame(_engine.View());
-        }
-        finally
-        {
-            _updatingDifficulty = false;
-        }
-    }
-
-    private void OnShopDifficultyChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-    {
-        if (_updatingDifficulty || _engine is null) return;
-        var value = PokemonBalance.SnapDifficulty(e.NewValue);
-        _updatingDifficulty = true;
-        try
-        {
-            ShopSlider.Value = value;
-            ShopValue.Text = value.ToString("0.00");
-            _engine.SetShopDifficulty(value);
-            PersistDifficulty();
-            UpdateGame(_engine.View());
-        }
-        finally
-        {
-            _updatingDifficulty = false;
-        }
-    }
-
-    private void OnPetEnabledChanged(object sender, RoutedEventArgs e)
-    {
-        if (_updatingDifficulty || _engine is null) return;
-        if (System.Windows.Application.Current is App app)
-            app.SetPetEnabled(PetEnabledCheck.IsChecked == true);
-    }
-
-    private void OnPetSizeChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-    {
-        if (_updatingDifficulty || _engine is null) return;
-        PetSizeValue.Text = $"{(int)e.NewValue}px";
-        if (System.Windows.Application.Current is App app)
-            app.ApplyPetSize(e.NewValue);
-    }
-
-    private void PersistDifficulty()
-    {
-        if (System.Windows.Application.Current is App app)
-            app.ApplyDifficulty(GrowthSlider.Value, ShopSlider.Value);
     }
 
     private static string ItemText(CompanionStageItem item) =>
@@ -513,6 +435,12 @@ public partial class DashboardWindow : Window
     {
         if (System.Windows.Application.Current is App app)
             await app.RefreshFromUiAsync();
+    }
+
+    private void OnSettingsClick(object sender, RoutedEventArgs e)
+    {
+        if (System.Windows.Application.Current is App app)
+            app.ShowSettings();
     }
 
     private void OnExportClick(object sender, RoutedEventArgs e)

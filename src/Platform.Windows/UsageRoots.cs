@@ -15,11 +15,11 @@ public sealed class UsageRootOptions
     public string UserProfile { get; init; } =
         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
-    public IReadOnlyList<string> ExtraClaudeRoots { get; init; } = [];
+    public IReadOnlyList<string> ExtraClaudeRoots { get; set; } = [];
 
-    public IReadOnlyList<string> ExtraCodexRoots { get; init; } = [];
+    public IReadOnlyList<string> ExtraCodexRoots { get; set; } = [];
 
-    public IReadOnlyList<string> ExtraOpenCodeRoots { get; init; } = [];
+    public IReadOnlyList<string> ExtraOpenCodeRoots { get; set; } = [];
 
     public IWslDistroSource? WslDistroSource { get; init; }
 

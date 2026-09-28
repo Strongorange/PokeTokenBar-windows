@@ -868,6 +868,28 @@ public class CompanionEngineTests : IDisposable
     }
 
     [Fact]
+    public void SetLanguagePersistsAndRaisesChanged()
+    {
+        var engine = BuildEngine(fileName: "language-state.json");
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        var changed = 0;
+        engine.Changed += () => changed++;
+        var target = engine.State.Language == AppLanguage.Ko ? AppLanguage.En : AppLanguage.Ko;
+
+        engine.SetLanguage(target);
+
+        Assert.Equal(target, engine.State.Language);
+        Assert.Equal(target, engine.View().Language);
+        Assert.Equal(1, changed);
+
+        var reloaded = BuildEngine(fileName: "language-state.json");
+        Assert.Equal(target, reloaded.State.Language);
+
+        engine.SetLanguage(target);
+        Assert.Equal(1, changed);
+    }
+
+    [Fact]
     public void GrowthDifficultyRescaleNeverCompletesIncompleteStage()
     {
         var engine = BuildEngine();

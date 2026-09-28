@@ -139,6 +139,54 @@ public static class DashboardText
         T(lang, "가져오기…", "Import…", "インポート…", "Importar…", "Importer…", "Importar…",
             "Importieren…");
 
+    // Settings window
+
+    public static string SettingsTitle(AppLanguage lang) =>
+        T(lang, "설정", "Settings", "設定", "Ajustes", "Réglages", "Ajustes", "Einstellungen");
+
+    public static string LanguageLabel(AppLanguage lang) =>
+        T(lang, "언어", "Language", "言語", "Idioma", "Langue", "Idioma", "Sprache");
+
+    public static string GeneralSectionTitle(AppLanguage lang) =>
+        T(lang, "일반", "General", "一般", "General", "Général", "Geral", "Allgemein");
+
+    public static string DifficultySection(AppLanguage lang) =>
+        T(lang, "난이도", "Difficulty", "難易度", "Dificultad", "Difficulté", "Dificuldade",
+            "Schwierigkeit");
+
+    public static string DifficultyShopLabel(AppLanguage lang) =>
+        T(lang, "상점 가격", "Shop prices", "ショップ価格", "Precios de la tienda",
+            "Prix de la boutique", "Preços da loja", "Shop-Preise");
+
+    public static string DifficultyHint(AppLanguage lang) =>
+        T(lang, "기본값 100% 기준이에요 — 낮추면 빨리 자라고 싸지고, 높이면 그 반대예요",
+            "Percentages of the default balance — lower grows faster and costs less, higher does the opposite",
+            "標準バランスに対する割合です — 下げると早く育ち安くなり、上げるとその逆になります",
+            "Porcentajes del balance predeterminado: si los bajas, crece más rápido y cuesta menos; si los subes, al revés",
+            "Pourcentages de l'équilibrage par défaut — plus bas, la croissance est plus rapide et les prix baissent ; plus haut, l'inverse",
+            "Porcentagens do balanceamento padrão — reduzir faz crescer mais rápido e custar menos; aumentar faz o contrário",
+            "Prozentwerte der Standardbalance — niedriger wächst schneller und kostet weniger, höher bewirkt das Gegenteil");
+
+    public static string ScanFoldersTitle(AppLanguage lang) =>
+        T(lang, "추가 스캔 폴더", "Additional scan folders", "追加スキャンフォルダ",
+            "Carpetas de escaneo adicionales", "Dossiers d'analyse supplémentaires",
+            "Pastas extras para escanear", "Zusätzliche Scan-Ordner");
+
+    public static string ScanFoldersHint(AppLanguage lang) =>
+        T(lang, "선택한 프로바이더의 로그가 기본 위치 밖에 있을 때만 추가하세요. 다른 프로바이더의 폴더를 넣지 마세요.",
+            "Only add this provider's log folders outside the built-in locations. Do not point at another provider's folder.",
+            "選択したプロバイダーのログが既定の場所にないときだけ追加してください。別のプロバイダーのフォルダは指定しないでください。",
+            "Añade solo carpetas de registros de este proveedor fuera de las ubicaciones integradas. No indiques la carpeta de otro proveedor.",
+            "N'ajoutez que les dossiers de journaux de ce fournisseur hors des emplacements intégrés. N'indiquez pas le dossier d'un autre fournisseur.",
+            "Adicione apenas pastas de logs deste provedor fora dos locais padrão. Não aponte para a pasta de outro provedor.",
+            "Füge nur Protokollordner dieses Anbieters außerhalb der Standardpfade hinzu. Wähle keinen Ordner eines anderen Anbieters.");
+
+    public static string AddFolderButton(AppLanguage lang) =>
+        T(lang, "추가…", "Add…", "追加…", "Añadir…", "Ajouter…", "Adicionar…", "Hinzufügen…");
+
+    public static string RemoveButton(AppLanguage lang) =>
+        T(lang, "제거", "Remove", "削除", "Quitar", "Retirer", "Remover", "Entfernen");
+
     public static string GrowthLabel(AppLanguage lang) =>
         T(lang, "성장", "Growth", "成長", "Crecimiento", "Croissance", "Crescimento",
             "Wachstum");

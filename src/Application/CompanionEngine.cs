@@ -865,6 +865,17 @@ public sealed class CompanionEngine
         Changed?.Invoke();
     }
 
+    public void SetLanguage(AppLanguage language)
+    {
+        lock (_gate)
+        {
+            if (_state.Language == language) return;
+            _state.Language = language;
+            SaveCore();
+        }
+        Changed?.Invoke();
+    }
+
     private void RescaleBankedGrowth(double old, double @new)
     {
         long Rescaled(long credits, long baseline)

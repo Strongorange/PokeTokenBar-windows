@@ -32,6 +32,30 @@ public class DashboardTextTests
     }
 
     [Fact]
+    public void SettingsWindowLabelsFollowMacOSTranslations()
+    {
+        Assert.Equal("설정", DashboardText.SettingsTitle(AppLanguage.Ko));
+        Assert.Equal("Settings", DashboardText.SettingsTitle(AppLanguage.En));
+        Assert.Equal("設定", DashboardText.SettingsTitle(AppLanguage.Ja));
+        Assert.Equal("Ajustes", DashboardText.SettingsTitle(AppLanguage.Es));
+        Assert.Equal("Réglages", DashboardText.SettingsTitle(AppLanguage.Fr));
+        Assert.Equal("Ajustes", DashboardText.SettingsTitle(AppLanguage.Pt));
+        Assert.Equal("Einstellungen", DashboardText.SettingsTitle(AppLanguage.De));
+        Assert.Equal("언어", DashboardText.LanguageLabel(AppLanguage.Ko));
+        Assert.Equal("Language", DashboardText.LanguageLabel(AppLanguage.En));
+        Assert.Equal("言語", DashboardText.LanguageLabel(AppLanguage.Ja));
+        Assert.Equal("난이도", DashboardText.DifficultySection(AppLanguage.Ko));
+        Assert.Equal("Difficulty", DashboardText.DifficultySection(AppLanguage.En));
+        Assert.Equal("難易度", DashboardText.DifficultySection(AppLanguage.Ja));
+        Assert.Equal("상점 가격", DashboardText.DifficultyShopLabel(AppLanguage.Ko));
+        Assert.Equal("Shop prices", DashboardText.DifficultyShopLabel(AppLanguage.En));
+        Assert.Equal("追加スキャンフォルダ", DashboardText.ScanFoldersTitle(AppLanguage.Ja));
+        Assert.Equal("추가 스캔 폴더", DashboardText.ScanFoldersTitle(AppLanguage.Ko));
+        Assert.Equal("Additional scan folders", DashboardText.ScanFoldersTitle(AppLanguage.En));
+        Assert.Equal("Zusätzliche Scan-Ordner", DashboardText.ScanFoldersTitle(AppLanguage.De));
+    }
+
+    [Fact]
     public void RarityAndItemNamesFollowMacOSTranslations()
     {
         Assert.Equal("희귀", DashboardText.RarityLabel(AppLanguage.Ko, Rarity.Rare));
