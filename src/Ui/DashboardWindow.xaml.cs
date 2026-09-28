@@ -64,6 +64,120 @@ public partial class DashboardWindow : Window
             $"{DashboardText.MonthLabel(lang)} {TokenFormatter.Grouped(state.MonthTokens)}";
         RefreshedText.Text = DashboardText.RefreshedAt(lang,
             state.AsOfUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss"));
+        UpdateTrend(state);
+    }
+
+    private void UpdateTrend(UsageDisplayState state)
+    {
+        var lang = _engine.State.Language;
+        var series = state.MonthDaily;
+        long peak = 0;
+        if (series is not null)
+            foreach (var day in series)
+                if (day.TotalTokens > peak) peak = day.TotalTokens;
+        TrendSection.Visibility = peak > 0 ? Visibility.Visible : Visibility.Collapsed;
+        TrendModelsHost.Children.Clear();
+        TrendBarsHost.ColumnDefinitions.Clear();
+        TrendBarsHost.Children.Clear();
+        TrendTicksHost.ColumnDefinitions.Clear();
+        TrendTicksHost.Children.Clear();
+        TrendAxisHost.ColumnDefinitions.Clear();
+        TrendAxisHost.Children.Clear();
+        if (peak <= 0 || series is null) return;
+
+        TrendCaptionLabel.Text = DashboardText.DailyTrend(lang);
+        TrendPeakLabel.Text = DashboardText.PeakDay(lang);
+        TrendPeakValue.Text = TokenFormatter.Compact(peak);
+
+        var showsCost = false;
+        foreach (var day in series)
+            if (day.UsageCost.Coverage.HasKnown) { showsCost = true; break; }
+        var todayKey = UsageAggregation.LocalDay(state.AsOfUtc);
+        DailyUsage? today = null;
+        foreach (var day in series)
+            if (day.Date == todayKey) { today = day; break; }
+
+        var index = 0;
+        foreach (var day in series)
+        {
+            TrendBarsHost.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            TrendTicksHost.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            TrendAxisHost.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+            var isToday = day.Date == todayKey;
+            var bar = new Border
+            {
+                Height = DailyTrendMetrics.BarHeight(day.TotalTokens, peak),
+                VerticalAlignment = VerticalAlignment.Bottom,
+                CornerRadius = new CornerRadius(1),
+                Background = isToday ? SystemColors.HighlightBrush : Brushes.Gray,
+                Opacity = isToday ? 1 : day.TotalTokens == 0 ? 0.18 : 0.45,
+            };
+            Grid.SetColumn(bar, index);
+            TrendBarsHost.Children.Add(bar);
+
+            var hoveredDay = day;
+            var hit = new Border { Background = Brushes.Transparent };
+            Grid.SetColumn(hit, index);
+            hit.MouseEnter += (_, _) => SetTrendReadout(hoveredDay, showsCost, lang);
+            hit.MouseLeave += (_, _) => SetTrendReadout(today, showsCost, lang);
+            TrendBarsHost.Children.Add(hit);
+
+            if (DailyTrendMetrics.IsWeekend(day.Date))
+            {
+                var tick = new Border { Background = Brushes.Gray, Opacity = 0.5 };
+                Grid.SetColumn(tick, index);
+                TrendTicksHost.Children.Add(tick);
+            }
+
+            var label = new TextBlock
+            {
+                Text = DailyTrendMetrics.AxisLabel(day.Date, todayKey)?.ToString() ?? "",
+                FontSize = 9,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Foreground = isToday ? SystemColors.HighlightBrush : new SolidColorBrush(Color.FromRgb(0x66, 0x66, 0x66)),
+            };
+            Grid.SetColumn(label, index);
+            TrendAxisHost.Children.Add(label);
+            index++;
+        }
+        SetTrendReadout(today, showsCost, lang);
+
+        if (state.TodayModels is { Count: > 1 })
+        {
+            foreach (var pair in state.TodayModels.OrderByDescending(model => model.Value))
+            {
+                var row = new DockPanel { Margin = new Thickness(0, 0, 0, 1) };
+                var tokens = new TextBlock
+                {
+                    Text = TokenFormatter.Compact(pair.Value),
+                    FontSize = 10,
+                    Foreground = new SolidColorBrush(Color.FromRgb(0x99, 0x99, 0x99)),
+                };
+                DockPanel.SetDock(tokens, Dock.Right);
+                row.Children.Add(tokens);
+                row.Children.Add(new TextBlock
+                {
+                    Text = pair.Key.Contains('/') ? pair.Key[(pair.Key.LastIndexOf('/') + 1)..] : pair.Key,
+                    FontSize = 10,
+                    Foreground = new SolidColorBrush(Color.FromRgb(0x66, 0x66, 0x66)),
+                    TextTrimming = TextTrimming.CharacterEllipsis,
+                });
+                TrendModelsHost.Children.Add(row);
+            }
+        }
+    }
+
+    private void SetTrendReadout(DailyUsage? day, bool showsCost, AppLanguage lang)
+    {
+        if (day is null)
+        {
+            TrendReadout.Text = "";
+            return;
+        }
+        var text = $"{DailyTrendMetrics.DayStamp(day.Date, lang)} {TokenFormatter.Compact(day.TotalTokens)}";
+        if (showsCost) text += " " + day.UsageCost.Text("", compact: true);
+        TrendReadout.Text = text;
     }
 
     public void ShowRefreshing()

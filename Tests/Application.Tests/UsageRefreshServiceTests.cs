@@ -77,6 +77,40 @@ public class UsageRefreshServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task RefreshSurfacesMonthDailySeriesWithZeroFilledDays()
+    {
+        WriteClaudeTodayAndEarlierThisMonth();
+
+        var state = await BuildService().RefreshAsync();
+
+        Assert.NotNull(state.MonthDaily);
+        Assert.Equal(23, state.MonthDaily.Count);
+        Assert.Equal("2026-09-01", state.MonthDaily[0].Date);
+        Assert.Equal(0, state.MonthDaily[0].TotalTokens);
+        Assert.Equal("2026-09-05", state.MonthDaily[4].Date);
+        Assert.Equal(550, state.MonthDaily[4].TotalTokens);
+        Assert.Equal("2026-09-23", state.MonthDaily[^1].Date);
+        Assert.Equal(3300, state.MonthDaily[^1].TotalTokens);
+        Assert.Equal(state.MonthTokens, state.MonthDaily.Sum(day => day.TotalTokens));
+    }
+
+    [Fact]
+    public async Task RefreshSurfacesCombinedTodayModels()
+    {
+        WriteClaudeTodayAndEarlierThisMonth();
+        WriteClaudeFile(@"p2\session.jsonl",
+            ClaudeLine("msg_c4", "2026-09-23T10:10:00.000Z", 400, 40, 0, model: "claude-opus-4"));
+
+        var state = await BuildService().RefreshAsync();
+
+        Assert.NotNull(state.TodayModels);
+        Assert.Equal(2, state.TodayModels.Count);
+        Assert.Equal(3300, state.TodayModels["test-model"]);
+        Assert.Equal(440, state.TodayModels["claude-opus-4"]);
+        Assert.Equal(state.TodayTokens, state.TodayModels.Values.Sum(tokens => tokens));
+    }
+
+    [Fact]
     public async Task MissingCodexRootsMarkCodexUnavailable()
     {
         WriteClaudeTodayAndEarlierThisMonth();
@@ -262,7 +296,8 @@ public class UsageRefreshServiceTests : IDisposable
             File.SetLastWriteTimeUtc(path, mtime.UtcDateTime);
     }
 
-    private static string ClaudeLine(string messageId, string timestamp, long input, long output, long cacheRead) =>
+    private static string ClaudeLine(string messageId, string timestamp, long input, long output, long cacheRead,
+        string model = "test-model") =>
         JsonSerializer.Serialize(new Dictionary<string, object?>
         {
             ["type"] = "assistant",
@@ -272,7 +307,7 @@ public class UsageRefreshServiceTests : IDisposable
                 ["id"] = messageId,
                 ["type"] = "message",
                 ["role"] = "assistant",
-                ["model"] = "test-model",
+                ["model"] = model,
                 ["usage"] = new Dictionary<string, object?>
                 {
                     ["input_tokens"] = input,

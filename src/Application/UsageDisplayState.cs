@@ -1,5 +1,7 @@
 namespace PokeTokenBar.Application;
 
+using PokeTokenBar.Core;
+
 public sealed record ProviderUsageSummary(
     string ProviderId,
     string DisplayName,
@@ -15,7 +17,9 @@ public sealed record UsageDisplayState(
     long TodayTokens,
     double TodayCost,
     long MonthTokens,
-    double MonthCost)
+    double MonthCost,
+    IReadOnlyList<DailyUsage>? MonthDaily = null,
+    IReadOnlyDictionary<string, long>? TodayModels = null)
 {
     public ProviderUsageSummary? Provider(string providerId) =>
         Providers.FirstOrDefault(provider => provider.ProviderId == providerId);

@@ -52,6 +52,13 @@ public static class DashboardText
     public static string MonthLabel(AppLanguage lang) =>
         T(lang, "이 달", "Month", "今月", "Mes", "Mois", "Mês", "Monat");
 
+    public static string DailyTrend(AppLanguage lang) =>
+        T(lang, "이번 달 일별", "Daily this month", "今月の日別",
+            "Diario de este mes", "Par jour ce mois-ci", "Diário deste mês", "Täglich");
+
+    public static string PeakDay(AppLanguage lang) =>
+        T(lang, "최다", "Peak", "最多", "Máx.", "Max.", "Máx.", "Max.");
+
     public static string RefreshButton(AppLanguage lang) =>
         T(lang, "새로 고침", "Refresh", "更新", "Actualizar", "Actualiser", "Atualizar",
             "Aktualisieren");

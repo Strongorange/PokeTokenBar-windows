@@ -13,6 +13,25 @@ public class DashboardTextTests
     }
 
     [Fact]
+    public void TrendLabelsFollowMacOSTranslations()
+    {
+        Assert.Equal("이번 달 일별", DashboardText.DailyTrend(AppLanguage.Ko));
+        Assert.Equal("Daily this month", DashboardText.DailyTrend(AppLanguage.En));
+        Assert.Equal("今月の日別", DashboardText.DailyTrend(AppLanguage.Ja));
+        Assert.Equal("Diario de este mes", DashboardText.DailyTrend(AppLanguage.Es));
+        Assert.Equal("Par jour ce mois-ci", DashboardText.DailyTrend(AppLanguage.Fr));
+        Assert.Equal("Diário deste mês", DashboardText.DailyTrend(AppLanguage.Pt));
+        Assert.Equal("Täglich", DashboardText.DailyTrend(AppLanguage.De));
+        Assert.Equal("최다", DashboardText.PeakDay(AppLanguage.Ko));
+        Assert.Equal("Peak", DashboardText.PeakDay(AppLanguage.En));
+        Assert.Equal("最多", DashboardText.PeakDay(AppLanguage.Ja));
+        Assert.Equal("Máx.", DashboardText.PeakDay(AppLanguage.Es));
+        Assert.Equal("Max.", DashboardText.PeakDay(AppLanguage.Fr));
+        Assert.Equal("Máx.", DashboardText.PeakDay(AppLanguage.Pt));
+        Assert.Equal("Max.", DashboardText.PeakDay(AppLanguage.De));
+    }
+
+    [Fact]
     public void RarityAndItemNamesFollowMacOSTranslations()
     {
         Assert.Equal("희귀", DashboardText.RarityLabel(AppLanguage.Ko, Rarity.Rare));

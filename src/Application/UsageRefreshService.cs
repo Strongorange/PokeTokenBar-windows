@@ -143,13 +143,17 @@ public sealed class UsageRefreshService
 
         var combinedToday = UsageAggregation.Daily(combined, todayKey);
         var combinedMonth = UsageAggregation.Period(combined, monthKey, monthFrom, todayKey);
+        var combinedMonthDaily = UsageAggregation.MonthDailySeries(combined, now, timeZone);
+        var combinedTodayModels = UsageAggregation.Daily(combined, todayKey, includeModels: true);
         return new UsageDisplayState(
             now,
             summaries,
             combinedToday?.TotalTokens ?? 0,
             combinedToday?.TotalCost ?? 0,
             combinedMonth.TotalTokens,
-            combinedMonth.TotalCost);
+            combinedMonth.TotalCost,
+            combinedMonthDaily,
+            combinedTodayModels?.Models);
     }
 
     private static ProviderUsageSummary Summarize(
