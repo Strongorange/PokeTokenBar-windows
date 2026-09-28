@@ -249,10 +249,14 @@ localizes events, notices, shop and bag labels from the saved language) and
 sprites through a cached-first `SpriteSlot` helper reusing `SpriteStore`
 (animated active mon + detail header, static dex row thumbnails, egg image).
 
+Second slice (M13, version 0.12.0): the dex text list became a sprite tile
+grid (WrapPanel tiles: number, 64px nearest-neighbor sprite, name; shiny star,
+raising arrow, full-info tooltip; double-click still opens the detail window).
+Dashboard grew to 580x720 with a wider dex column.
+
 Remaining UI-parity candidates, in rough value order (each is its own slice;
-confirm with the user first): dex grid view with sprites instead of a list;
-usage trend chart and model breakdown; a settings window (language picker,
-scan folders, difficulty) instead of sliders in the game tab; shiny banner
-and evolution-line visuals; per-form Unown sprites in dex rows. Windows keeps
-the tray + dashboard model — inline menu-bar text stays out of scope by
-design.
+confirm with the user first): usage trend chart and model breakdown; a
+settings window (language picker, scan folders, difficulty) instead of sliders
+in the game tab; shiny banner and evolution-line visuals; per-form Unown
+sprites in the dex grid; resizable dashboard window. Windows keeps the tray +
+dashboard model — inline menu-bar text stays out of scope by design.
