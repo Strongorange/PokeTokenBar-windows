@@ -261,9 +261,16 @@ zero days, weekend ticks, sparse date axis; pure geometry in
 model breakdown under the chart (two-plus models only). The refresh service
 now surfaces `MonthDaily` and `TodayModels` on `UsageDisplayState`.
 
+Fourth slice (M15, version 0.14.0): a settings window (tray menu entry and a
+dashboard footer button) holding the language picker (seven languages, live
+re-localization of dashboard/tray/pet menus via `CompanionEngine.SetLanguage`,
+persisted in the save), per-provider additional scan folders (`scanRoots` in
+settings.json, applied live to `UsageRootOptions` and followed by a refresh),
+difficulty sliders (percent readout) and the floating pet controls. The game
+tab no longer carries sliders or pet controls.
+
 Remaining UI-parity candidates, in rough value order (each is its own slice;
-confirm with the user first): a settings window (language picker, scan
-folders, difficulty) instead of sliders in the game tab; shiny banner and
-evolution-line visuals; per-form Unown sprites in the dex grid; resizable
-dashboard window. Windows keeps the tray + dashboard model — inline menu-bar
-text stays out of scope by design.
+confirm with the user first): shiny banner and evolution-line visuals;
+per-form Unown sprites in the dex grid; resizable dashboard window. Windows
+keeps the tray + dashboard model — inline menu-bar text stays out of scope by
+design.
