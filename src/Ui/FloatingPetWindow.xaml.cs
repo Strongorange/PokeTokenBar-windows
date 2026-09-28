@@ -1,5 +1,6 @@
 using System.IO;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using Microsoft.Win32;
@@ -32,6 +33,9 @@ public partial class FloatingPetWindow : Window
         _store = store;
         _onMoved = onMoved;
         ApplySize(size);
+        var lang = engine.State.Language;
+        ((MenuItem) ContextMenu.Items[0]).Header = DashboardText.OpenDashboard(lang);
+        ((MenuItem) ContextMenu.Items[2]).Header = DashboardText.HidePet(lang);
         SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
         Closed += (_, _) => SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
     }

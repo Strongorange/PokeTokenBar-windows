@@ -6,6 +6,17 @@
         WindowStartupLocation="CenterOwner"
         ResizeMode="CanMinimize">
     <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="14">
-        <StackPanel x:Name="ContentRoot" />
+        <StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <Grid Width="72" Height="72" Margin="0,0,12,0">
+                    <Image x:Name="SpriteImage" Width="72" Height="72" Stretch="Uniform"
+                           Visibility="Collapsed" />
+                    <TextBlock x:Name="SpritePlaceholder" Text="❔" FontSize="32"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Grid>
+                <StackPanel x:Name="HeaderRoot" VerticalAlignment="Center" />
+            </StackPanel>
+            <StackPanel x:Name="ContentRoot" />
+        </StackPanel>
     </ScrollViewer>
 </Window>

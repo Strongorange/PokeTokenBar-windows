@@ -1,5 +1,7 @@
 using System.IO;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
 using Microsoft.Win32;
 using PokeTokenBar.Application;
 using PokeTokenBar.Core;
@@ -9,94 +11,145 @@ namespace PokeTokenBar.Ui;
 public partial class DashboardWindow : Window
 {
     private readonly CompanionEngine _engine;
+    private readonly SpriteStore _sprites;
+    private readonly SpriteSlot _companionSprite;
     private CompanionGameView? _lastView;
     private bool _updatingDifficulty;
-    private string _feedback = "";
+    private Func<AppLanguage, string>? _feedback;
 
-    public DashboardWindow(CompanionEngine engine)
+    public DashboardWindow(CompanionEngine engine, SpriteStore sprites)
     {
         InitializeComponent();
         _engine = engine;
+        _sprites = sprites;
+        _companionSprite = new SpriteSlot(CompanionSprite, CompanionSpritePlaceholder);
+        LocalizeStaticText(engine.State.Language);
+    }
+
+    private void LocalizeStaticText(AppLanguage lang)
+    {
+        var usageTab = (TabItem) MainTabs.Items[0];
+        usageTab.Header = "_" + DashboardText.UsageTab(lang);
+        var gameTab = (TabItem) MainTabs.Items[1];
+        gameTab.Header = "_" + DashboardText.GameTab(lang);
+        ProvidersHeader.Text = DashboardText.ProvidersTitle(lang);
+        CombinedHeader.Text = DashboardText.CombinedTitle(lang);
+        ExportButton.Content = DashboardText.ExportSave(lang);
+        ImportButton.Content = DashboardText.ImportSave(lang);
+        BuyButton.Content = DashboardText.BuySelected(lang);
+        UseCandyButton.Content = DashboardText.UseItem(lang, DashboardText.ItemName(lang, ItemKind.RareCandy));
+        UseMintButton.Content = DashboardText.UseItem(lang, DashboardText.ItemName(lang, ItemKind.Mint));
+        UseAllButton.Content = DashboardText.UseAll(lang);
+        ShopHeader.Text = DashboardText.ShopTitle(lang);
+        GrowthLabel.Text = DashboardText.GrowthLabel(lang);
+        ShopDifficultyLabel.Text = DashboardText.ShopTitle(lang);
+        PetHeader.Text = DashboardText.FloatingPet(lang);
+        PetSizeLabel.Text = DashboardText.SizeLabel(lang);
+        RefreshButton.Content = "_" + DashboardText.RefreshButton(lang);
     }
 
     public void Update(UsageDisplayState state)
     {
+        var lang = _engine.State.Language;
         ProvidersList.Items.Clear();
         foreach (var provider in state.Providers)
         {
-            var availability = provider.Available ? "" : "  (not found)";
+            var availability = provider.Available ? "" : "  " + DashboardText.ProviderNotFound(lang);
             ProvidersList.Items.Add(
-                $"{provider.DisplayName}: today {TokenFormatter.Grouped(provider.TodayTokens)} · " +
-                $"month {TokenFormatter.Grouped(provider.MonthTokens)}{availability}");
+                $"{provider.DisplayName}: {DashboardText.TodayLabel(lang)} {TokenFormatter.Grouped(provider.TodayTokens)} · " +
+                $"{DashboardText.MonthLabel(lang)} {TokenFormatter.Grouped(provider.MonthTokens)}{availability}");
         }
         CombinedText.Text =
-            $"Today {TokenFormatter.Grouped(state.TodayTokens)} · Month {TokenFormatter.Grouped(state.MonthTokens)}";
-        RefreshedText.Text = $"Refreshed {state.AsOfUtc.ToLocalTime():yyyy-MM-dd HH:mm:ss}";
+            $"{DashboardText.TodayLabel(lang)} {TokenFormatter.Grouped(state.TodayTokens)} · " +
+            $"{DashboardText.MonthLabel(lang)} {TokenFormatter.Grouped(state.MonthTokens)}";
+        RefreshedText.Text = DashboardText.RefreshedAt(lang,
+            state.AsOfUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss"));
     }
 
     public void ShowRefreshing()
     {
-        RefreshedText.Text = "Refreshing…";
+        RefreshedText.Text = DashboardText.Refreshing(_engine.State.Language);
     }
 
     public void UpdateGame(CompanionGameView view)
     {
+        var lang = view.Language;
         var shiny = view.HasActive && view.IsShiny ? " ★" : "";
-        var boost = view.HasGrowthBoost ? "  (growth boost)" : "";
-        var rarity = view.Rarity is { } value ? RarityText(value) : "";
-        CompanionName.Text = view.ActiveName + shiny;
+        var boost = view.HasGrowthBoost
+            ? "  (" + DashboardText.GrowthBoostMark(lang, PokemonBalance.RepeatGrowthMultiplier) + ")" : "";
+        var rarity = view.Rarity is { } value ? DashboardText.RarityLabel(lang, value) : "";
+        CompanionName.Text = (view.HasActive ? view.ActiveName : DashboardText.TokenEgg(lang)) + shiny;
         CompanionDetail.Text = view.HasActive
             ? $"{rarity}{boost}"
-            : "Keep using your AI tools — the egg is incubating.";
+            : DashboardText.EggHint(lang);
 
         if (view.HasActive)
         {
             ProgressLabel.Text =
-                $"Stage {view.StageIndex + 1}/{view.TotalForms} · {TokenFormatter.Grouped(view.StageUsed)} / " +
-                $"{TokenFormatter.Grouped(view.StageThreshold)} tokens";
+                $"{DashboardText.StageLabel(lang, view.StageIndex + 1, view.TotalForms)} · " +
+                $"{TokenFormatter.Grouped(view.StageUsed)} / {TokenFormatter.Grouped(view.StageThreshold)} " +
+                DashboardText.TokensUnit(lang);
             ProgressBar.Value = view.StageProgress;
             StageLine.Text = string.Join(" → ", view.StageItems.Select(ItemText));
+            _companionSprite.Update(_sprites, view.ActiveSpeciesID, true, view.IsShiny,
+                view.ActiveUnownForm, "❔");
         }
         else
         {
-            ProgressLabel.Text = $"Egg · {TokenFormatter.Grouped(view.EggUsed)} / " +
-                $"{TokenFormatter.Grouped(view.EggThreshold)} tokens";
+            ProgressLabel.Text =
+                $"{DashboardText.TokenEgg(lang)} · {TokenFormatter.Grouped(view.EggUsed)} / " +
+                $"{TokenFormatter.Grouped(view.EggThreshold)} {DashboardText.TokensUnit(lang)}";
             ProgressBar.Value = view.EggProgress;
             StageLine.Text = "";
+            _companionSprite.UpdateEgg(_sprites, "🥚");
         }
+        UpdateCombatText(view);
 
-        DexHeader.Text = $"Dex: {view.DexCount} species · wallet {TokenFormatter.Grouped(view.AvailableTokens)} · double-click for details";
+        DexHeader.Text = $"{DashboardText.DexTitle(lang)}: {DashboardText.DexSpeciesCount(lang, view.DexCount)} · " +
+                         $"{DashboardText.WalletLabel(lang)} {TokenFormatter.Grouped(view.AvailableTokens)} · " +
+                         DashboardText.DetailHint(lang);
         DexList.Items.Clear();
         foreach (var row in view.DexRows)
         {
+            var panel = new DockPanel { Tag = row.SpeciesID };
+            var image = new Image { Width = 28, Height = 28, Stretch = Stretch.Uniform, Margin = new Thickness(0, 0, 6, 0) };
+            DockPanel.SetDock(image, Dock.Left);
+            panel.Children.Add(image);
             var star = row.IsShiny ? " ★" : "";
-            var raising = row.IsRaising ? "  ← raising" : "";
-            DexList.Items.Add($"#{row.SpeciesID} {row.Name}{star} · {RarityText(row.Rarity)}{raising}");
+            var raising = row.IsRaising ? $"  ← {DashboardText.RaisingLabel(lang)}" : "";
+            panel.Children.Add(new TextBlock
+            {
+                Text = $"#{row.SpeciesID} {row.Name}{star} · {DashboardText.RarityLabel(lang, row.Rarity)}{raising}",
+                VerticalAlignment = VerticalAlignment.Center
+            });
+            new SpriteSlot(image).Update(_sprites, row.SpeciesID, false, row.IsShiny, null, "❔");
+            DexList.Items.Add(panel);
         }
-        UpdateCombatText(view);
         EventsList.Items.Clear();
         foreach (var item in view.RecentEvents)
             EventsList.Items.Add($"{item.At.ToLocalTime():MM-dd HH:mm}  {item.Text}");
         UpdateShop(view);
-        GameFooter.Text = _feedback.Length > 0
-            ? $"{_feedback} · Lifetime {TokenFormatter.Grouped(view.LifetimeTokens)} tokens"
-            : $"Lifetime {TokenFormatter.Grouped(view.LifetimeTokens)} tokens";
+        var feedback = _feedback is { } ? _feedback(lang) : "";
+        GameFooter.Text = feedback.Length > 0
+            ? $"{feedback} · {DashboardText.LifetimeLabel(lang)} {TokenFormatter.Grouped(view.LifetimeTokens)} {DashboardText.TokensUnit(lang)}"
+            : $"{DashboardText.LifetimeLabel(lang)} {TokenFormatter.Grouped(view.LifetimeTokens)} {DashboardText.TokensUnit(lang)}";
     }
 
     private void UpdateShop(CompanionGameView view)
     {
         _lastView = view;
+        var lang = view.Language;
         BagText.Text = view.Bag.Count == 0
-            ? "Bag: empty"
-            : "Bag: " + string.Join(" · ", view.Bag.Select(item =>
+            ? $"{DashboardText.BagLabel(lang)}: {DashboardText.BagEmpty(lang)}"
+            : $"{DashboardText.BagLabel(lang)}: " + string.Join(" · ", view.Bag.Select(item =>
                 $"{item.Label} ×{item.Count}"));
         ShopList.Items.Clear();
         foreach (var row in view.ShopRows)
         {
             var suffix = row.CanBuy ? ""
                 : row.Item is { } owned && owned.IsPassive() && BagHas(owned, view)
-                    ? "  (owned)"
-                    : "  (need more tokens)";
+                    ? "  " + DashboardText.OwnedSuffix(lang)
+                    : "  " + DashboardText.NeedMoreTokens(lang);
             ShopList.Items.Add($"{row.Label} — {TokenFormatter.Grouped(row.Price)}{suffix}");
         }
 
@@ -124,66 +177,22 @@ public partial class DashboardWindow : Window
     private static bool BagHas(ItemKind kind, CompanionGameView view) =>
         view.Bag.Any(item => item.Kind == kind);
 
-    private void UpdateCombatText(CompanionGameView view)
-    {
-        if (!view.HasActive || _engine.Detail(view.ActiveSpeciesID) is not { } detail)
-        {
-            CombatText.Text = "";
-            return;
-        }
-        var raising = detail.Individuals.FirstOrDefault(individual => individual.IsRaising);
-        var parts = new List<string>();
-        if (raising is not null)
-        {
-            parts.Add($"Lv. {raising.Level}");
-            if (raising.Gender.Length > 0) parts.Add(raising.Gender);
-            if (raising.Nature.Length > 0) parts.Add(raising.Nature);
-            if (raising.Ability.Length > 0)
-                parts.Add(raising.Ability + (raising.AbilityIsHidden ? " (hidden)" : ""));
-        }
-        if (detail.Types.Count > 0) parts.Add(string.Join("/", detail.Types));
-        parts.Add($"BST {detail.BaseStatTotal}");
-        CombatText.Text = string.Join(" · ", parts);
-    }
-
-    private void OnDexDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
-    {
-        if (_lastView is not { } view) return;
-        var index = DexList.SelectedIndex;
-        if (index < 0 || index >= view.DexRows.Count) return;
-        var row = view.DexRows[index];
-        try
-        {
-            if (_engine.Detail(row.SpeciesID) is { } detail)
-            {
-                var window = new SpeciesDetailWindow(detail) { Owner = this };
-                window.Show();
-            }
-            else
-            {
-                _feedback = $"No combat details for #{row.SpeciesID}";
-                UpdateGame(_engine.View());
-            }
-        }
-        catch (Exception ex)
-        {
-            AppLog.Write($"species detail window failed: {ex.Message}");
-        }
-    }
-
     private void OnBuyClick(object sender, RoutedEventArgs e)
     {
+        var lang = _engine.State.Language;
         if (_lastView is not { } view) return;
         var index = ShopList.SelectedIndex;
         if (index < 0 || index >= view.ShopRows.Count)
         {
-            _feedback = "Select a shop row first";
+            _feedback = _ => DashboardText.SelectShopRowFirst(lang);
             UpdateGame(_engine.View());
             return;
         }
         var row = view.ShopRows[index];
         var bought = row.Item is { } kind ? _engine.Buy(kind) : _engine.BuyEgg(row.EggTier);
-        _feedback = bought ? $"Bought {row.Label}" : $"Cannot buy {row.Label} yet";
+        _feedback = language => bought
+            ? DashboardText.BoughtItem(language, row.Label)
+            : DashboardText.CannotBuyItem(language, row.Label);
         UpdateGame(_engine.View());
     }
 
@@ -192,10 +201,10 @@ public partial class DashboardWindow : Window
         var result = _engine.UseRareCandy(1);
         _feedback = result switch
         {
-            CandyUseResult.Graduated => "Candy used — graduated into the dex!",
-            CandyUseResult.Evolved => "Candy used — evolved!",
-            CandyUseResult.Progressed => "Candy used — +100M XP",
-            _ => "No candy to use",
+            CandyUseResult.Graduated => DashboardText.CandyGraduated,
+            CandyUseResult.Evolved => DashboardText.CandyEvolved,
+            CandyUseResult.Progressed => DashboardText.CandyProgressed,
+            _ => DashboardText.NoCandy,
         };
         UpdateGame(_engine.View());
     }
@@ -205,12 +214,12 @@ public partial class DashboardWindow : Window
         var count = _engine.MaxRareCandyUseCount();
         if (count <= 0)
         {
-            _feedback = "No candy to use";
+            _feedback = DashboardText.NoCandy;
         }
         else
         {
             _engine.UseRareCandy(count);
-            _feedback = $"Used {count} candies";
+            _feedback = language => DashboardText.UsedCandies(language, count);
         }
         UpdateGame(_engine.View());
     }
@@ -218,7 +227,9 @@ public partial class DashboardWindow : Window
     private void OnUseMintClick(object sender, RoutedEventArgs e)
     {
         var nature = _engine.UseMint();
-        _feedback = nature is { } picked ? $"Mint used — nature is now {picked}" : "No mint to use";
+        _feedback = nature is { } picked
+            ? language => DashboardText.MintUsed(language, picked.ToString())
+            : DashboardText.NoMint;
         UpdateGame(_engine.View());
     }
 
@@ -284,14 +295,55 @@ public partial class DashboardWindow : Window
     private static string ItemText(CompanionStageItem item) =>
         item.Mystery ? item.Label : item.Label;
 
-    private static string RarityText(Rarity rarity) => rarity switch
+    private void UpdateCombatText(CompanionGameView view)
     {
-        Rarity.Common => "common",
-        Rarity.Uncommon => "uncommon",
-        Rarity.Rare => "rare",
-        Rarity.Legendary => "legendary",
-        _ => ""
-    };
+        var lang = view.Language;
+        if (!view.HasActive || _engine.Detail(view.ActiveSpeciesID) is not { } detail)
+        {
+            CombatText.Text = "";
+            return;
+        }
+        var raising = detail.Individuals.FirstOrDefault(individual => individual.IsRaising);
+        var parts = new List<string>();
+        if (raising is not null)
+        {
+            parts.Add($"Lv. {raising.Level}");
+            if (raising.Gender.Length > 0) parts.Add(raising.Gender);
+            if (raising.Nature.Length > 0) parts.Add(raising.Nature);
+            if (raising.Ability.Length > 0)
+                parts.Add(raising.Ability + (raising.AbilityIsHidden
+                    ? $" ({DashboardText.HiddenMark(lang)})" : ""));
+        }
+        if (detail.Types.Count > 0) parts.Add(string.Join("/", detail.Types));
+        parts.Add($"{DashboardText.BaseTotalLabel(lang)} {detail.BaseStatTotal}");
+        CombatText.Text = string.Join(" · ", parts);
+    }
+
+    private void OnDexDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (_lastView is not { } view) return;
+        var index = DexList.SelectedIndex;
+        if (index < 0 || index >= view.DexRows.Count) return;
+        var row = view.DexRows[index];
+        try
+        {
+            if (_engine.Detail(row.SpeciesID) is { } detail)
+            {
+                var window = new SpeciesDetailWindow(detail, _sprites) { Owner = this };
+                window.Show();
+            }
+            else
+            {
+                var speciesID = row.SpeciesID;
+                _feedback = language => DashboardText.NoCombatDetails(language, speciesID);
+                UpdateGame(_engine.View());
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLog.Write($"species detail window failed: {ex.Message}");
+        }
+    }
 
     private async void OnRefreshClick(object sender, RoutedEventArgs e)
     {

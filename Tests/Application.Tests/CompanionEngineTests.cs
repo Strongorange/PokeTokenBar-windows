@@ -306,7 +306,7 @@ public class CompanionEngineTests : IDisposable
         Assert.All(profile.Moves, move => Assert.True(move.LearnedAtLevel <= 100));
         engine.State.Language = AppLanguage.Ko;
         var detail = engine.Detail(3)!;
-        Assert.Contains(detail.Moves, move => move.Name == "솔라빔" && move.Methods.Contains("machine"));
+        Assert.Contains(detail.Moves, move => move.Name == "솔라빔" && move.Methods.Contains("TM"));
     }
 
     [Fact]
@@ -373,6 +373,28 @@ public class CompanionEngineTests : IDisposable
         var engine = BuildEngine(snapshot: PokemonLineSourceTests.CombatSnapshot);
 
         Assert.Null(engine.Detail(999));
+    }
+
+    [Fact]
+    public void KoreanViewLocalizesEventsShopAndLanguage()
+    {
+        var engine = BuildEngine(snapshot: PokemonLineSourceTests.CombatSnapshot);
+        engine.State.Language = AppLanguage.Ko;
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+
+        engine.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+
+        var view = engine.View();
+        Assert.Equal(AppLanguage.Ko, view.Language);
+        Assert.Contains("알에서", view.RecentEvents[^1].Text);
+        var notice = engine.DrainNotices()[^1];
+        Assert.Contains("알에서", notice.Text);
+        Assert.Contains(view.ShopRows, row => row.Label == "이상한 사탕");
+        Assert.Contains(view.ShopRows, row => row.Label == "포켓몬 알");
+        var detail = engine.Detail(engine.State.Active!.CurrentID)!;
+        Assert.Equal(AppLanguage.Ko, detail.Language);
+        Assert.Contains(detail.Individuals.Single().Gender, new[] { "수컷", "암컷" });
+        Assert.Contains(detail.Moves, move => move.Methods.Contains("Lv. 1") || move.Methods.Contains("시작"));
     }
 
     [Fact]
@@ -467,7 +489,7 @@ public class CompanionEngineTests : IDisposable
         ditto.ApplyUsage(Map(("claude_code", 130_000_000)), "2026-09-23", true);
         var reveal = Assert.Single(ditto.DrainNotices());
         Assert.Equal(NoticeKinds.DittoReveal, reveal.Kind);
-        Assert.Contains("Ditto in disguise", reveal.Text);
+        Assert.Contains("was Ditto all along", reveal.Text);
 
         ditto.State.UsedSinceInstall = 2_000_000_000;
         Assert.True(ditto.BuyEgg(null));
@@ -887,6 +909,7 @@ public class CompanionEngineTests : IDisposable
     public void ShopDifficultyScalesPricesWithoutTouchingState()
     {
         var engine = BuildEngine();
+        engine.State.Language = AppLanguage.En;
         engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
         engine.State.EggUsage = 1_000_000;
 
@@ -897,7 +920,7 @@ public class CompanionEngineTests : IDisposable
         Assert.Contains(view.ShopRows, row => row.Label == "Mint" && row.Price == 200_000_000);
         Assert.Contains(view.ShopRows, row => row.Label == "Rare Candy" && row.Price == 1_000_000_000);
         Assert.Contains(view.ShopRows,
-            row => row.Label == "Fresh Egg" && row.Price == 2_000_000_000);
+            row => row.Label == "Pokémon Egg" && row.Price == 2_000_000_000);
         Assert.Equal(1_000_000, engine.State.EggUsage);
         Assert.Equal(0, engine.State.SpentTokens);
         Assert.Equal(0, engine.State.UsedSinceInstall);
@@ -907,14 +930,15 @@ public class CompanionEngineTests : IDisposable
     public void ViewExposesSortedShopRowsBagAndWallet()
     {
         var engine = BuildEngine();
+        engine.State.Language = AppLanguage.En;
         engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
         engine.State.UsedSinceInstall = 5_000_000_000;
 
         var view = engine.View();
         Assert.Equal(
         [
-            "Mint", "Rare Candy", "Fresh Egg", "Fresh Egg (uncommon+)", "Shiny Charm",
-            "Fresh Egg (rare+)",
+            "Mint", "Rare Candy", "Pokémon Egg", "Uncommon Egg", "Shiny Charm",
+            "Rare Egg",
         ], view.ShopRows.Select(row => row.Label).ToList());
         Assert.All(view.ShopRows.Where(row => row.Item is not null), row => Assert.True(row.CanBuy));
         Assert.All(view.ShopRows.Where(row => row.Item is null), row => Assert.False(row.CanBuy));
@@ -926,7 +950,7 @@ public class CompanionEngineTests : IDisposable
         view = engine.View();
         Assert.Equal(
         [
-            "Mint", "Rare Candy", "Fresh Egg", "Fresh Egg (uncommon+)", "Fresh Egg (rare+)",
+            "Mint", "Rare Candy", "Pokémon Egg", "Uncommon Egg", "Rare Egg",
             "Shiny Charm",
         ], view.ShopRows.Select(row => row.Label).ToList());
         var charmRow = view.ShopRows.Single(row => row.Label == "Shiny Charm");

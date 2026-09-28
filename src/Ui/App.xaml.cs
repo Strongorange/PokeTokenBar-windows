@@ -61,21 +61,22 @@ public partial class App : System.Windows.Application
 
     private ContextMenu BuildMenu()
     {
+        var lang = _engine.State.Language;
         var menu = new ContextMenu();
         var header = new MenuItem
         {
             Header = "PokeTokenBar " + (typeof(App).Assembly.GetName().Version ?? new Version()).ToString(3),
             IsEnabled = false,
         };
-        var refresh = new MenuItem { Header = "_Refresh" };
+        var refresh = new MenuItem { Header = "_" + DashboardText.RefreshButton(lang) };
         refresh.Click += async (_, _) => await RefreshFromUiAsync();
-        var dashboard = new MenuItem { Header = "Open _dashboard" };
+        var dashboard = new MenuItem { Header = DashboardText.OpenDashboard(lang) };
         dashboard.Click += (_, _) => ShowDashboard();
-        _petToggle = new MenuItem { Header = "Floating _pet", IsCheckable = true };
+        _petToggle = new MenuItem { Header = DashboardText.FloatingPet(lang), IsCheckable = true };
         _petToggle.Click += (_, _) => SetPetEnabled(_petToggle.IsChecked);
-        var diagnostics = new MenuItem { Header = "Open _diagnostics folder" };
+        var diagnostics = new MenuItem { Header = DashboardText.OpenDiagnosticsFolder(lang) };
         diagnostics.Click += (_, _) => OpenDiagnosticsFolder();
-        var exit = new MenuItem { Header = "E_xit" };
+        var exit = new MenuItem { Header = "_" + DashboardText.ExitApp(lang) };
         exit.Click += (_, _) => Shutdown();
         menu.Items.Add(header);
         menu.Items.Add(refresh);
@@ -232,7 +233,7 @@ public partial class App : System.Windows.Application
         {
             if (_dashboard is null)
             {
-                _dashboard = new DashboardWindow(_engine);
+                _dashboard = new DashboardWindow(_engine, _sprites);
                 _dashboard.Closed += (_, _) => _dashboard = null;
                 if (_service.Current is { } state)
                     _dashboard.Update(state);

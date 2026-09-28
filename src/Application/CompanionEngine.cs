@@ -81,7 +81,8 @@ public sealed record CompanionDetailSnapshot(
     IReadOnlyList<CompanionDetailStat> BaseStats,
     IReadOnlyList<CompanionDetailAbility> Abilities,
     IReadOnlyList<CompanionDetailMoveOption> Moves,
-    IReadOnlyList<CompanionDetailIndividual> Individuals);
+    IReadOnlyList<CompanionDetailIndividual> Individuals,
+    AppLanguage Language);
 
 public sealed record CompanionGameView(
     bool HasActive,
@@ -109,7 +110,8 @@ public sealed record CompanionGameView(
     IReadOnlyList<CompanionShopRow> ShopRows,
     IReadOnlyList<CompanionBagItem> Bag,
     int ActiveSpeciesID,
-    UnownForm? ActiveUnownForm);
+    UnownForm? ActiveUnownForm,
+    AppLanguage Language);
 
 public enum CandyUseResult
 {
@@ -679,15 +681,14 @@ public sealed class CompanionEngine
 
     private void AddEvent(string kind, string name, bool shiny = false)
     {
+        var language = _state.Language;
         var text = kind switch
         {
-            EventText.Hatch => shiny ? $"Shiny {name} hatched!" : $"{name} hatched!",
-            EventText.Evolve => $"{name} — evolved!",
-            EventText.Graduate => shiny ? $"Shiny {name} graduated into the dex!" : $"{name} graduated into the dex!",
-            EventText.DittoReveal => shiny
-                ? $"{name} was a shiny Ditto in disguise!"
-                : $"{name} was a Ditto in disguise!",
-            EventText.Release => $"{name} released — a new egg is incubating.",
+            EventText.Hatch => DashboardText.EventHatch(language, name, shiny),
+            EventText.Evolve => DashboardText.EventEvolve(language, name),
+            EventText.Graduate => DashboardText.EventGraduate(language, name),
+            EventText.DittoReveal => DashboardText.EventDittoReveal(language, name, shiny),
+            EventText.Release => DashboardText.EventRelease(language, name),
             _ => name
         };
         _events.Add(new CompanionEvent(_options.Clock(), text));
@@ -965,18 +966,9 @@ public sealed class CompanionEngine
     private bool IsPurchasedPassive(ShopEntry entry) =>
         entry.Item is { } kind && kind.IsPassive() && ItemCount(kind) > 0;
 
-    private static string ShopRowLabel(ShopEntry entry) => entry.Item switch
-    {
-        ItemKind.RareCandy => "Rare Candy",
-        ItemKind.Mint => "Mint",
-        ItemKind.ShinyCharm => "Shiny Charm",
-        _ => entry.EggTier switch
-        {
-            Rarity.Uncommon => "Fresh Egg (uncommon+)",
-            Rarity.Rare => "Fresh Egg (rare+)",
-            _ => "Fresh Egg",
-        }
-    };
+    private string ShopRowLabel(ShopEntry entry) => entry.Item is { } kind
+        ? DashboardText.ItemName(_state.Language, kind)
+        : DashboardText.EggName(_state.Language, entry.EggTier);
 
     private IReadOnlyList<CompanionBagItem> BuildBag() =>
         Enum.GetValues<ItemKind>()
@@ -994,13 +986,7 @@ public sealed class CompanionEngine
         _ => false,
     };
 
-    private static string BagItemLabel(ItemKind kind) => kind switch
-    {
-        ItemKind.RareCandy => "Rare Candy",
-        ItemKind.Mint => "Mint",
-        ItemKind.ShinyCharm => "Shiny Charm",
-        _ => kind.ToString()
-    };
+    private string BagItemLabel(ItemKind kind) => DashboardText.ItemName(_state.Language, kind);
 
     public byte[] ExportSave()
     {
@@ -1125,9 +1111,10 @@ public sealed class CompanionEngine
             details.Moves
                 .Select(move => new CompanionDetailMoveOption(
                     _options.Lines.ResourceName(PokemonResourceKinds.Move, move.Name, language),
-                    MoveMethodLabels(move).ToList()))
+                    MoveMethodLabels(language, move).ToList()))
                 .ToList(),
-            individuals);
+            individuals,
+            language);
     }
 
     private CompanionDetailIndividual BuildIndividual(int position, bool isShiny, bool isRaising,
@@ -1141,7 +1128,7 @@ public sealed class CompanionEngine
             isShiny,
             isRaising,
             profile.Level,
-            profile.Gender is { } gender ? PokemonGenders.Raw(gender) : "",
+            DashboardText.GenderLabel(language, profile.Gender),
             nature is { } value ? PokemonNatures.Name(value, language) : "",
             ability,
             profile.AbilityIsHidden,
@@ -1153,12 +1140,12 @@ public sealed class CompanionEngine
                 move.LearnedAtLevel)).ToList());
     }
 
-    private static IEnumerable<string> MoveMethodLabels(PokemonMoveOption option)
+    private static IEnumerable<string> MoveMethodLabels(AppLanguage language, PokemonMoveOption option)
     {
         var seen = new HashSet<string>();
         foreach (var method in option.LearnMethods)
         {
-            var label = method.Method == "level-up" ? $"Lv. {method.Level}" : method.Method;
+            var label = DashboardText.MoveMethodLabel(language, method.Method, method.Level);
             if (seen.Add(label)) yield return label;
         }
     }
@@ -1200,7 +1187,8 @@ public sealed class CompanionEngine
             BuildShopRows(),
             BuildBag(),
             active?.CurrentID ?? 0,
-            active?.UnownForm);
+            active?.UnownForm,
+            _state.Language);
     }
 
     private IReadOnlyList<CompanionStageItem> BuildStageItems(MonState active, EvoLine? line)
