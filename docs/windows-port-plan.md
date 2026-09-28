@@ -204,6 +204,21 @@ established that OpenCode 1.x keeps everything in a WAL-mode SQLite
 `storage/` JSON layout is legacy). Local disks are opened read-only directly;
 UNC paths (WSL `\\wsl.localhost\...`) cannot host SQLite locks, so the reader
 copies db+wal to a scratch folder under `%LOCALAPPDATA%\PokeTokenBar\opencode`
- gated by db+wal fingerprints. Sanitized fixtures live under
+  gated by db+wal fingerprints. Sanitized fixtures live under
 `docs/windows-port-research/fixtures/opencode/`. No generic totals, game
 progression, or UI architecture changes were made.
+
+### Later: combat-details enrichment
+
+Done in M10. The bundled snapshot moved to schema 2: beside the existing
+bases/lines/names it now carries per-species default-form combat data
+(height, weight, base experience, gender rate, types, base stats, abilities,
+and every move learnable in the black-2-white-2 version group) plus localized
+type/ability/move display names for the app languages. `scripts/
+generate-pokemon-snapshot.ps1` regenerates it from PokeAPI; the app stays
+offline-first and never fetches pokemon base data at runtime. The engine fills
+the deferred profile fields (gender/ability/moves) at hatch, evolution,
+graduation, release, and startup migration, and the dashboard shows a combat
+summary line for the active mon plus a per-species detail window (individuals
+with computed stats and known moves, base stats, abilities, full move list)
+opened by double-clicking a dex row.
