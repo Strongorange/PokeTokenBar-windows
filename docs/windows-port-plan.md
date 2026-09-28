@@ -222,3 +222,19 @@ graduation, release, and startup migration, and the dashboard shows a combat
 summary line for the active mon plus a per-species detail window (individuals
 with computed stats and known moves, base stats, abilities, full move list)
 opened by double-clicking a dex row.
+
+## Closure (M11, 2026-09-28)
+
+The user declared the project complete. The plan, every named nicety
+(including M10 combat details), and personal verification are done; version
+0.10.0 is the final shipped build. From here the project runs in maintenance
+mode: no scheduled slices; defects are fixed as they appear during daily use.
+
+Distribution stays manual: releases are uploaded by hand to GitHub Releases
+(web UI) using a zip of the single-file exe produced by
+`scripts/publish-windows.ps1` (e.g. `artifacts/PokeTokenBar-<version>-win-x64.zip`).
+No release automation, installer, signing, or auto-update was added, per the
+personal-use scope. The unused `OPENCODE_DATA_DIR` compatibility nicety was
+checked and deliberately skipped: this machine does not set it anywhere
+(Windows env and WSL shell rc files verified), so the fixed-path discovery
+covers actual usage.
