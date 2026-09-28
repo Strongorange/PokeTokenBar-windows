@@ -110,21 +110,7 @@ public partial class DashboardWindow : Window
                          DashboardText.DetailHint(lang);
         DexList.Items.Clear();
         foreach (var row in view.DexRows)
-        {
-            var panel = new DockPanel { Tag = row.SpeciesID };
-            var image = new Image { Width = 28, Height = 28, Stretch = Stretch.Uniform, Margin = new Thickness(0, 0, 6, 0) };
-            DockPanel.SetDock(image, Dock.Left);
-            panel.Children.Add(image);
-            var star = row.IsShiny ? " ★" : "";
-            var raising = row.IsRaising ? $"  ← {DashboardText.RaisingLabel(lang)}" : "";
-            panel.Children.Add(new TextBlock
-            {
-                Text = $"#{row.SpeciesID} {row.Name}{star} · {DashboardText.RarityLabel(lang, row.Rarity)}{raising}",
-                VerticalAlignment = VerticalAlignment.Center
-            });
-            new SpriteSlot(image).Update(_sprites, row.SpeciesID, false, row.IsShiny, null, "❔");
-            DexList.Items.Add(panel);
-        }
+            DexList.Items.Add(CreateDexTile(row, lang));
         EventsList.Items.Clear();
         foreach (var item in view.RecentEvents)
             EventsList.Items.Add($"{item.At.ToLocalTime():MM-dd HH:mm}  {item.Text}");
@@ -317,6 +303,70 @@ public partial class DashboardWindow : Window
         if (detail.Types.Count > 0) parts.Add(string.Join("/", detail.Types));
         parts.Add($"{DashboardText.BaseTotalLabel(lang)} {detail.BaseStatTotal}");
         CombatText.Text = string.Join(" · ", parts);
+    }
+
+    private UIElement CreateDexTile(CompanionDexRow row, AppLanguage lang)
+    {
+        var star = row.IsShiny ? " ★" : "";
+        var raising = row.IsRaising ? $"  ← {DashboardText.RaisingLabel(lang)}" : "";
+        var tile = new Grid
+        {
+            Width = 84,
+            Margin = new Thickness(1),
+            ToolTip = $"#{row.SpeciesID} {row.Name}{star} · {DashboardText.RarityLabel(lang, row.Rarity)}{raising}",
+        };
+        for (var i = 0; i < 3; i++) tile.RowDefinitions.Add(new RowDefinition());
+
+        var caption = new Grid();
+        caption.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        caption.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        caption.Children.Add(new TextBlock
+        {
+            Text = "#" + row.SpeciesID,
+            FontSize = 10,
+            Foreground = Brushes.Gray,
+        });
+        if (row.IsShiny)
+        {
+            var shiny = new TextBlock
+            {
+                Text = "★",
+                FontSize = 10,
+                Foreground = Brushes.Gray,
+                HorizontalAlignment = HorizontalAlignment.Right,
+            };
+            Grid.SetColumn(shiny, 1);
+            caption.Children.Add(shiny);
+        }
+        Grid.SetRow(caption, 0);
+        tile.Children.Add(caption);
+
+        var sprite = new Grid { Height = 64 };
+        var image = new Image { Width = 64, Height = 64, Stretch = Stretch.Uniform };
+        RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.NearestNeighbor);
+        var placeholder = new TextBlock
+        {
+            Text = "❔",
+            FontSize = 24,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        sprite.Children.Add(image);
+        sprite.Children.Add(placeholder);
+        Grid.SetRow(sprite, 1);
+        tile.Children.Add(sprite);
+        new SpriteSlot(image, placeholder).Update(_sprites, row.SpeciesID, false, row.IsShiny, null, "❔");
+
+        var name = new TextBlock
+        {
+            Text = (row.IsRaising ? "← " : "") + row.Name,
+            FontSize = 11,
+            TextAlignment = TextAlignment.Center,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+        };
+        Grid.SetRow(name, 2);
+        tile.Children.Add(name);
+        return tile;
     }
 
     private void OnDexDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
