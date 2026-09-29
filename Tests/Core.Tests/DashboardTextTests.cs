@@ -179,6 +179,30 @@ public class DashboardTextTests
     }
 
     [Fact]
+    public void DetailPolishStringsFollowMacOSTranslations()
+    {
+        Assert.Equal("개체", DashboardText.IndividualTitle(AppLanguage.Ko));
+        Assert.Equal("Individual", DashboardText.IndividualTitle(AppLanguage.En));
+        Assert.Equal("Individuum", DashboardText.IndividualTitle(AppLanguage.De));
+        Assert.Equal("레벨", DashboardText.LevelTitle(AppLanguage.Ko));
+        Assert.Equal("Level", DashboardText.LevelTitle(AppLanguage.En));
+        Assert.Equal("성별", DashboardText.GenderTitle(AppLanguage.Ko));
+        Assert.Equal("Gender", DashboardText.GenderTitle(AppLanguage.En));
+        Assert.Equal("성격", DashboardText.NatureTitle(AppLanguage.Ko));
+        Assert.Equal("Nature", DashboardText.NatureTitle(AppLanguage.En));
+        Assert.Equal("실제 능력치", DashboardText.ActualStatsTitle(AppLanguage.Ko));
+        Assert.Equal("Actual stats", DashboardText.ActualStatsTitle(AppLanguage.En));
+        Assert.Equal("Tatsächliche Werte", DashboardText.ActualStatsTitle(AppLanguage.De));
+        Assert.Equal("종 정보", DashboardText.SpeciesDataTitle(AppLanguage.Ko));
+        Assert.Equal("Species data", DashboardText.SpeciesDataTitle(AppLanguage.En));
+        Assert.Equal("Données de l’espèce", DashboardText.SpeciesDataTitle(AppLanguage.Fr));
+        Assert.Equal("숨겨진 특성", DashboardText.HiddenAbilityTitle(AppLanguage.Ko));
+        Assert.Equal("Hidden Ability", DashboardText.HiddenAbilityTitle(AppLanguage.En));
+        Assert.Equal("현재 레벨에서 배운 기술이 없어요.", DashboardText.NoLevelMoves(AppLanguage.Ko));
+        Assert.Equal("No level-up moves learned at this level.", DashboardText.NoLevelMoves(AppLanguage.En));
+    }
+
+    [Fact]
     public void RarityAndItemNamesFollowMacOSTranslations()
     {
         Assert.Equal("희귀", DashboardText.RarityLabel(AppLanguage.Ko, Rarity.Rare));

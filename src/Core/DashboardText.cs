@@ -590,9 +590,36 @@ public static class DashboardText
         T(lang, "포켓몬 상세", "Pokémon details", "ポケモン詳細", "Detalles del Pokémon",
             "Détails du Pokémon", "Detalhes do Pokémon", "Pokémon-Details");
 
-    public static string IndividualsTitle(AppLanguage lang) =>
-        T(lang, "개체", "Individuals", "個体", "Ejemplares", "Individus", "Indivíduos",
-            "Individuen");
+    public static string IndividualTitle(AppLanguage lang) =>
+        T(lang, "개체", "Individual", "個体", "Ejemplar", "Individu", "Indivíduo",
+            "Individuum");
+
+    public static string LevelTitle(AppLanguage lang) =>
+        T(lang, "레벨", "Level", "レベル", "Nivel", "Niveau", "Nível", "Level");
+
+    public static string GenderTitle(AppLanguage lang) =>
+        T(lang, "성별", "Gender", "性別", "Sexo", "Sexe", "Gênero", "Geschlecht");
+
+    public static string NatureTitle(AppLanguage lang) =>
+        T(lang, "성격", "Nature", "性格", "Naturaleza", "Nature", "Natureza", "Wesen");
+
+    public static string ActualStatsTitle(AppLanguage lang) =>
+        T(lang, "실제 능력치", "Actual stats", "実能力値", "Estadísticas reales",
+            "Stats réelles", "Atributos reais", "Tatsächliche Werte");
+
+    public static string SpeciesDataTitle(AppLanguage lang) =>
+        T(lang, "종 정보", "Species data", "種情報", "Datos de especie",
+            "Données de l’espèce", "Dados da espécie", "Speziesdaten");
+
+    public static string HiddenAbilityTitle(AppLanguage lang) =>
+        T(lang, "숨겨진 특성", "Hidden Ability", "隠れ特性", "Habilidad oculta",
+            "Talent caché", "Habilidade oculta", "Versteckte Fähigkeit");
+
+    public static string NoLevelMoves(AppLanguage lang) =>
+        T(lang, "현재 레벨에서 배운 기술이 없어요.", "No level-up moves learned at this level.",
+            "現在のレベルで覚えた技はありません。", "No hay movimientos aprendidos a este nivel.",
+            "Aucune capacité apprise à ce niveau.", "Nenhum golpe aprendido neste nível.",
+            "Auf diesem Level wurden keine Attacken erlernt.");
 
     public static string KnownMovesTitle(AppLanguage lang) =>
         T(lang, "배운 기술", "Known moves", "覚えている技", "Movimientos conocidos",

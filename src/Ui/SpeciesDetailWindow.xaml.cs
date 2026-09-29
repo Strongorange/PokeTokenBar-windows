@@ -20,7 +20,10 @@ public partial class SpeciesDetailWindow : Window
     private readonly Dictionary<UnownForm, Border> _formTiles = [];
     private readonly SpriteSlot _sprite;
     private Button? _representativeButton;
+    private TextBlock? _shinyLine;
+    private TextBlock? _raisingLine;
     private UnownForm? _selectedForm;
+    private int _selectedIndividualIndex;
 
     public SpeciesDetailWindow(CompanionDetailSnapshot detail, SpriteStore sprites,
         CompanionEngine engine)
@@ -35,6 +38,7 @@ public partial class SpeciesDetailWindow : Window
         _selectedForm = _unownForms.Count > 0 ? _unownForms[0].Form : null;
         Build(detail);
         UpdateHeroSprite();
+        RenderIdentityLines();
         HighlightSelectedForm();
     }
 
@@ -65,18 +69,26 @@ public partial class SpeciesDetailWindow : Window
         button.Foreground = isRepresentative ? Token("AccentBrush") : Token("TextSecondaryBrush");
     }
 
+    private List<CompanionDetailIndividual> FilteredIndividuals() =>
+        _selectedForm is { } form
+            ? _detail.Individuals.Where(individual => individual.UnownForm == form).ToList()
+            : _detail.Individuals.ToList();
+
     private void Build(CompanionDetailSnapshot detail)
     {
         var lang = detail.Language;
         AddTitle($"{detail.Name}  ·  #{detail.SpeciesID}");
-        AddSecondary(ContentRoot, string.Join(" · ", new[]
+        if (detail.Rarity is { } rarity)
+            AddSecondary(ContentRoot, DashboardText.RarityLabel(lang, rarity), header: true);
+        _shinyLine = new TextBlock { FontSize = 11, Margin = new Thickness(0, 2, 0, 0) };
+        _raisingLine = new TextBlock
         {
-            detail.Rarity is { } rarity ? DashboardText.RarityLabel(lang, rarity) : "",
-            detail.Types.Count > 0 ? string.Join("/", detail.Types) : "",
-            $"{DashboardText.BaseTotalLabel(lang)} {detail.BaseStatTotal}",
-            $"{DashboardText.HeightLabel(lang)} {detail.Height / 10.0:0.0} m",
-            $"{DashboardText.WeightLabel(lang)} {detail.Weight / 10.0:0.0} kg"
-        }.Where(part => part.Length > 0)), header: true);
+            FontSize = 11,
+            Foreground = Token("AccentBrush"),
+            Margin = new Thickness(0, 2, 0, 0)
+        };
+        HeaderRoot.Children.Add(_shinyLine);
+        HeaderRoot.Children.Add(_raisingLine);
 
         var representativeButton = new Button
         {
@@ -95,39 +107,41 @@ public partial class SpeciesDetailWindow : Window
         if (_unownForms.Count > 0)
             BuildUnownPicker(lang);
 
-        if (detail.Individuals.Count > 0)
-        {
-            AddSection(DashboardText.IndividualsTitle(lang));
-            ContentRoot.Children.Add(_individualsHost);
-            RenderIndividuals();
-        }
+        ContentRoot.Children.Add(_individualsHost);
+        RenderIndividuals();
+        BuildSpeciesData(detail, lang);
+        BuildMoveList(detail, lang);
+    }
 
-        if (detail.BaseStats.Count > 0)
-        {
-            AddSection(DashboardText.BaseStatsTitle(lang));
-            foreach (var stat in detail.BaseStats)
-                AddStatRow(ContentRoot, DashboardText.StatLabel(lang, stat.Name), stat.Value, "");
-        }
-
+    private void BuildSpeciesData(CompanionDetailSnapshot detail, AppLanguage lang)
+    {
+        AddSection(ContentRoot, DashboardText.SpeciesDataTitle(lang));
+        if (detail.Types.Count > 0)
+            AddTypeCapsules(detail.Types);
+        AddValuePairs(ContentRoot,
+            (DashboardText.HeightLabel(lang), $"{detail.Height / 10.0:0.0} m"),
+            (DashboardText.WeightLabel(lang), $"{detail.Weight / 10.0:0.0} kg"),
+            (DashboardText.BaseTotalLabel(lang), $"{detail.BaseStatTotal}"));
         if (detail.Abilities.Count > 0)
         {
-            AddSection(DashboardText.PossibleAbilitiesTitle(lang));
-            AddBody(ContentRoot, string.Join(" · ", detail.Abilities
+            AddSubSection(ContentRoot, DashboardText.PossibleAbilitiesTitle(lang));
+            AddSecondary(ContentRoot, string.Join(" · ", detail.Abilities
                 .Select(ability => ability.IsHidden
                     ? $"{ability.Name} ({DashboardText.HiddenMark(lang)})" : ability.Name)));
         }
+    }
 
-        if (detail.Moves.Count > 0)
-        {
-            AddSection(DashboardText.MoveListCount(lang, detail.Moves.Count));
-            foreach (var move in detail.Moves)
-                AddSecondary(ContentRoot, $"{move.Name} — {string.Join(" · ", move.Methods)}");
-        }
+    private void BuildMoveList(CompanionDetailSnapshot detail, AppLanguage lang)
+    {
+        if (detail.Moves.Count == 0) return;
+        AddSection(ContentRoot, DashboardText.MoveListCount(lang, detail.Moves.Count));
+        foreach (var move in detail.Moves)
+            AddSecondary(ContentRoot, $"{move.Name} — {string.Join(" · ", move.Methods)}");
     }
 
     private void BuildUnownPicker(AppLanguage lang)
     {
-        AddSection(DashboardText.UnownFormsCollected(lang, _unownForms.Count));
+        AddSection(ContentRoot, DashboardText.UnownFormsCollected(lang, _unownForms.Count));
         var grid = new UniformGrid { Columns = 7 };
         foreach (var form in UnownForms.All)
         {
@@ -205,10 +219,31 @@ public partial class SpeciesDetailWindow : Window
     {
         if (_formTiles.GetValueOrDefault(form) is null) return;
         _selectedForm = form;
+        _selectedIndividualIndex = 0;
         HighlightSelectedForm();
         UpdateHeroSprite();
+        RenderIdentityLines();
         RenderIndividuals();
         UpdateRepresentativeButton();
+    }
+
+    private void RenderIdentityLines()
+    {
+        var lang = _detail.Language;
+        var shiny = _selectedForm is { } form
+            ? _unownForms.FirstOrDefault(entry => entry.Form == form)?.IsShiny == true
+            : _detail.Individuals.Any(individual => individual.IsShiny);
+        var raising = FilteredIndividuals().Any(individual => individual.IsRaising);
+        if (_shinyLine is not null)
+        {
+            _shinyLine.Text = $"✨ {DashboardText.ShinyLabel(lang)}";
+            _shinyLine.Visibility = shiny ? Visibility.Visible : Visibility.Collapsed;
+        }
+        if (_raisingLine is not null)
+        {
+            _raisingLine.Text = DashboardText.RaisingLabel(lang);
+            _raisingLine.Visibility = raising ? Visibility.Visible : Visibility.Collapsed;
+        }
     }
 
     private Brush Token(string key) =>
@@ -228,53 +263,201 @@ public partial class SpeciesDetailWindow : Window
 
     private void UpdateHeroSprite()
     {
-        var shiny = _selectedForm is { } form
-            ? _unownForms.FirstOrDefault(entry => entry.Form == form)?.IsShiny == true
-            : _detail.Individuals.Any(individual => individual.IsShiny);
+        var individuals = FilteredIndividuals();
+        bool shiny;
+        if (_selectedForm is { } form)
+            shiny = _unownForms.FirstOrDefault(entry => entry.Form == form)?.IsShiny == true;
+        else if (individuals.Count > 0)
+        {
+            var index = Math.Clamp(_selectedIndividualIndex, 0, individuals.Count - 1);
+            shiny = individuals[index].IsShiny;
+        }
+        else
+            shiny = _detail.Individuals.Any(individual => individual.IsShiny);
         _sprite.Update(_sprites, _detail.SpeciesID, true, shiny, _selectedForm, "❔");
     }
 
     private void RenderIndividuals()
     {
         var lang = _detail.Language;
-        var individuals = _selectedForm is { } form
-            ? _detail.Individuals.Where(individual => individual.UnownForm == form)
-            : _detail.Individuals;
+        var individuals = FilteredIndividuals();
         _individualsHost.Children.Clear();
-        foreach (var individual in individuals)
+        if (individuals.Count == 0)
         {
-            var header = new List<string> { individual.Label };
-            if (individual.IsShiny) header.Add("✨");
-            if (individual.IsRaising) header.Add(DashboardText.RaisingLabel(lang));
-            header.Add($"Lv. {individual.Level}");
-            if (individual.Gender.Length > 0) header.Add(individual.Gender);
-            if (individual.Nature.Length > 0) header.Add(individual.Nature);
-            AddBody(_individualsHost, string.Join(" · ", header));
-            AddSecondary(_individualsHost, (individual.Ability.Length > 0
-                    ? $"{DashboardText.AbilityLabel(lang)}: {individual.Ability}" +
-                      (individual.AbilityIsHidden ? $" ({DashboardText.HiddenMark(lang)})" : "")
-                    : $"{DashboardText.AbilityLabel(lang)}: —")
-                + $" · {DashboardText.KnownMovesTitle(lang)}: " +
-                (individual.Moves.Count > 0
-                    ? string.Join(", ", individual.Moves.Select(move => $"{move.Name} (Lv. {move.LearnedAtLevel})"))
-                    : "—"));
-            foreach (var stat in individual.Stats)
-                AddStatRow(_individualsHost, DashboardText.StatLabel(lang, stat.Name), stat.Value,
-                    $"base {stat.Base} · IV {stat.Iv}");
+            RenderBaseStats(lang);
+            return;
         }
+        _selectedIndividualIndex = Math.Clamp(_selectedIndividualIndex, 0, individuals.Count - 1);
+
+        if (individuals.Count > 1)
+        {
+            var picker = new ComboBox
+            {
+                Width = 170,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                Margin = new Thickness(0, 0, 0, 2)
+            };
+            for (var i = 0; i < individuals.Count; i++)
+                picker.Items.Add($"#{i + 1} · Lv. {individuals[i].Level}");
+            picker.SelectedIndex = _selectedIndividualIndex;
+            picker.SelectionChanged += (_, _) =>
+            {
+                if (picker.SelectedIndex < 0) return;
+                _selectedIndividualIndex = picker.SelectedIndex;
+                RenderIndividuals();
+                UpdateHeroSprite();
+            };
+            _individualsHost.Children.Add(picker);
+        }
+
+        var individual = individuals[_selectedIndividualIndex];
+        AddSection(_individualsHost, DashboardText.IndividualTitle(lang));
+        AddValuePairs(_individualsHost,
+            (DashboardText.LevelTitle(lang), $"{individual.Level}"),
+            (DashboardText.GenderTitle(lang),
+                individual.Gender.Length > 0 ? individual.Gender : "—"),
+            (DashboardText.NatureTitle(lang),
+                individual.Nature.Length > 0 ? individual.Nature : "—"));
+
+        AddSubSection(_individualsHost, DashboardText.AbilityLabel(lang));
+        var ability = individual.Ability.Length > 0
+            ? individual.Ability + (individual.AbilityIsHidden
+                ? $" · {DashboardText.HiddenAbilityTitle(lang)}" : "")
+            : "—";
+        AddBody(_individualsHost, ability);
+
+        AddSubSection(_individualsHost, DashboardText.ActualStatsTitle(lang));
+        var scale = PokemonStatCalculator.DisplayScaleMaximum(
+            individuals[_selectedIndividualIndex].Stats.Select(stat => stat.Value).ToArray());
+        foreach (var stat in individual.Stats)
+            AddStatRow(_individualsHost, DashboardText.StatLabel(lang, stat.Name),
+                stat.Value, stat.Iv, scale);
+
+        AddSubSection(_individualsHost, DashboardText.KnownMovesTitle(lang));
+        if (individual.Moves.Count == 0)
+            AddSecondary(_individualsHost, DashboardText.NoLevelMoves(lang));
+        else
+            foreach (var move in individual.Moves)
+                AddKnownMoveRow(_individualsHost, move);
+    }
+
+    private void RenderBaseStats(AppLanguage lang)
+    {
+        if (_detail.BaseStats.Count == 0) return;
+        AddSection(_individualsHost, DashboardText.BaseStatsTitle(lang));
+        foreach (var stat in _detail.BaseStats)
+            AddStatRow(_individualsHost, DashboardText.StatLabel(lang, stat.Name),
+                stat.Value, null, 300);
     }
 
     private void AddTitle(string text) =>
         HeaderRoot.Children.Add(new TextBlock { Text = text, FontSize = 16, FontWeight = FontWeights.Bold });
 
-    private void AddSection(string text) =>
-        ContentRoot.Children.Add(new TextBlock
+    private void AddSection(StackPanel target, string text) =>
+        target.Children.Add(new TextBlock
         {
             Text = text,
             FontWeight = FontWeights.SemiBold,
             FontSize = 13,
             Margin = new Thickness(0, 14, 0, 4)
         });
+
+    private void AddSubSection(StackPanel target, string text) =>
+        target.Children.Add(new TextBlock
+        {
+            Text = text,
+            FontWeight = FontWeights.SemiBold,
+            FontSize = 11,
+            Foreground = Token("TextSecondaryBrush"),
+            Margin = new Thickness(0, 10, 0, 2)
+        });
+
+    private void AddTypeCapsules(IReadOnlyList<string> types)
+    {
+        var row = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Margin = new Thickness(0, 2, 0, 0)
+        };
+        foreach (var type in types)
+        {
+            row.Children.Add(new Border
+            {
+                CornerRadius = new CornerRadius(9),
+                Padding = new Thickness(6, 3, 6, 3),
+                Margin = new Thickness(0, 0, 5, 0),
+                Background = Token("AccentSoftBrush"),
+                Child = new TextBlock
+                {
+                    Text = type.ToUpperInvariant(),
+                    FontSize = 9,
+                    FontWeight = FontWeights.Bold,
+                },
+            });
+        }
+        ContentRoot.Children.Add(row);
+    }
+
+    private void AddValuePairs(StackPanel target, params (string Label, string Value)[] pairs)
+    {
+        var row = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Margin = new Thickness(0, 4, 0, 0)
+        };
+        foreach (var (label, value) in pairs)
+        {
+            row.Children.Add(new StackPanel
+            {
+                Margin = new Thickness(0, 0, 16, 0),
+                Children =
+                {
+                    new TextBlock
+                    {
+                        Text = label,
+                        FontSize = 9,
+                        Foreground = Token("TextSecondaryBrush")
+                    },
+                    new TextBlock
+                    {
+                        Text = value,
+                        FontSize = 12,
+                        FontWeight = FontWeights.SemiBold,
+                        Margin = new Thickness(0, 1, 0, 0)
+                    }
+                }
+            });
+        }
+        target.Children.Add(row);
+    }
+
+    private void AddKnownMoveRow(StackPanel target, CompanionDetailKnownMove move)
+    {
+        var grid = new Grid { Margin = new Thickness(0, 2, 0, 0) };
+        grid.ColumnDefinitions.Add(new ColumnDefinition
+            { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var name = new TextBlock
+        {
+            Text = move.Name,
+            FontSize = 11,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        Grid.SetColumn(name, 0);
+        var level = new TextBlock
+        {
+            Text = $"Lv. {move.LearnedAtLevel}",
+            FontSize = 11,
+            Foreground = Token("TextSecondaryBrush"),
+            Margin = new Thickness(10, 0, 0, 0),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        Grid.SetColumn(level, 1);
+        grid.Children.Add(name);
+        grid.Children.Add(level);
+        target.Children.Add(grid);
+    }
 
     private void AddBody(StackPanel target, string text) =>
         target.Children.Add(new TextBlock
@@ -308,35 +491,56 @@ public partial class SpeciesDetailWindow : Window
         });
     }
 
-    private void AddStatRow(StackPanel target, string label, int value, string suffix)
+    private void AddStatRow(StackPanel target, string label, int value, int? iv, int scaleMaximum)
     {
-        var panel = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            Margin = new Thickness(0, 2, 0, 0)
-        };
-        panel.Children.Add(new TextBlock
+        var grid = new Grid { Margin = new Thickness(0, 3, 0, 0) };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(62) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition
+            { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var name = new TextBlock
         {
             Text = label,
-            Width = 48,
-            FontSize = 11,
-            Foreground = Token("TextSecondaryBrush")
-        });
+            FontSize = 10,
+            Foreground = Token("TextSecondaryBrush"),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        Grid.SetColumn(name, 0);
         var bar = new ProgressBar
         {
             Minimum = 0,
-            Maximum = 400,
-            Value = value,
-            Width = 210,
-            Height = 10
-        };
-        panel.Children.Add(bar);
-        panel.Children.Add(new TextBlock
-        {
-            Text = $" {value}{(suffix.Length > 0 ? $"  ({suffix})" : "")}",
+            Maximum = scaleMaximum,
+            Value = Math.Min(value, scaleMaximum),
             VerticalAlignment = VerticalAlignment.Center,
-            FontSize = 11
-        });
-        target.Children.Add(panel);
+            Margin = new Thickness(6, 0, 6, 0)
+        };
+        Grid.SetColumn(bar, 1);
+        var valueText = new TextBlock
+        {
+            Text = value.ToString(),
+            FontSize = 10,
+            MinWidth = 28,
+            TextAlignment = TextAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        Grid.SetColumn(valueText, 2);
+        grid.Children.Add(name);
+        grid.Children.Add(bar);
+        grid.Children.Add(valueText);
+        if (iv is { } ivValue)
+        {
+            var ivText = new TextBlock
+            {
+                Text = $"IV {ivValue}",
+                FontSize = 10,
+                Foreground = Token("TextSecondaryBrush"),
+                Margin = new Thickness(8, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            Grid.SetColumn(ivText, 3);
+            grid.Children.Add(ivText);
+        }
+        target.Children.Add(grid);
     }
 }
