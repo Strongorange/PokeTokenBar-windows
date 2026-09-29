@@ -59,14 +59,15 @@ public partial class FloatingPetWindow : Window
 
     public void Update(CompanionGameView view)
     {
-        var subject = (view.IsEgg, view.ActiveSpeciesID, view.IsShiny, view.ActiveUnownForm);
+        var representativeID = view.RepresentativeSpeciesID;
+        var speciesID = representativeID ?? view.ActiveSpeciesID;
+        var shiny = representativeID is not null ? view.RepresentativeIsShiny : view.IsShiny;
+        var form = representativeID is not null ? view.RepresentativeUnownForm : view.ActiveUnownForm;
+        var egg = view.IsEgg && representativeID is null;
+        var subject = (egg, speciesID, shiny, form);
         if (_lastSubject == subject) return;
         _lastSubject = subject;
         var version = ++_renderVersion;
-        var egg = view.IsEgg;
-        var speciesID = view.ActiveSpeciesID;
-        var shiny = view.IsShiny;
-        var form = view.ActiveUnownForm;
 
         var cached = egg
             ? WrapEgg(_store.CachedEgg())

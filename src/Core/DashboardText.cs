@@ -725,6 +725,58 @@ public static class DashboardText
             $"Tu as la dernière version (v{version})", $"Você está na última versão (v{version})",
             $"Du hast die neueste Version (v{version})");
 
+    // Representative Pokémon
+
+    public static string RepresentativePokemonLabel(AppLanguage lang) =>
+        T(lang, "대표 포켓몬", "Representative Pokémon", "代表ポケモン", "Pokémon representativo",
+            "Pokémon représentatif", "Pokémon representativo", "Repräsentatives Pokémon");
+
+    public static string RepresentativeFollowCurrent(AppLanguage lang) =>
+        T(lang, "현재 포켓몬 따라가기", "Follow current companion", "現在のポケモンに合わせる",
+            "Seguir al compañero actual", "Suivre le compagnon actuel", "Seguir o companheiro atual",
+            "Aktuellem Begleiter folgen");
+
+    public static string RepresentativeChooseFromDex(AppLanguage lang) =>
+        T(lang, "도감에서 선택…", "Choose in Pokédex…", "図鑑で選ぶ…", "Elegir en la Pokédex…",
+            "Choisir dans le Pokédex…", "Escolher na Pokédex…", "Im Pokédex auswählen…");
+
+    public static string RepresentativeSet(AppLanguage lang) =>
+        T(lang, "대표로 설정", "Set as representative", "代表ポケモンに設定",
+            "Establecer como representante", "Définir comme représentatif",
+            "Definir como representante", "Als repräsentativ festlegen");
+
+    public static string RepresentativeBadge(AppLanguage lang) =>
+        T(lang, "대표", "Representative", "代表", "Representante", "Représentatif", "Representante",
+            "Repräsentativ");
+
+    // Usage home
+
+    public static string TodayTokensHeader(AppLanguage lang) =>
+        T(lang, "오늘 사용한 토큰", "Today's tokens", "本日のトークン", "Tokens de hoy",
+            "Tokens du jour", "Tokens de hoje", "Heute verbrauchte Tokens");
+
+    public static string ThisWeekLabel(AppLanguage lang) =>
+        T(lang, "이번 주", "This week", "今週", "Esta semana", "Cette semaine", "Esta semana",
+            "Diese Woche");
+
+    public static string ThisMonthLabel(AppLanguage lang) =>
+        T(lang, "이번 달", "This month", "今月", "Este mes", "Ce mois-ci", "Este mês",
+            "Dieser Monat");
+
+    public static string TokenInputLabel(AppLanguage lang) =>
+        T(lang, "입력", "Input", "入力", "Entrada", "Entrée", "Entrada", "Eingabe");
+
+    public static string TokenOutputLabel(AppLanguage lang) =>
+        T(lang, "출력", "Output", "出力", "Salida", "Sortie", "Saída", "Ausgabe");
+
+    public static string TokenCacheWriteLabel(AppLanguage lang) =>
+        T(lang, "캐시 쓰기", "Cache write", "キャッシュ書込", "Escritura caché", "Écriture cache",
+            "Gravação cache", "Cache schreiben");
+
+    public static string TokenCacheReadLabel(AppLanguage lang) =>
+        T(lang, "캐시 읽기", "Cache read", "キャッシュ読込", "Lectura caché", "Lecture cache",
+            "Leitura cache", "Cache lesen");
+
     // Engine event / notice texts
 
     public static string EventHatch(AppLanguage lang, string name, bool shiny) => shiny

@@ -738,6 +738,42 @@ public class CompanionEngineTests : IDisposable
     }
 
     [Fact]
+    public void SetRepresentativeValidatesOwnershipAndSurfacesInView()
+    {
+        var engine = BuildEngine();
+        engine.State.Language = AppLanguage.En;
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        engine.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+        Assert.NotNull(engine.State.Active);
+
+        Assert.False(engine.SetRepresentative(999));
+        Assert.Null(engine.State.RepresentativeSpeciesID);
+
+        Assert.True(engine.SetRepresentative(1));
+        var view = engine.View();
+        Assert.Equal(1, view.RepresentativeSpeciesID);
+        Assert.False(view.RepresentativeIsShiny);
+        Assert.Null(view.RepresentativeUnownForm);
+
+        Assert.True(engine.SetRepresentative(null));
+        Assert.Null(engine.View().RepresentativeSpeciesID);
+    }
+
+    [Fact]
+    public void SetRepresentativePersistsAcrossEngineRestart()
+    {
+        var engine = BuildEngine(fileName: "representative-state.json");
+        engine.State.Language = AppLanguage.En;
+        engine.State.Active = new MonState(1, [1, 2], null, 1, 0, Rarity.Common, 2);
+        Assert.True(engine.SetRepresentative(2));
+
+        var reopened = BuildEngine(fileName: "representative-state.json");
+        Assert.Equal(2, reopened.State.RepresentativeSpeciesID);
+        Assert.Equal(2, reopened.View().RepresentativeSpeciesID);
+        Assert.Null(reopened.View().RepresentativeUnownForm);
+    }
+
+    [Fact]
     public void ShopBuyUsesWalletSemanticsAndBlocksInsufficientFundsAndRepurchase()
     {
         var statePath = Path.Combine(_dir, "shop-state.json");

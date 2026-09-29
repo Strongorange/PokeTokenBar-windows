@@ -111,6 +111,57 @@ public class UsageRefreshServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task RefreshSurfacesWeekTotalsAndTodayBreakdownPerProvider()
+    {
+        WriteClaudeTodayAndEarlierThisMonth();
+        WriteCodexSingleSessionToday();
+        WriteClaudeFile(@"p2\session.jsonl",
+            ClaudeLine("msg_c4", "2026-09-23T10:10:00.000Z", 400, 40, 0, model: "claude-opus-4"));
+
+        var state = await BuildService().RefreshAsync();
+
+        Assert.Equal(7040, state.TodayTokens);
+        Assert.Equal(7040, state.WeekTokens);
+        Assert.Equal(7590, state.MonthTokens);
+
+        var claude = state.Provider("claude_code")!;
+        Assert.Equal(3740, claude.TodayTokens);
+        Assert.Equal(3740, claude.WeekTokens);
+        Assert.Equal(4290, claude.MonthTokens);
+        Assert.Equal(3400, claude.TodayInputTokens);
+        Assert.Equal(340, claude.TodayOutputTokens);
+        Assert.Equal(0, claude.TodayCacheWriteTokens);
+        Assert.Equal(0, claude.TodayCacheReadTokens);
+        Assert.NotNull(claude.TodayModels);
+        Assert.Equal(2, claude.TodayModels!.Count);
+        Assert.Equal(3300, claude.TodayModels["test-model"]);
+        Assert.Equal(440, claude.TodayModels["claude-opus-4"]);
+
+        var codex = state.Provider("codex")!;
+        Assert.Equal(3300, codex.TodayTokens);
+        Assert.Equal(3300, codex.WeekTokens);
+        Assert.Equal(3000, codex.TodayInputTokens);
+        Assert.Equal(300, codex.TodayOutputTokens);
+        Assert.Equal(0, codex.TodayCacheWriteTokens);
+        Assert.Equal(0, codex.TodayCacheReadTokens);
+        Assert.Single(codex.TodayModels!);
+    }
+
+    [Fact]
+    public async Task WeekWindowExcludesEarlierMonthDays()
+    {
+        WriteClaudeTodayAndEarlierThisMonth();
+
+        var state = await BuildService().RefreshAsync();
+
+        var claude = state.Provider("claude_code")!;
+        Assert.Equal(3300, claude.TodayTokens);
+        Assert.Equal(3300, claude.WeekTokens);
+        Assert.Equal(3850, claude.MonthTokens);
+        Assert.Equal(3300, state.WeekTokens);
+    }
+
+    [Fact]
     public async Task MissingCodexRootsMarkCodexUnavailable()
     {
         WriteClaudeTodayAndEarlierThisMonth();

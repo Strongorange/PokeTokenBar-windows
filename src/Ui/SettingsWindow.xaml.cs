@@ -33,6 +33,42 @@ public partial class SettingsWindow : Window
         ProviderCombo.SelectedIndex = 0;
         LoadCurrentValues();
         Relocalize(engine.State.Language);
+        engine.Changed += OnEngineChanged;
+        Closed += (_, _) => engine.Changed -= OnEngineChanged;
+    }
+
+    private void OnEngineChanged() =>
+        Dispatcher.BeginInvoke(RenderRepresentativeRow);
+
+    private void RenderRepresentativeRow()
+    {
+        var lang = _engine.State.Language;
+        var view = _engine.View();
+        if (view.RepresentativeSpeciesID is { } speciesID)
+        {
+            var row = view.DexRows.FirstOrDefault(candidate => candidate.SpeciesID == speciesID);
+            RepresentativeValue.Text = row is not null
+                ? $"#{speciesID} {row.Name}{(row.IsShiny ? " ✨" : "")}"
+                : $"#{speciesID}";
+            RepresentativeResetButton.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            RepresentativeValue.Text = DashboardText.RepresentativeFollowCurrent(lang);
+            RepresentativeResetButton.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void OnRepresentativeResetClick(object sender, RoutedEventArgs e)
+    {
+        _engine.SetRepresentative(null);
+        RenderRepresentativeRow();
+    }
+
+    private void OnRepresentativeChooseClick(object sender, RoutedEventArgs e)
+    {
+        if (System.Windows.Application.Current is App app)
+            app.OpenDashboardOnDexTab();
     }
 
     private void LoadCurrentValues()
@@ -75,6 +111,10 @@ public partial class SettingsWindow : Window
         Title = DashboardText.SettingsTitle(lang);
         GeneralHeader.Text = DashboardText.GeneralSectionTitle(lang);
         LanguageText.Text = DashboardText.LanguageLabel(lang);
+        RepresentativeText.Text = DashboardText.RepresentativePokemonLabel(lang);
+        RepresentativeResetButton.Content = "_" + DashboardText.RepresentativeFollowCurrent(lang);
+        RepresentativeChooseButton.Content = "_" + DashboardText.RepresentativeChooseFromDex(lang);
+        RenderRepresentativeRow();
         DifficultyHeader.Text = DashboardText.DifficultySection(lang);
         DifficultyHint.Text = DashboardText.DifficultyHint(lang);
         GrowthText.Text = DashboardText.GrowthLabel(lang);

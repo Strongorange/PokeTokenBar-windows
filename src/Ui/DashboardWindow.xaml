@@ -41,10 +41,30 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
                     <Border Grid.Row="0" Style="{StaticResource Card}" Margin="0,0,0,10"
+                            x:Name="TodaySection">
+                        <StackPanel>
+                            <TextBlock x:Name="TodayCaptionLabel" FontSize="11"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" />
+                            <DockPanel Margin="0,2,0,0">
+                                <TextBlock x:Name="TodayCostLabel" DockPanel.Dock="Right" FontSize="12"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           VerticalAlignment="Bottom" Margin="10,0,0,2" />
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock x:Name="TodayBigNumber" FontSize="26" FontWeight="Bold"
+                                               FontFamily="Consolas" />
+                                    <TextBlock x:Name="TodayGroupedLabel" FontSize="11" Margin="6,0,0,2"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                               VerticalAlignment="Bottom" />
+                                </StackPanel>
+                            </DockPanel>
+                            <StackPanel x:Name="WeekMonthRow" Orientation="Horizontal" Margin="0,6,0,0" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Row="1" Style="{StaticResource Card}" Margin="0,0,0,10"
                             x:Name="TrendSection">
                         <StackPanel>
                             <DockPanel Margin="0,0,0,6">
@@ -67,19 +87,16 @@
                             <StackPanel x:Name="TrendModelsHost" Margin="0,5,0,0" />
                         </StackPanel>
                     </Border>
-                    <Border Grid.Row="1" Style="{StaticResource Card}" Margin="0,0,0,10">
+                    <Border Grid.Row="2" Style="{StaticResource Card}" Margin="0,0,0,10"
+                            x:Name="ProvidersSection">
                         <StackPanel>
                             <TextBlock x:Name="ProvidersHeader" Style="{StaticResource SectionHeader}"
                                        Margin="0" />
-                            <ListBox x:Name="ProvidersList" FontSize="12"
-                                     ScrollViewer.HorizontalScrollBarVisibility="Auto" />
-                        </StackPanel>
-                    </Border>
-                    <Border Grid.Row="3" Style="{StaticResource Card}">
-                        <StackPanel>
-                            <TextBlock x:Name="CombinedHeader" Style="{StaticResource SectionHeader}"
-                                       Margin="0" />
-                            <TextBlock x:Name="CombinedText" FontSize="16" />
+                            <StackPanel x:Name="ProviderChips" Orientation="Horizontal" Margin="0,8,0,0" />
+                            <StackPanel x:Name="ProviderDetail" Margin="0,8,0,0" />
+                            <TextBlock x:Name="ProvidersUnavailableText" FontSize="10"
+                                       Foreground="{DynamicResource TextTertiaryBrush}" Margin="0,6,0,0"
+                                       TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
                 </Grid>

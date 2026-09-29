@@ -14,9 +14,11 @@ public partial class DashboardWindow : Window
     private readonly SpriteStore _sprites;
     private readonly SpriteSlot _companionSprite;
     private CompanionGameView? _lastView;
+    private UsageDisplayState? _lastUsageState;
     private CompanionShopRow? _confirmingShopRow;
     private Func<AppLanguage, string>? _feedback;
     private Rarity? _dexRarityFilter;
+    private string? _selectedProviderId;
     private int _candyCount = 1;
     private ItemKind? _confirmingBagItem;
     private SpriteSlot? _dexEmptySprite;
@@ -35,6 +37,11 @@ public partial class DashboardWindow : Window
         LocalizeStaticText(lang);
     }
 
+    public void SelectDexTab()
+    {
+        MainTabs.SelectedIndex = 2;
+    }
+
     private void LocalizeStaticText(AppLanguage lang)
     {
         var usageTab = (TabItem) MainTabs.Items[0];
@@ -50,7 +57,6 @@ public partial class DashboardWindow : Window
         SpendableLabel.Text = DashboardText.SpendableTokens(lang);
         ShopHintText.Text = DashboardText.ShopHint(lang);
         ProvidersHeader.Text = DashboardText.ProvidersTitle(lang);
-        CombinedHeader.Text = DashboardText.CombinedTitle(lang);
         ExportButton.Content = DashboardText.ExportSave(lang);
         ImportButton.Content = DashboardText.ImportSave(lang);
         RefreshButton.Content = "_" + DashboardText.RefreshButton(lang);
@@ -88,21 +94,198 @@ public partial class DashboardWindow : Window
 
     public void Update(UsageDisplayState state)
     {
+        _lastUsageState = state;
         var lang = _engine.State.Language;
-        ProvidersList.Items.Clear();
-        foreach (var provider in state.Providers)
-        {
-            var availability = provider.Available ? "" : "  " + DashboardText.ProviderNotFound(lang);
-            ProvidersList.Items.Add(
-                $"{provider.DisplayName}: {DashboardText.TodayLabel(lang)} {TokenFormatter.Grouped(provider.TodayTokens)} · " +
-                $"{DashboardText.MonthLabel(lang)} {TokenFormatter.Grouped(provider.MonthTokens)}{availability}");
-        }
-        CombinedText.Text =
-            $"{DashboardText.TodayLabel(lang)} {TokenFormatter.Grouped(state.TodayTokens)} · " +
-            $"{DashboardText.MonthLabel(lang)} {TokenFormatter.Grouped(state.MonthTokens)}";
+        RenderTodayCard(state, lang);
+        RenderProviders(state, lang);
         RefreshedText.Text = DashboardText.RefreshedAt(lang,
             state.AsOfUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss"));
         UpdateTrend(state);
+    }
+
+    private void RenderTodayCard(UsageDisplayState state, AppLanguage lang)
+    {
+        TodayCaptionLabel.Text = DashboardText.TodayTokensHeader(lang);
+        TodayBigNumber.Text = TokenFormatter.Compact(state.TodayTokens);
+        TodayGroupedLabel.Text = TokenFormatter.Grouped(state.TodayTokens);
+        var todayCost = new UsageCost(state.TodayCost, state.TodayCostCoverage);
+        TodayCostLabel.Text = todayCost.Coverage.HasKnown ? todayCost.Text("", compact: true) : "";
+
+        WeekMonthRow.Children.Clear();
+        if (state.WeekTokens > 0 || state.MonthTokens > 0)
+        {
+            WeekMonthRow.Children.Add(CreatePeriodLabel(
+                DashboardText.ThisWeekLabel(lang), state.WeekTokens,
+                new UsageCost(state.WeekCost, state.WeekCostCoverage)));
+            var monthLabel = CreatePeriodLabel(
+                DashboardText.ThisMonthLabel(lang), state.MonthTokens,
+                new UsageCost(state.MonthCost, state.MonthCostCoverage));
+            monthLabel.Margin = new Thickness(14, 0, 0, 0);
+            WeekMonthRow.Children.Add(monthLabel);
+        }
+    }
+
+    private TextBlock CreatePeriodLabel(string name, long tokens, UsageCost cost)
+    {
+        var text = $"{name} {TokenFormatter.Compact(tokens)}";
+        if (cost.Coverage.HasKnown) text += " " + cost.Text("", compact: true);
+        return new TextBlock
+        {
+            Text = text,
+            FontSize = 11,
+            Foreground = Token("TextSecondaryBrush"),
+        };
+    }
+
+    private void RenderProviders(UsageDisplayState state, AppLanguage lang)
+    {
+        var available = state.Providers.Where(provider => provider.Available).ToList();
+        ProviderChips.Children.Clear();
+        ProviderDetail.Children.Clear();
+        ProvidersUnavailableText.Text = "";
+
+        var selectable = available.Where(provider => provider.TodayTokens > 0
+            || provider.MonthTokens > 0 || provider.WeekTokens > 0).ToList();
+        if (_selectedProviderId is null || selectable.All(provider => provider.ProviderId != _selectedProviderId))
+            _selectedProviderId = selectable.FirstOrDefault()?.ProviderId;
+        var selected = selectable.FirstOrDefault(provider => provider.ProviderId == _selectedProviderId);
+
+        if (selectable.Count > 1)
+        {
+            foreach (var provider in selectable)
+            {
+                var isSelected = provider.ProviderId == _selectedProviderId;
+                var capsule = new Border
+                {
+                    CornerRadius = new CornerRadius(9),
+                    Padding = new Thickness(10, 2, 10, 2),
+                    Margin = new Thickness(0, 0, 6, 0),
+                    Background = isSelected
+                        ? Token("AccentSoftBrush")
+                        : HexBrush("#14000000"),
+                    BorderBrush = isSelected ? Token("AccentBrush") : null,
+                    BorderThickness = new Thickness(isSelected ? 1.5 : 0),
+                    Cursor = System.Windows.Input.Cursors.Hand,
+                };
+                var picked = provider;
+                capsule.MouseLeftButtonUp += (_, _) =>
+                {
+                    _selectedProviderId = picked.ProviderId;
+                    if (_lastUsageState is { } usage) Update(usage);
+                };
+                capsule.Child = new TextBlock
+                {
+                    Text = provider.DisplayName,
+                    FontSize = 10,
+                    FontWeight = isSelected ? FontWeights.SemiBold : FontWeights.Normal,
+                    Foreground = isSelected ? Token("AccentBrush") : Token("TextSecondaryBrush"),
+                };
+                ProviderChips.Children.Add(capsule);
+            }
+        }
+
+        if (selected is not null)
+            ProviderDetail.Children.Add(CreateProviderDetail(selected, lang));
+
+        var unavailable = state.Providers.Where(provider => !provider.Available).ToList();
+        if (unavailable.Count > 0)
+            ProvidersUnavailableText.Text = string.Join(" · ", unavailable.Select(provider =>
+                $"{provider.DisplayName} {DashboardText.ProviderNotFound(lang)}"));
+
+        var empty = ProviderChips.Children.Count == 0 && ProviderDetail.Children.Count == 0
+            && unavailable.Count == 0;
+        ProvidersSection.Visibility = empty ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private StackPanel CreateProviderDetail(ProviderUsageSummary provider, AppLanguage lang)
+    {
+        var panel = new StackPanel();
+
+        var header = new DockPanel();
+        var totals = new StackPanel { Orientation = Orientation.Horizontal };
+        var cost = new UsageCost(provider.TodayCost, provider.TodayCostCoverage);
+        if (cost.Coverage.HasKnown)
+            totals.Children.Add(new TextBlock
+            {
+                Text = cost.Text("", compact: true),
+                FontSize = 10,
+                Foreground = Token("TextSecondaryBrush"),
+                Margin = new Thickness(8, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Bottom,
+            });
+        totals.Children.Add(new TextBlock
+        {
+            Text = TokenFormatter.Compact(provider.TodayTokens),
+            FontSize = 13,
+            FontFamily = new FontFamily("Consolas"),
+            VerticalAlignment = VerticalAlignment.Bottom,
+        });
+        DockPanel.SetDock(totals, Dock.Right);
+        header.Children.Add(totals);
+        header.Children.Add(new TextBlock
+        {
+            Text = provider.DisplayName,
+            FontSize = 13,
+            FontWeight = FontWeights.SemiBold,
+        });
+        panel.Children.Add(header);
+
+        var breakdown = new StackPanel { Margin = new Thickness(0, 5, 0, 0) };
+        breakdown.Children.Add(CreateTokenTypeRow(lang,
+            (DashboardText.TokenInputLabel(lang), provider.TodayInputTokens),
+            (DashboardText.TokenOutputLabel(lang), provider.TodayOutputTokens)));
+        breakdown.Children.Add(CreateTokenTypeRow(lang,
+            (DashboardText.TokenCacheWriteLabel(lang), provider.TodayCacheWriteTokens),
+            (DashboardText.TokenCacheReadLabel(lang), provider.TodayCacheReadTokens)));
+        panel.Children.Add(breakdown);
+
+        if (provider.TodayModels is { Count: > 1 })
+        {
+            var models = new StackPanel { Margin = new Thickness(0, 5, 0, 0) };
+            foreach (var pair in provider.TodayModels.OrderByDescending(model => model.Value))
+                models.Children.Add(CreateModelRow(pair.Key, pair.Value));
+            panel.Children.Add(models);
+        }
+        return panel;
+    }
+
+    private StackPanel CreateTokenTypeRow(AppLanguage lang,
+        (string Label, long Value) left, (string Label, long Value) right)
+    {
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 1, 0, 0) };
+        row.Children.Add(CreateTokenTypeLabel(left.Label, left.Value));
+        var rightLabel = CreateTokenTypeLabel(right.Label, right.Value);
+        rightLabel.Margin = new Thickness(14, 0, 0, 0);
+        row.Children.Add(rightLabel);
+        return row;
+    }
+
+    private TextBlock CreateTokenTypeLabel(string label, long value) => new()
+    {
+        Text = $"{label} {TokenFormatter.Compact(value)}",
+        FontSize = 10,
+        Foreground = Token("TextSecondaryBrush"),
+    };
+
+    private DockPanel CreateModelRow(string model, long tokens)
+    {
+        var row = new DockPanel { Margin = new Thickness(0, 1, 0, 0) };
+        var value = new TextBlock
+        {
+            Text = TokenFormatter.Compact(tokens),
+            FontSize = 10,
+            Foreground = Token("TextTertiaryBrush"),
+        };
+        DockPanel.SetDock(value, Dock.Right);
+        row.Children.Add(value);
+        row.Children.Add(new TextBlock
+        {
+            Text = model.Contains('/') ? model[(model.LastIndexOf('/') + 1)..] : model,
+            FontSize = 10,
+            Foreground = Token("TextSecondaryBrush"),
+            TextTrimming = TextTrimming.CharacterEllipsis,
+        });
+        return row;
     }
 
     private Brush Token(string key) =>
@@ -333,8 +516,9 @@ public partial class DashboardWindow : Window
             var showFilter = DexRarityFilter.Children.Count > 0;
             DexRarityFilter.Visibility = showFilter ? Visibility.Visible : Visibility.Collapsed;
             foreach (var row in visibleRows)
-                DexList.Items.Add(CreateDexTile(row, lang, row.SpeciesID == UnownForms.SpeciesID
-                    ? view.UnownForms.Count : 0));
+                DexList.Items.Add(CreateDexTile(row, lang,
+                    row.SpeciesID == UnownForms.SpeciesID ? view.UnownForms.Count : 0,
+                    row.SpeciesID == view.RepresentativeSpeciesID));
         }
         EventsList.Items.Clear();
         foreach (var item in view.RecentEvents)
@@ -1040,29 +1224,46 @@ public partial class DashboardWindow : Window
         CombatText.Text = string.Join(" · ", parts);
     }
 
-    private UIElement CreateDexTile(CompanionDexRow row, AppLanguage lang, int unownCollected)
+    private UIElement CreateDexTile(CompanionDexRow row, AppLanguage lang, int unownCollected,
+        bool isRepresentative)
     {
         var star = row.IsShiny ? " ✨" : "";
         var raising = row.IsRaising ? $"  ← {DashboardText.RaisingLabel(lang)}" : "";
         var unownForms = unownCollected > 0
             ? $" · {DashboardText.UnownFormsCollected(lang, unownCollected)}" : "";
+        var representative = isRepresentative ? $" · {DashboardText.RepresentativeBadge(lang)}" : "";
         var tile = new Grid
         {
             Width = 76,
             Margin = new Thickness(1),
-            ToolTip = $"#{row.SpeciesID} {row.Name}{star} · {DashboardText.RarityLabel(lang, row.Rarity)}{raising}{unownForms}",
+            ToolTip = $"#{row.SpeciesID} {row.Name}{star} · {DashboardText.RarityLabel(lang, row.Rarity)}{raising}{unownForms}{representative}",
         };
         for (var i = 0; i < 3; i++) tile.RowDefinitions.Add(new RowDefinition());
 
-        var caption = new Grid();
-        caption.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        caption.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        caption.Children.Add(new TextBlock
+        var number = new StackPanel { Orientation = Orientation.Horizontal };
+        number.Children.Add(new TextBlock
         {
             Text = "#" + row.SpeciesID,
             FontSize = 10,
             Foreground = Token("TextSecondaryBrush"),
         });
+        if (isRepresentative)
+        {
+            var representativeStar = new TextBlock
+            {
+                Text = "★",
+                FontSize = 10,
+                FontWeight = FontWeights.Bold,
+                Foreground = Token("AccentBrush"),
+                Margin = new Thickness(3, 0, 0, 0),
+                ToolTip = DashboardText.RepresentativeBadge(lang),
+            };
+            number.Children.Add(representativeStar);
+        }
+        var caption = new Grid();
+        caption.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        caption.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        caption.Children.Add(number);
         if (row.IsShiny)
         {
             var shiny = new TextBlock
@@ -1104,7 +1305,14 @@ public partial class DashboardWindow : Window
         };
         Grid.SetRow(name, 2);
         tile.Children.Add(name);
-        return tile;
+        if (!isRepresentative) return tile;
+        return new Border
+        {
+            Background = Token("AccentSoftBrush"),
+            CornerRadius = new CornerRadius(6),
+            Padding = new Thickness(2, 0, 2, 2),
+            Child = tile,
+        };
     }
 
     private void OnDexDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -1117,7 +1325,7 @@ public partial class DashboardWindow : Window
         {
             if (_engine.Detail(row.SpeciesID) is { } detail)
             {
-                var window = new SpeciesDetailWindow(detail, _sprites) { Owner = this };
+                var window = new SpeciesDetailWindow(detail, _sprites, _engine) { Owner = this };
                 window.Show();
             }
             else

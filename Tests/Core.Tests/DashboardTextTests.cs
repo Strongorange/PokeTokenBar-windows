@@ -150,6 +150,35 @@ public class DashboardTextTests
     }
 
     [Fact]
+    public void RepresentativeAndUsageHomeStringsFollowMacOSTranslations()
+    {
+        Assert.Equal("대표 포켓몬", DashboardText.RepresentativePokemonLabel(AppLanguage.Ko));
+        Assert.Equal("Representative Pokémon", DashboardText.RepresentativePokemonLabel(AppLanguage.En));
+        Assert.Equal("현재 포켓몬 따라가기", DashboardText.RepresentativeFollowCurrent(AppLanguage.Ko));
+        Assert.Equal("Follow current companion", DashboardText.RepresentativeFollowCurrent(AppLanguage.En));
+        Assert.Equal("도감에서 선택…", DashboardText.RepresentativeChooseFromDex(AppLanguage.Ko));
+        Assert.Equal("Choose in Pokédex…", DashboardText.RepresentativeChooseFromDex(AppLanguage.En));
+        Assert.Equal("대표로 설정", DashboardText.RepresentativeSet(AppLanguage.Ko));
+        Assert.Equal("Set as representative", DashboardText.RepresentativeSet(AppLanguage.En));
+        Assert.Equal("대표", DashboardText.RepresentativeBadge(AppLanguage.Ko));
+        Assert.Equal("Representative", DashboardText.RepresentativeBadge(AppLanguage.En));
+        Assert.Equal("오늘 사용한 토큰", DashboardText.TodayTokensHeader(AppLanguage.Ko));
+        Assert.Equal("Today's tokens", DashboardText.TodayTokensHeader(AppLanguage.En));
+        Assert.Equal("이번 주", DashboardText.ThisWeekLabel(AppLanguage.Ko));
+        Assert.Equal("This week", DashboardText.ThisWeekLabel(AppLanguage.En));
+        Assert.Equal("이번 달", DashboardText.ThisMonthLabel(AppLanguage.Ko));
+        Assert.Equal("This month", DashboardText.ThisMonthLabel(AppLanguage.En));
+        Assert.Equal("입력", DashboardText.TokenInputLabel(AppLanguage.Ko));
+        Assert.Equal("Input", DashboardText.TokenInputLabel(AppLanguage.En));
+        Assert.Equal("출력", DashboardText.TokenOutputLabel(AppLanguage.Ko));
+        Assert.Equal("Output", DashboardText.TokenOutputLabel(AppLanguage.En));
+        Assert.Equal("캐시 쓰기", DashboardText.TokenCacheWriteLabel(AppLanguage.Ko));
+        Assert.Equal("Cache write", DashboardText.TokenCacheWriteLabel(AppLanguage.En));
+        Assert.Equal("캐시 읽기", DashboardText.TokenCacheReadLabel(AppLanguage.Ko));
+        Assert.Equal("Cache read", DashboardText.TokenCacheReadLabel(AppLanguage.En));
+    }
+
+    [Fact]
     public void RarityAndItemNamesFollowMacOSTranslations()
     {
         Assert.Equal("희귀", DashboardText.RarityLabel(AppLanguage.Ko, Rarity.Rare));

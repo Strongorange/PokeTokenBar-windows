@@ -25,6 +25,18 @@
                         <ComboBox x:Name="LanguageCombo" Width="180"
                                   SelectionChanged="OnLanguageSelectionChanged" />
                     </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <TextBlock x:Name="RepresentativeText" VerticalAlignment="Center" Width="110" />
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock x:Name="RepresentativeValue" VerticalAlignment="Center"
+                                       FontSize="12" TextTrimming="CharacterEllipsis" MaxWidth="150"
+                                       ToolTipService.ShowOnDisabled="True" />
+                            <Button x:Name="RepresentativeResetButton" Margin="10,0,0,0" MinWidth="60"
+                                    Visibility="Collapsed" Click="OnRepresentativeResetClick" />
+                            <Button x:Name="RepresentativeChooseButton" Margin="6,0,0,0" MinWidth="110"
+                                    Click="OnRepresentativeChooseClick" />
+                        </StackPanel>
+                    </StackPanel>
                 </StackPanel>
             </Border>
 

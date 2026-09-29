@@ -126,8 +126,10 @@ public sealed class UsageRefreshService
         var roots = _rootSource.Discover();
         var todayKey = UsageAggregation.LocalDay(now, timeZone);
         var monthKey = UsageAggregation.MonthKey(now, timeZone);
-        var monthFrom = UsageAggregation.StartOfMonth(
-            TimeZoneInfo.ConvertTime(now, timeZone).DateTime)
+        var localNow = TimeZoneInfo.ConvertTime(now, timeZone).DateTime;
+        var monthFrom = UsageAggregation.StartOfMonth(localNow)
+            .ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        var weekKey = UsageAggregation.StartOfWeek(localNow, CultureInfo.InvariantCulture)
             .ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
         var summaries = new List<ProviderUsageSummary>();
@@ -137,12 +139,13 @@ public sealed class UsageRefreshService
             cancellationToken.ThrowIfCancellationRequested();
             var providerRoots = roots.Where(root => provider.RootKinds.Contains(root.Kind)).ToList();
             var outcome = provider.Refresh(now, timeZone, providerRoots);
-            summaries.Add(Summarize(outcome, todayKey, monthKey, monthFrom, todayKey));
+            summaries.Add(Summarize(outcome, todayKey, monthKey, monthFrom, weekKey));
             combined.AddRange(outcome.Snapshot.Entries);
         }
 
         var combinedToday = UsageAggregation.Daily(combined, todayKey);
         var combinedMonth = UsageAggregation.Period(combined, monthKey, monthFrom, todayKey);
+        var combinedWeek = UsageAggregation.Period(combined, weekKey, weekKey, todayKey);
         var combinedMonthDaily = UsageAggregation.MonthDailySeries(combined, now, timeZone);
         var combinedTodayModels = UsageAggregation.Daily(combined, todayKey, includeModels: true);
         return new UsageDisplayState(
@@ -153,7 +156,12 @@ public sealed class UsageRefreshService
             combinedMonth.TotalTokens,
             combinedMonth.TotalCost,
             combinedMonthDaily,
-            combinedTodayModels?.Models);
+            combinedTodayModels?.Models,
+            combinedWeek.TotalTokens,
+            combinedWeek.TotalCost,
+            combinedToday?.CostCoverage ?? CostCoverage.Empty,
+            combinedWeek.CostCoverage,
+            combinedMonth.CostCoverage);
     }
 
     private static ProviderUsageSummary Summarize(
@@ -161,10 +169,11 @@ public sealed class UsageRefreshService
         string todayKey,
         string monthKey,
         string monthFrom,
-        string monthTo)
+        string weekFrom)
     {
-        var today = UsageAggregation.Daily(outcome.Snapshot.Entries, todayKey);
-        var month = UsageAggregation.Period(outcome.Snapshot.Entries, monthKey, monthFrom, monthTo);
+        var today = UsageAggregation.Daily(outcome.Snapshot.Entries, todayKey, includeModels: true);
+        var month = UsageAggregation.Period(outcome.Snapshot.Entries, monthKey, monthFrom, todayKey);
+        var week = UsageAggregation.Period(outcome.Snapshot.Entries, monthKey, weekFrom, todayKey);
         return new ProviderUsageSummary(
             outcome.Snapshot.ProviderId,
             outcome.Snapshot.DisplayName,
@@ -172,6 +181,15 @@ public sealed class UsageRefreshService
             today?.TotalTokens ?? 0,
             today?.TotalCost ?? 0,
             month.TotalTokens,
-            month.TotalCost);
+            month.TotalCost,
+            today?.InputTokens ?? 0,
+            today?.OutputTokens ?? 0,
+            today?.CacheCreationTokens ?? 0,
+            today?.CacheReadTokens ?? 0,
+            week.TotalTokens,
+            week.TotalCost,
+            today?.CostCoverage ?? CostCoverage.Empty,
+            week.CostCoverage,
+            today?.Models);
     }
 }

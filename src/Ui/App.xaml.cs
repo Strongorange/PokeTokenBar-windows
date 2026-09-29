@@ -396,6 +396,12 @@ public partial class App : System.Windows.Application
         }
     }
 
+    public void OpenDashboardOnDexTab()
+    {
+        ShowDashboard();
+        _dashboard?.SelectDexTab();
+    }
+
     public void ApplyDifficulty(double growth, double shop)
     {
         _settings.GrowthDifficulty = growth;

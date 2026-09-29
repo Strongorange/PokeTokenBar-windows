@@ -117,6 +117,9 @@ public sealed record CompanionGameView(
     int ActiveSpeciesID,
     UnownForm? ActiveUnownForm,
     Rarity? EggGuarantee,
+    int? RepresentativeSpeciesID,
+    bool RepresentativeIsShiny,
+    UnownForm? RepresentativeUnownForm,
     IReadOnlyList<CompanionUnownFormStatus> UnownForms,
     AppLanguage Language);
 
@@ -883,6 +886,19 @@ public sealed class CompanionEngine
         Changed?.Invoke();
     }
 
+    public bool SetRepresentative(int? speciesID, UnownForm? unownForm = null)
+    {
+        lock (_gate)
+        {
+            if (speciesID is { } id && !_state.OwnsSpecies(id, unownForm)) return false;
+            _state.RepresentativeSpeciesID = speciesID;
+            _state.RepresentativeUnownForm = UnownForms.Resolved(speciesID ?? 0, unownForm);
+            SaveCore();
+        }
+        Changed?.Invoke();
+        return true;
+    }
+
     private void RescaleBankedGrowth(double old, double @new)
     {
         long Rescaled(long credits, long baseline)
@@ -1184,6 +1200,8 @@ public sealed class CompanionEngine
         var eggUsed = _state.EggUsage;
         var eggThreshold = EggHatchThresholdCore;
         var eggProgress = Math.Min(1, eggUsed / (double)eggThreshold);
+        var representativeForm =
+            UnownForms.Resolved(_state.RepresentativeSpeciesID ?? 0, _state.RepresentativeUnownForm);
         return new CompanionGameView(
             hasActive,
             hasActive ? DisplayName(line, active!.CurrentID, active.UnownForm) : "Token Egg",
@@ -1213,6 +1231,10 @@ public sealed class CompanionEngine
             active?.CurrentID ?? 0,
             active?.UnownForm,
             !hasActive ? _state.EggTier : null,
+            _state.RepresentativeSpeciesID,
+            _state.RepresentativeSpeciesID is { } representativeID
+                && _state.OwnsShinySpecies(representativeID, representativeForm),
+            representativeForm,
             BuildUnownForms(),
             _state.Language);
     }

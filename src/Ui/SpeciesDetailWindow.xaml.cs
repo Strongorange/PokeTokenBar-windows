@@ -14,24 +14,55 @@ public partial class SpeciesDetailWindow : Window
 
     private readonly SpriteStore _sprites;
     private readonly CompanionDetailSnapshot _detail;
+    private readonly CompanionEngine _engine;
     private readonly IReadOnlyList<CompanionUnownFormStatus> _unownForms;
     private readonly StackPanel _individualsHost = new();
     private readonly Dictionary<UnownForm, Border> _formTiles = [];
     private readonly SpriteSlot _sprite;
+    private Button? _representativeButton;
     private UnownForm? _selectedForm;
 
-    public SpeciesDetailWindow(CompanionDetailSnapshot detail, SpriteStore sprites)
+    public SpeciesDetailWindow(CompanionDetailSnapshot detail, SpriteStore sprites,
+        CompanionEngine engine)
     {
         InitializeComponent();
         Title = DashboardText.PokemonDetailsTitle(detail.Language);
         _sprites = sprites;
         _detail = detail;
+        _engine = engine;
         _unownForms = detail.SpeciesID == UnownForms.SpeciesID ? detail.UnownForms : [];
         _sprite = new SpriteSlot(SpriteImage, SpritePlaceholder);
         _selectedForm = _unownForms.Count > 0 ? _unownForms[0].Form : null;
         Build(detail);
         UpdateHeroSprite();
         HighlightSelectedForm();
+    }
+
+    private bool IsRepresentative =>
+        _engine.State.RepresentativeSpeciesID == _detail.SpeciesID
+        && (_detail.SpeciesID != UnownForms.SpeciesID
+            || UnownForms.Resolved(_detail.SpeciesID, _selectedForm)
+                == _engine.State.RepresentativeUnownForm);
+
+    private void ToggleRepresentative()
+    {
+        if (IsRepresentative)
+            _engine.SetRepresentative(null);
+        else
+            _engine.SetRepresentative(_detail.SpeciesID, _selectedForm);
+        UpdateRepresentativeButton();
+    }
+
+    private void UpdateRepresentativeButton()
+    {
+        if (_representativeButton is not { } button) return;
+        var lang = _detail.Language;
+        var isRepresentative = IsRepresentative;
+        button.Content = isRepresentative ? "★" : "☆";
+        button.ToolTip = isRepresentative
+            ? DashboardText.RepresentativeFollowCurrent(lang)
+            : DashboardText.RepresentativeSet(lang);
+        button.Foreground = isRepresentative ? Token("AccentBrush") : Token("TextSecondaryBrush");
     }
 
     private void Build(CompanionDetailSnapshot detail)
@@ -46,6 +77,20 @@ public partial class SpeciesDetailWindow : Window
             $"{DashboardText.HeightLabel(lang)} {detail.Height / 10.0:0.0} m",
             $"{DashboardText.WeightLabel(lang)} {detail.Weight / 10.0:0.0} kg"
         }.Where(part => part.Length > 0)), header: true);
+
+        var representativeButton = new Button
+        {
+            MinWidth = 28,
+            MinHeight = 24,
+            Padding = new Thickness(0),
+            FontSize = 13,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Margin = new Thickness(0, 6, 0, 0),
+        };
+        representativeButton.Click += (_, _) => ToggleRepresentative();
+        _representativeButton = representativeButton;
+        HeaderRoot.Children.Add(representativeButton);
+        UpdateRepresentativeButton();
 
         if (_unownForms.Count > 0)
             BuildUnownPicker(lang);
@@ -163,6 +208,7 @@ public partial class SpeciesDetailWindow : Window
         HighlightSelectedForm();
         UpdateHeroSprite();
         RenderIndividuals();
+        UpdateRepresentativeButton();
     }
 
     private Brush Token(string key) =>
