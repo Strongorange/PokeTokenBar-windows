@@ -334,11 +334,27 @@ capsules in rarity colors). The game tab's old shop list became a "bag" card
 with the candy/mint use buttons. New macOS-verbatim strings for the shop/bag
 (passive-owned, egg confirm, shiny-discard warning, companion-events header).
 
-Remaining UI-parity candidates, in rough value order (each is its own slice;
-confirm with the user first): hatch/evolve celebration animation (macOS
-white-flash + spring pop + delayed ✨ burst on shiny hatch); richer provider
-rows in the usage tab; item sprite images for the shop cards (currently emoji
-fallback). Done since the reopen note: the general visual-quality pass,
-resizable dashboard window and the dex/shop tab restructure (M19). Windows
-keeps the tray + dashboard model — inline menu-bar text stays out of scope by
-design.
+Ninth slice (M20, version 0.19.0, user-verified): the Tier-1 bundle from
+`docs/ui-parity-audit.md` (a living macOS-vs-Windows gap list introduced with
+this slice). Companion card parity with the macOS CompanionHeader: rarity
+capsule at the name (rarity brush, uppercase), growth-boost capsule, egg
+"About to hatch!" wording at >=90% progress with an accent color, egg
+guarantee capsule (new `EggGuarantee` field on `CompanionGameView` from the
+stored `EggTier`), and macOS-style progress captions ("X to next evolution" /
+"X to graduation" / "X to hatch" instead of raw used/threshold). The dex tab
+gained rarity filter capsules (count per rarity, tap to toggle) and an
+empty state (animated Pikachu + copy). The game tab's bag card became
+per-item cards: candy with a +/- stepper, live plan preview via the
+previously-unused `PlanRareCandyUse` ("expected to graduate" / carryover XP /
+discarded XP) and an inline use confirm; mint with its effect hint and
+confirm; passive shiny charm as a green "active" row; empty bag shows a
+Snorlax. `RarityLabel` values corrected to macOS capitalization
+("Rare"/"Legendary" — were lowercase). ~22 macOS-verbatim strings added.
+
+Remaining UI-parity candidates live in `docs/ui-parity-audit.md` (Tier 1:
+representative Pokémon — engine state exists unused; Tier 2: usage home
+redesign with provider chips, celebration animation package, catch-log view,
+companion status line, detail-window polish, incident banner; Tier 3:
+constrained items incl. official limits, rejected by the no-credentials
+rule). Confirm the next slice with the user first. Windows keeps the tray +
+dashboard model — inline menu-bar text stays out of scope by design.
