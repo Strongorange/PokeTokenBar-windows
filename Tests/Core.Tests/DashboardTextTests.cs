@@ -112,10 +112,49 @@ public class DashboardTextTests
     }
 
     [Fact]
+    public void CompanionAndDexPolishStringsFollowMacOSTranslations()
+    {
+        Assert.Equal("🥚 부화 준비 중", DashboardText.EggIncubating(AppLanguage.Ko));
+        Assert.Equal("🥚 Incubating", DashboardText.EggIncubating(AppLanguage.En));
+        Assert.Equal("곧 부화해요!", DashboardText.EggImminent(AppLanguage.Ko));
+        Assert.Equal("About to hatch!", DashboardText.EggImminent(AppLanguage.En));
+        Assert.Equal("부화까지 5M", DashboardText.EggToHatch(AppLanguage.Ko, "5M"));
+        Assert.Equal("5M to hatch", DashboardText.EggToHatch(AppLanguage.En, "5M"));
+        Assert.Equal("다음 진화까지 1.2M", DashboardText.ToNextEvolution(AppLanguage.Ko, "1.2M"));
+        Assert.Equal("1.2M to next evolution", DashboardText.ToNextEvolution(AppLanguage.En, "1.2M"));
+        Assert.Equal("졸업까지 900K", DashboardText.ToGraduation(AppLanguage.Ko, "900K"));
+        Assert.Equal("900K to graduation", DashboardText.ToGraduation(AppLanguage.En, "900K"));
+        Assert.Equal("2× 성장", DashboardText.GrowthBoost(AppLanguage.Ko, 2));
+        Assert.Equal("2× growth", DashboardText.GrowthBoost(AppLanguage.En, 2));
+        Assert.Equal("희귀 이상 확정", DashboardText.EggGuaranteeHint(AppLanguage.Ko, Rarity.Rare));
+        Assert.Equal("Rare or better", DashboardText.EggGuaranteeHint(AppLanguage.En, Rarity.Rare));
+        Assert.Equal("탭하면 이 희귀도만 보기 · 다시 탭하면 전체",
+            DashboardText.DexFilterHint(AppLanguage.Ko));
+        Assert.Equal("아직 포켓몬을 잡지 못했어요!", DashboardText.DexEmptyTitle(AppLanguage.Ko));
+        Assert.Equal("No Pokémon caught yet!", DashboardText.DexEmptyTitle(AppLanguage.En));
+        Assert.Equal("아직 가방이 비어있어요!", DashboardText.BagEmptyTitle(AppLanguage.Ko));
+        Assert.Equal("Your bag is empty!", DashboardText.BagEmptyTitle(AppLanguage.En));
+        Assert.Equal("사용하기", DashboardText.UseItemLabel(AppLanguage.Ko));
+        Assert.Equal("리자몽에게 사용할까요?", DashboardText.UseOnCurrent(AppLanguage.Ko, "리자몽"));
+        Assert.Equal("Use on Charizard?", DashboardText.UseOnCurrent(AppLanguage.En, "Charizard"));
+        Assert.Equal("부화 후 사용할 수 있어요", DashboardText.UseAfterHatch(AppLanguage.Ko));
+        Assert.Equal("사용할 포켓몬이 없어요", DashboardText.UseNeedsPokemon(AppLanguage.Ko));
+        Assert.Equal("이 포켓몬은 졸업할 것으로 예상돼요.",
+            DashboardText.CandyGraduatesHint(AppLanguage.Ko));
+        Assert.Contains("이월 경험치: 50M XP", DashboardText.CandyCarryoverXP(AppLanguage.Ko, "50M"));
+        Assert.Contains("남는 30M XP는 사라져요", DashboardText.CandyDiscardedXP(AppLanguage.Ko, "30M"));
+        Assert.Equal("성격 랜덤 변경", DashboardText.MintEffectHint(AppLanguage.Ko));
+        Assert.Equal("Random nature", DashboardText.MintEffectHint(AppLanguage.En));
+        Assert.Equal("이로치 확률 ↑ · 적용 중", DashboardText.ShinyCharmEffectHint(AppLanguage.Ko));
+        Assert.Equal("Shiny rate ↑ · active", DashboardText.ShinyCharmEffectHint(AppLanguage.En));
+    }
+
+    [Fact]
     public void RarityAndItemNamesFollowMacOSTranslations()
     {
         Assert.Equal("희귀", DashboardText.RarityLabel(AppLanguage.Ko, Rarity.Rare));
-        Assert.Equal("rare", DashboardText.RarityLabel(AppLanguage.En, Rarity.Rare));
+        Assert.Equal("Rare", DashboardText.RarityLabel(AppLanguage.En, Rarity.Rare));
+        Assert.Equal("Legendary", DashboardText.RarityLabel(AppLanguage.En, Rarity.Legendary));
         Assert.Equal("이상한 사탕", DashboardText.ItemName(AppLanguage.Ko, ItemKind.RareCandy));
         Assert.Equal("Rare Candy", DashboardText.ItemName(AppLanguage.En, ItemKind.RareCandy));
         Assert.Equal("포켓몬 알", DashboardText.EggName(AppLanguage.Ko, null));

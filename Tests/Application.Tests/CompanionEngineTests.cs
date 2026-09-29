@@ -717,6 +717,27 @@ public class CompanionEngineTests : IDisposable
     }
 
     [Fact]
+    public void EggGuaranteeSurfacesTierWhileIncubatingAndNullAfterHatch()
+    {
+        var engine = BuildEngine();
+        engine.State.Language = AppLanguage.En;
+        engine.State.EggTier = Rarity.Rare;
+
+        var eggView = engine.View();
+        Assert.True(eggView.IsEgg);
+        Assert.Equal(Rarity.Rare, eggView.EggGuarantee);
+
+        engine.State.Active = new MonState(1, [1, 2], null, 0, 0, Rarity.Common, 2);
+        var activeView = engine.View();
+        Assert.False(activeView.IsEgg);
+        Assert.Null(activeView.EggGuarantee);
+
+        var plainEngine = BuildEngine(fileName: "plain-egg.json");
+        plainEngine.State.Language = AppLanguage.En;
+        Assert.Null(plainEngine.View().EggGuarantee);
+    }
+
+    [Fact]
     public void ShopBuyUsesWalletSemanticsAndBlocksInsufficientFundsAndRepurchase()
     {
         var statePath = Path.Combine(_dir, "shop-state.json");
