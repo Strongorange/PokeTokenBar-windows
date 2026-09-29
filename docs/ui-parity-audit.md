@@ -19,14 +19,14 @@ Legend: ☐ todo · ◐ in progress · ☑ done (milestone) · ✗ rejected (rea
 | ☑ Candy batch stepper + plan preview (graduate/carryover/discard XP) | BagView.swift 49-98 | M20 | `PlanRareCandyUse()` already implemented, was unused |
 | ☑ Bag per-item cards w/ inline-use confirm; mint/charm hints | BagView.swift `ItemCard` | M20 | `Bag`, `CanUse` |
 | ☑ Empty states: dex = animated Pikachu + copy, bag = Snorlax | CollectionView/BagView `emptyState` | M20 | sprites 25/143 |
-| ☐ Representative Pokémon (★ set in dex, engine keeps selection valid) | `RepresentativeFooterButton`, settings row | todo | `RepresentativeSpeciesID`/`ReconcileRepresentativeSelection` exist in Core since initial port, unused by UI |
+| ☑ Representative Pokémon (★ set in dex, engine keeps selection valid) | `RepresentativeFooterButton`, settings row | M21 | `RepresentativeSpeciesID`/`ReconcileRepresentativeSelection` existed since initial port; engine `SetRepresentative` + view fields, dex ★ tile, detail toggle, settings row, floating pet follows representative |
 
 ## Tier 2 — small data extension + UI
 
 | Item | macOS reference | Windows status | Needed |
 |------|-----------------|----------------|--------|
-| ☐ Usage home redesign: big today number + grouped + cost, week/month labels | PopoverView.swift `header` 150-224 | todo | week totals derivable from `MonthDaily` |
-| ☐ Provider chip tab + per-provider detail (input/output/cache-write/cache-read, model rows) | `ProviderTabBar`, `providerRow` 203-281 | todo | extend `ProviderUsageSummary` (parsers already parse types) |
+| ☑ Usage home redesign: big today number + grouped + cost, week/month labels | PopoverView.swift `header` 150-224 | M21 | week totals via `UsageAggregation.Period` (Sunday start, invariant) in refresh service |
+| ☑ Provider chip tab + per-provider detail (input/output/cache-write/cache-read, model rows) | `ProviderTabBar`, `providerRow` 203-281 | M21 | `ProviderUsageSummary` extended (today breakdown, week totals, models, cost coverages) |
 | ☐ Hatch/evolve celebration package: white flash + spring pop + ✨/🎭 burst, candy "+XP" capsule, mint sparkle, egg wiggle | CompanionView.swift 642-703 | todo | celebration queue in engine + WPF storyboards |
 | ☐ Catch log view: per-individual rows (rarity capsule, evolution-chain sprites, nature, caught-at, released badge) + rarity filter | `CollectionView.catchLog`, `DexEntryRow` 1460 | todo | Core `DexEntry` has CaughtAt/Nature/chain; view layer new |
 | ☐ Companion status line (egg/idle/working/focus/tired/sleep/level-up) | CompanionView.swift `statusLine` 705 | todo | port macOS `computeState` machine |
@@ -54,4 +54,6 @@ Legend: ☐ todo · ◐ in progress · ☑ done (milestone) · ✗ rejected (rea
   trend chart · M15 settings window · M16 Unown per-form sprites · M17
   update notifications · M18 evolution line + ✨ shiny markers · M19 Fluent
   theme + resizable window + dex/shop tabs (macOS `ShopView` parity) ·
-  M20 this bundle.
+  M20 companion/dex/bag Tier-1 bundle · M21 representative Pokémon ★ +
+  usage home redesign (today/week/month header, provider chips, token
+  breakdown).

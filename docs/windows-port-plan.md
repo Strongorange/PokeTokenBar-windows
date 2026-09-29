@@ -351,10 +351,31 @@ confirm; passive shiny charm as a green "active" row; empty bag shows a
 Snorlax. `RarityLabel` values corrected to macOS capitalization
 ("Rare"/"Legendary" — were lowercase). ~22 macOS-verbatim strings added.
 
-Remaining UI-parity candidates live in `docs/ui-parity-audit.md` (Tier 1:
-representative Pokémon — engine state exists unused; Tier 2: usage home
-redesign with provider chips, celebration animation package, catch-log view,
-companion status line, detail-window polish, incident banner; Tier 3:
-constrained items incl. official limits, rejected by the no-credentials
-rule). Confirm the next slice with the user first. Windows keeps the tray +
-dashboard model — inline menu-bar text stays out of scope by design.
+Tenth slice (M21, version 0.20.0, user-verified): representative Pokémon —
+the last Tier-1 item. `CompanionEngine.SetRepresentative(id, form?)` validates
+ownership (mirrors the macOS `setRepresentativeSpeciesID`), three new
+`CompanionGameView` fields surface the selection (species, shiny, Unown form;
+inserted before `UnownForms` per the record contract), the floating pet now
+follows the representative when one is set (egg otherwise), dex tiles show a
+★ in the number row plus an accent-tinted card for the representative, the
+species detail window gained a ★/☆ header toggle (Unown passes the selected
+form), and the settings general group gained a representative row (current
+selection, follow-current reset, "choose in Pokédex…" opens the dashboard on
+the dex tab). Usage home redesign (Tier 2): the usage tab now leads with a
+macOS-parity header — big compact today number + grouped caption + cost,
+"this week"/"this month" period labels — followed by the month trend and a
+provider card with chip tabs (when >1 provider has usage) and per-provider
+today detail (input/output/cache-write/cache-read, per-model rows); the old
+plain providers list and combined card are gone. Data: `ProviderUsageSummary`
+extended (today breakdown, week totals, models, cost coverages) and
+`UsageDisplayState` extended (combined week totals + coverages); week windows
+use Sunday start via `UsageAggregation.StartOfWeek` (invariant culture).
+~12 macOS-verbatim strings added.
+
+Remaining UI-parity candidates live in `docs/ui-parity-audit.md` (Tier 2:
+celebration animation package, catch-log view, companion status line,
+detail-window polish, incident banner; Tier 3: constrained items incl.
+official limits, rejected by the no-credentials rule; engineering quality:
+extract pure UI-adjacent logic from the dashboard code-behind). Confirm the
+next slice with the user first. Windows keeps the tray + dashboard model —
+inline menu-bar text stays out of scope by design.
