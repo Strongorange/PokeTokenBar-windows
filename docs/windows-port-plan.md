@@ -269,8 +269,24 @@ settings.json, applied live to `UsageRootOptions` and followed by a refresh),
 difficulty sliders (percent readout) and the floating pet controls. The game
 tab no longer carries sliders or pet controls.
 
+Fifth slice (M16, version 0.15.0): per-form Unown sprites. The dex tile for
+Unown shows the plain name plus a collected-form count ("Unown 2/28", tooltip
+"Unown forms 2/28"); the detail window gained a 28-form picker grid (7
+columns, static per-form thumbs with a shiny star, unowned forms dimmed with
+"Not collected", click selects) that filters the individuals list and switches
+the hero sprite to that form. Engine surfaces this via
+`CompanionUnownFormStatus(Form, IsShiny)` lists on `CompanionGameView` and
+`CompanionDetailSnapshot` plus `UnownForm` per detail individual, and the
+active Unown dex row keeps a plain name.
+
+Sixth slice (M17, agreed 2026-09-29, not started): new-version notifications,
+porting the macOS `UpdateChecker` — GitHub `releases/latest` check on startup
+with a debounce, tray balloon + banner, skip-this-version, a settings section
+with a manual check, and "open the release page" as the apply action (no
+auto-download). Requires releases to use consistent tags (`v<Version>`).
+
 Remaining UI-parity candidates, in rough value order (each is its own slice;
 confirm with the user first): shiny banner and evolution-line visuals;
-per-form Unown sprites in the dex grid; resizable dashboard window. Windows
+resizable dashboard window. Windows
 keeps the tray + dashboard model — inline menu-bar text stays out of scope by
 design.
