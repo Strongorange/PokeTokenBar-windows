@@ -30,7 +30,7 @@ Legend: ☐ todo · ◐ in progress · ☑ done (milestone) · ✗ rejected (rea
 | ☐ Hatch/evolve celebration package: white flash + spring pop + ✨/🎭 burst, candy "+XP" capsule, mint sparkle, egg wiggle | CompanionView.swift 642-703 | todo | celebration queue in engine + WPF storyboards |
 | ☐ Catch log view: per-individual rows (rarity capsule, evolution-chain sprites, nature, caught-at, released badge) + rarity filter | `CollectionView.catchLog`, `DexEntryRow` 1460 | todo | Core `DexEntry` has CaughtAt/Nature/chain; view layer new |
 | ☐ Companion status line (egg/idle/working/focus/tired/sleep/level-up) | CompanionView.swift `statusLine` 705 | todo | port macOS `computeState` machine |
-| ☐ Detail window polish: type color capsules, individual picker (multi-catch), actual-stats section w/ IV | `PokemonDetailView` 1047 | todo | `CompanionDetailSnapshot` mostly has it |
+| ☑ Detail window polish: type color capsules, individual picker (multi-catch), actual-stats section w/ IV | `PokemonDetailView` 1047 | M22 | no engine change; species-data section (capsules + value pairs + abilities), picker, XOR base/actual stats, `DisplayScaleMaximum` bars |
 | ☐ Provider incident banner (statuspage.io, no auth) | `providerStatusBanner` 303 | todo | network fetch + privacy doc update |
 
 ## Tier 3 — constrained / large
@@ -56,4 +56,5 @@ Legend: ☐ todo · ◐ in progress · ☑ done (milestone) · ✗ rejected (rea
   theme + resizable window + dex/shop tabs (macOS `ShopView` parity) ·
   M20 companion/dex/bag Tier-1 bundle · M21 representative Pokémon ★ +
   usage home redesign (today/week/month header, provider chips, token
-  breakdown).
+  breakdown) · M22 detail-window polish (type capsules, individual picker,
+  actual stats w/ IV, species-data section).

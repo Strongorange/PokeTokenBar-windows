@@ -372,9 +372,26 @@ extended (today breakdown, week totals, models, cost coverages) and
 use Sunday start via `UsageAggregation.StartOfWeek` (invariant culture).
 ~12 macOS-verbatim strings added.
 
+Eleventh slice (M22, version 0.21.0, user-verified): detail-window polish.
+The species detail window now mirrors the macOS `PokemonDetailView` layout.
+A new "Species data" section carries the type capsules (localized, uppercase,
+accent-tinted) plus height/weight/base-total value pairs and possible
+abilities, replacing the plain header join line (the header keeps only name,
+rarity, a ✨ shiny line, and an accent "Raising" line). When a species has
+several catches (after Unown form filtering) an individual picker
+("#N · Lv. X" combo) selects which individual to display, and the individual
+card shows level/gender/nature value pairs, the ability block (hidden ability
+suffix), an "Actual stats" section (bars scaled by the already-tested
+`PokemonStatCalculator.DisplayScaleMaximum`, IV column), and known-move rows
+with right-aligned levels. Base stats and actual stats are mutually exclusive
+like on macOS (individual profile present → actual stats; otherwise base
+stats at scale 300). No engine/data changes — `CompanionDetailSnapshot`
+already carried everything; 8 macOS-verbatim strings added (`IndividualsTitle`
+removed as unused).
+
 Remaining UI-parity candidates live in `docs/ui-parity-audit.md` (Tier 2:
 celebration animation package, catch-log view, companion status line,
-detail-window polish, incident banner; Tier 3: constrained items incl.
+incident banner; Tier 3: constrained items incl.
 official limits, rejected by the no-credentials rule; engineering quality:
 extract pure UI-adjacent logic from the dashboard code-behind). Confirm the
 next slice with the user first. Windows keeps the tray + dashboard model —
