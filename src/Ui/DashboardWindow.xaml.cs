@@ -47,6 +47,35 @@ public partial class DashboardWindow : Window
         ShopHeader.Text = DashboardText.ShopTitle(lang);
         RefreshButton.Content = "_" + DashboardText.RefreshButton(lang);
         SettingsButton.Content = "_" + DashboardText.SettingsTitle(lang) + "…";
+        UpdateSkipButton.Content = "_" + DashboardText.SkipThisVersion(lang);
+        UpdateInstallButton.Content = "_" + DashboardText.UpdateButton(lang);
+        RefreshUpdateBanner();
+    }
+
+    public void RefreshUpdateBanner()
+    {
+        App? app = System.Windows.Application.Current as App;
+        var release = app?.UpdateChecker.Available;
+        if (release is null || app is null || !app.UpdateNotificationsEnabled)
+        {
+            UpdateBanner.Visibility = Visibility.Collapsed;
+            return;
+        }
+        UpdateBannerText.Text = DashboardText.UpdateAvailable(
+            _engine.State.Language, release.Version, app.UpdateChecker.CurrentVersion);
+        UpdateBanner.Visibility = Visibility.Visible;
+    }
+
+    private void OnUpdateSkipClick(object sender, RoutedEventArgs e)
+    {
+        if (System.Windows.Application.Current is App app)
+            app.SkipCurrentUpdate();
+    }
+
+    private void OnUpdateInstallClick(object sender, RoutedEventArgs e)
+    {
+        if (System.Windows.Application.Current is App app)
+            app.OpenReleasePage();
     }
 
     public void Update(UsageDisplayState state)

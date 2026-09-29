@@ -18,6 +18,8 @@ public partial class App : System.Windows.Application
     private AppSettings _settings = null!;
     private TaskbarIcon _trayIcon = null!;
     private MenuItem _petToggle = null!;
+    private UpdateChecker _updateChecker = null!;
+    private string _announcedUpdate = "";
     private DashboardWindow? _dashboard;
     private SettingsWindow? _settingsWindow;
     private FloatingPetWindow? _pet;
@@ -43,6 +45,17 @@ public partial class App : System.Windows.Application
         _engine.Changed += OnCompanionChanged;
         _service = new UsageRefreshService(new UsageRefreshOptions { RootOptions = _rootOptions });
         _service.StateChanged += OnStateChanged;
+        _updateChecker = new UpdateChecker(new UpdateCheckerOptions
+        {
+            CurrentVersion = (typeof(App).Assembly.GetName().Version ?? new Version()).ToString(3),
+            ReadSkippedVersion = () => _settings.SkippedUpdateVersion,
+            WriteSkippedVersion = version =>
+            {
+                _settings.SkippedUpdateVersion = version;
+                SaveSettings();
+            },
+        });
+        _updateChecker.Changed += () => Dispatcher.BeginInvoke(() => _dashboard?.RefreshUpdateBanner());
         _ = RefreshSafelyAsync();
         _ = RunLoopAsync();
         _trayIcon = new TaskbarIcon
@@ -53,6 +66,7 @@ public partial class App : System.Windows.Application
         };
         _trayIcon.TrayLeftMouseUp += (_, _) => ShowDashboard();
         if (_settings.PetEnabled) SetPetEnabled(true);
+        _ = AutoCheckUpdateAsync();
     }
 
     protected override void OnExit(ExitEventArgs e)
@@ -173,11 +187,80 @@ public partial class App : System.Windows.Application
         }
     }
 
+    /// <summary>Startup/dashboard-open check (30-min debounce inside). Silent on failure.</summary>
+    private async Task AutoCheckUpdateAsync()
+    {
+        try
+        {
+            var before = _updateChecker.Available?.Version;
+            await _updateChecker.CheckAsync();
+            if (!_settings.UpdateNotificationsEnabled) return;
+            var release = _updateChecker.Available;
+            if (release is null || release.Version == before || release.Version == _announcedUpdate) return;
+            _announcedUpdate = release.Version;
+            var lang = _engine.State.Language;
+            _trayIcon.ShowBalloonTip("PokeTokenBar",
+                DashboardText.UpdateAvailable(lang, release.Version, _updateChecker.CurrentVersion),
+                BalloonIcon.Info);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Write($"update check failed: {ex.Message}");
+        }
+    }
+
+    /// <summary>Manual check from Settings — bypasses the debounce, no balloon.</summary>
+    public Task ManualUpdateCheckAsync() => _updateChecker.CheckAsync(0);
+
+    public void ApplyUpdateNotifications(bool enabled)
+    {
+        try
+        {
+            _settings.UpdateNotificationsEnabled = enabled;
+            SaveSettings();
+            _dashboard?.RefreshUpdateBanner();
+        }
+        catch (Exception ex)
+        {
+            AppLog.Write($"update notifications apply failed: {ex.Message}");
+        }
+    }
+
+    public void SkipCurrentUpdate()
+    {
+        try
+        {
+            _updateChecker.SkipCurrent();
+        }
+        catch (Exception ex)
+        {
+            AppLog.Write($"update skip failed: {ex.Message}");
+        }
+    }
+
+    public void OpenReleasePage()
+    {
+        try
+        {
+            var release = _updateChecker.UpdateTarget;
+            if (release is null || !UpdateChecker.IsSafeReleaseUrl(release.Url)) return;
+            Process.Start(new ProcessStartInfo { FileName = release.Url, UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            AppLog.Write($"release page open failed: {ex.Message}");
+        }
+    }
+
     public bool PetEnabled => _settings.PetEnabled;
 
     public double PetSize => _settings.PetSize;
 
     public IReadOnlyList<ScanRootEntry> ScanRoots => _settings.ScanRoots;
+
+    public UpdateChecker UpdateChecker => _updateChecker;
+
+    public bool UpdateNotificationsEnabled => _settings.UpdateNotificationsEnabled;
 
     public void ApplyLanguage(AppLanguage language)
     {
@@ -304,6 +387,7 @@ public partial class App : System.Windows.Application
             }
             _dashboard.Show();
             _dashboard.Activate();
+            _ = AutoCheckUpdateAsync();
         }
         catch (Exception ex)
         {

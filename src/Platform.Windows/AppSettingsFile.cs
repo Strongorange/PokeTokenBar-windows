@@ -12,6 +12,8 @@ public sealed class AppSettings
     public double? PetY { get; set; }
     public double PetSize { get; set; } = AppSettingsFile.DefaultPetSize;
     public IReadOnlyList<ScanRootEntry> ScanRoots { get; set; } = [];
+    public string? SkippedUpdateVersion { get; set; }
+    public bool UpdateNotificationsEnabled { get; set; } = true;
 }
 
 public static class AppSettingsFile
@@ -65,6 +67,12 @@ public static class AppSettingsFile
                 if (root.TryGetProperty("scanRoots", out var scanRoots)
                     && scanRoots.ValueKind == JsonValueKind.Array)
                     settings.ScanRoots = ParseScanRoots(scanRoots);
+                if (root.TryGetProperty("skippedUpdateVersion", out var skippedUpdate)
+                    && skippedUpdate.ValueKind == JsonValueKind.String)
+                    settings.SkippedUpdateVersion = skippedUpdate.GetString()?.Trim();
+                if (root.TryGetProperty("updateNotificationsEnabled", out var updateNotifications)
+                    && updateNotifications.ValueKind is JsonValueKind.True or JsonValueKind.False)
+                    settings.UpdateNotificationsEnabled = updateNotifications.GetBoolean();
             }
             settings.GrowthDifficulty = PokemonBalance.ClampDifficulty(settings.GrowthDifficulty);
             settings.ShopDifficulty = PokemonBalance.ClampDifficulty(settings.ShopDifficulty);
@@ -120,6 +128,8 @@ public static class AppSettingsFile
             ["petY"] = settings.PetY,
             ["petSize"] = ClampPetSize(settings.PetSize),
             ["scanRoots"] = scanRoots,
+            ["skippedUpdateVersion"] = settings.SkippedUpdateVersion,
+            ["updateNotificationsEnabled"] = settings.UpdateNotificationsEnabled,
         };
         var directory = Path.GetDirectoryName(path);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);

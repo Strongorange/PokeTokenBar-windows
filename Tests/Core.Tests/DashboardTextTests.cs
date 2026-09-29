@@ -110,4 +110,93 @@ public class DashboardTextTests
         Assert.Equal("Não coletada", DashboardText.UnownNotCollected(AppLanguage.Pt));
         Assert.Equal("Noch nicht gesammelt", DashboardText.UnownNotCollected(AppLanguage.De));
     }
+
+    [Fact]
+    public void UpdateStringsFollowMacOSTranslations()
+    {
+        Assert.Equal("🆕 v0.16.0 사용 가능 (현재 0.15.0)",
+            DashboardText.UpdateAvailable(AppLanguage.Ko, "0.16.0", "0.15.0"));
+        Assert.Equal("🆕 v0.16.0 available (you have 0.15.0)",
+            DashboardText.UpdateAvailable(AppLanguage.En, "0.16.0", "0.15.0"));
+        Assert.Equal("🆕 v0.16.0 が利用可能（現在 0.15.0）",
+            DashboardText.UpdateAvailable(AppLanguage.Ja, "0.16.0", "0.15.0"));
+        Assert.Equal("🆕 v0.16.0 disponible (tienes 0.15.0)",
+            DashboardText.UpdateAvailable(AppLanguage.Es, "0.16.0", "0.15.0"));
+        Assert.Equal("🆕 v0.16.0 disponible (tu as 0.15.0)",
+            DashboardText.UpdateAvailable(AppLanguage.Fr, "0.16.0", "0.15.0"));
+        Assert.Equal("🆕 v0.16.0 disponível (você tem 0.15.0)",
+            DashboardText.UpdateAvailable(AppLanguage.Pt, "0.16.0", "0.15.0"));
+        Assert.Equal("🆕 v0.16.0 verfügbar (installiert: 0.15.0)",
+            DashboardText.UpdateAvailable(AppLanguage.De, "0.16.0", "0.15.0"));
+        Assert.Equal("업데이트", DashboardText.UpdateButton(AppLanguage.Ko));
+        Assert.Equal("Update", DashboardText.UpdateButton(AppLanguage.En));
+        Assert.Equal("更新", DashboardText.UpdateButton(AppLanguage.Ja));
+        Assert.Equal("Actualizar", DashboardText.UpdateButton(AppLanguage.Es));
+        Assert.Equal("Mettre à jour", DashboardText.UpdateButton(AppLanguage.Fr));
+        Assert.Equal("Instalar", DashboardText.UpdateButton(AppLanguage.Pt));
+        Assert.Equal("Aktualisieren", DashboardText.UpdateButton(AppLanguage.De));
+        Assert.Equal("이 버전 건너뛰기", DashboardText.SkipThisVersion(AppLanguage.Ko));
+        Assert.Equal("Skip this version", DashboardText.SkipThisVersion(AppLanguage.En));
+        Assert.Equal("このバージョンをスキップ", DashboardText.SkipThisVersion(AppLanguage.Ja));
+        Assert.Equal("Omitir esta versión", DashboardText.SkipThisVersion(AppLanguage.Es));
+        Assert.Equal("Ignorer cette version", DashboardText.SkipThisVersion(AppLanguage.Fr));
+        Assert.Equal("Ignorar esta versão", DashboardText.SkipThisVersion(AppLanguage.Pt));
+        Assert.Equal("Diese Version überspringen", DashboardText.SkipThisVersion(AppLanguage.De));
+        Assert.Equal("v0.16.0을 건너뛰었어요", DashboardText.SkippedVersionText(AppLanguage.Ko, "0.16.0"));
+        Assert.Equal("You skipped v0.16.0", DashboardText.SkippedVersionText(AppLanguage.En, "0.16.0"));
+        Assert.Equal("v0.16.0 をスキップしました", DashboardText.SkippedVersionText(AppLanguage.Ja, "0.16.0"));
+        Assert.Equal("Omitiste la v0.16.0", DashboardText.SkippedVersionText(AppLanguage.Es, "0.16.0"));
+        Assert.Equal("Tu as ignoré la v0.16.0", DashboardText.SkippedVersionText(AppLanguage.Fr, "0.16.0"));
+        Assert.Equal("Você ignorou a v0.16.0", DashboardText.SkippedVersionText(AppLanguage.Pt, "0.16.0"));
+        Assert.Equal("Du hast v0.16.0 übersprungen", DashboardText.SkippedVersionText(AppLanguage.De, "0.16.0"));
+        Assert.Equal("다시 알리기", DashboardText.ShowSkippedAgain(AppLanguage.Ko));
+        Assert.Equal("Show again", DashboardText.ShowSkippedAgain(AppLanguage.En));
+        Assert.Equal("もう一度表示", DashboardText.ShowSkippedAgain(AppLanguage.Ja));
+        Assert.Equal("Mostrar de nuevo", DashboardText.ShowSkippedAgain(AppLanguage.Es));
+        Assert.Equal("Afficher à nouveau", DashboardText.ShowSkippedAgain(AppLanguage.Fr));
+        Assert.Equal("Mostrar de novo", DashboardText.ShowSkippedAgain(AppLanguage.Pt));
+        Assert.Equal("Wieder anzeigen", DashboardText.ShowSkippedAgain(AppLanguage.De));
+        Assert.Equal("업데이트", DashboardText.UpdateSectionTitle(AppLanguage.Ko));
+        Assert.Equal("Updates", DashboardText.UpdateSectionTitle(AppLanguage.En));
+        Assert.Equal("アップデート", DashboardText.UpdateSectionTitle(AppLanguage.Ja));
+        Assert.Equal("Actualizaciones", DashboardText.UpdateSectionTitle(AppLanguage.Es));
+        Assert.Equal("Mises à jour", DashboardText.UpdateSectionTitle(AppLanguage.Fr));
+        Assert.Equal("Atualizações", DashboardText.UpdateSectionTitle(AppLanguage.Pt));
+        Assert.Equal("Aktualisierungen", DashboardText.UpdateSectionTitle(AppLanguage.De));
+        Assert.Equal("업데이트 알림", DashboardText.UpdateNotificationsLabel(AppLanguage.Ko));
+        Assert.Equal("Update notifications", DashboardText.UpdateNotificationsLabel(AppLanguage.En));
+        Assert.Equal("アップデート通知", DashboardText.UpdateNotificationsLabel(AppLanguage.Ja));
+        Assert.Equal("Notificaciones de actualización", DashboardText.UpdateNotificationsLabel(AppLanguage.Es));
+        Assert.Equal("Notifications de mise à jour", DashboardText.UpdateNotificationsLabel(AppLanguage.Fr));
+        Assert.Equal("Notificações de atualização", DashboardText.UpdateNotificationsLabel(AppLanguage.Pt));
+        Assert.Equal("Hinweise auf Aktualisierungen", DashboardText.UpdateNotificationsLabel(AppLanguage.De));
+        Assert.Equal("업데이트 확인", DashboardText.CheckForUpdatesLabel(AppLanguage.Ko));
+        Assert.Equal("Check for updates", DashboardText.CheckForUpdatesLabel(AppLanguage.En));
+        Assert.Equal("アップデートを確認", DashboardText.CheckForUpdatesLabel(AppLanguage.Ja));
+        Assert.Equal("Buscar actualizaciones", DashboardText.CheckForUpdatesLabel(AppLanguage.Es));
+        Assert.Equal("Rechercher des mises à jour", DashboardText.CheckForUpdatesLabel(AppLanguage.Fr));
+        Assert.Equal("Buscar atualizações", DashboardText.CheckForUpdatesLabel(AppLanguage.Pt));
+        Assert.Equal("Nach Aktualisierungen suchen", DashboardText.CheckForUpdatesLabel(AppLanguage.De));
+        Assert.Equal("지금 확인", DashboardText.CheckNowButton(AppLanguage.Ko));
+        Assert.Equal("Check now", DashboardText.CheckNowButton(AppLanguage.En));
+        Assert.Equal("今すぐ確認", DashboardText.CheckNowButton(AppLanguage.Ja));
+        Assert.Equal("Comprobar ahora", DashboardText.CheckNowButton(AppLanguage.Es));
+        Assert.Equal("Vérifier maintenant", DashboardText.CheckNowButton(AppLanguage.Fr));
+        Assert.Equal("Buscar agora", DashboardText.CheckNowButton(AppLanguage.Pt));
+        Assert.Equal("Jetzt prüfen", DashboardText.CheckNowButton(AppLanguage.De));
+        Assert.Equal("새 버전 v0.16.0 있어요", DashboardText.UpdateFound(AppLanguage.Ko, "0.16.0"));
+        Assert.Equal("Version 0.16.0 is available", DashboardText.UpdateFound(AppLanguage.En, "0.16.0"));
+        Assert.Equal("バージョン 0.16.0 が利用可能です", DashboardText.UpdateFound(AppLanguage.Ja, "0.16.0"));
+        Assert.Equal("La versión 0.16.0 está disponible", DashboardText.UpdateFound(AppLanguage.Es, "0.16.0"));
+        Assert.Equal("La version 0.16.0 est disponible", DashboardText.UpdateFound(AppLanguage.Fr, "0.16.0"));
+        Assert.Equal("A versão 0.16.0 está disponível", DashboardText.UpdateFound(AppLanguage.Pt, "0.16.0"));
+        Assert.Equal("Version 0.16.0 ist verfügbar", DashboardText.UpdateFound(AppLanguage.De, "0.16.0"));
+        Assert.Equal("최신 버전이에요 (v0.15.0)", DashboardText.UpToDate(AppLanguage.Ko, "0.15.0"));
+        Assert.Equal("You're on the latest (v0.15.0)", DashboardText.UpToDate(AppLanguage.En, "0.15.0"));
+        Assert.Equal("最新です (v0.15.0)", DashboardText.UpToDate(AppLanguage.Ja, "0.15.0"));
+        Assert.Equal("Tienes la última versión (v0.15.0)", DashboardText.UpToDate(AppLanguage.Es, "0.15.0"));
+        Assert.Equal("Tu as la dernière version (v0.15.0)", DashboardText.UpToDate(AppLanguage.Fr, "0.15.0"));
+        Assert.Equal("Você está na última versão (v0.15.0)", DashboardText.UpToDate(AppLanguage.Pt, "0.15.0"));
+        Assert.Equal("Du hast die neueste Version (v0.15.0)", DashboardText.UpToDate(AppLanguage.De, "0.15.0"));
+    }
 }

@@ -17,6 +17,7 @@ public partial class SettingsWindow : Window
     private readonly CompanionEngine _engine;
     private readonly List<ScanRootEntry> _scanRoots = [];
     private bool _updating;
+    private bool _updateChecking;
 
     public SettingsWindow(CompanionEngine engine)
     {
@@ -51,12 +52,14 @@ public partial class SettingsWindow : Window
             {
                 PetEnabledCheck.IsChecked = app.PetEnabled;
                 PetSizeSlider.Value = app.PetSize;
+                UpdateNotificationsCheck.IsChecked = app.UpdateNotificationsEnabled;
                 _scanRoots.AddRange(app.ScanRoots);
             }
             else
             {
                 PetEnabledCheck.IsChecked = false;
                 PetSizeSlider.Value = AppSettingsFile.DefaultPetSize;
+                UpdateNotificationsCheck.IsChecked = true;
             }
             PetSizeValue.Text = $"{(int)PetSizeSlider.Value}px";
             RebuildScanList();
@@ -82,7 +85,19 @@ public partial class SettingsWindow : Window
         RemoveButton.Content = "_" + DashboardText.RemoveButton(lang);
         PetHeader.Text = DashboardText.FloatingPet(lang);
         PetSizeText.Text = DashboardText.SizeLabel(lang);
+        UpdateHeader.Text = DashboardText.UpdateSectionTitle(lang);
+        UpdateNotificationsText.Text = DashboardText.UpdateNotificationsLabel(lang);
+        CheckForUpdatesText.Text = DashboardText.CheckForUpdatesLabel(lang);
+        CheckNowButton.Content = "_" + DashboardText.CheckNowButton(lang);
+        ShowSkippedAgainButton.Content = "_" + DashboardText.ShowSkippedAgain(lang);
+        UpdateInstallButton.Content = "_" + DashboardText.UpdateButton(lang);
     }
+
+    private static readonly System.Windows.Media.SolidColorBrush ResultHighlightBrush =
+        new(System.Windows.Media.Color.FromRgb(0xB4, 0x5F, 0x06));
+
+    private static readonly System.Windows.Media.SolidColorBrush ResultMutedBrush =
+        new(System.Windows.Media.Color.FromRgb(0x66, 0x66, 0x66));
 
     private static string FormatDifficulty(double value) => $"{value:0%}";
 
@@ -189,5 +204,82 @@ public partial class SettingsWindow : Window
         PetSizeValue.Text = $"{(int)e.NewValue}px";
         if (System.Windows.Application.Current is App app)
             app.ApplyPetSize(e.NewValue);
+    }
+
+    private void OnUpdateNotificationsChanged(object sender, RoutedEventArgs e)
+    {
+        if (_updating || _engine is null) return;
+        if (System.Windows.Application.Current is App app)
+            app.ApplyUpdateNotifications(UpdateNotificationsCheck.IsChecked == true);
+    }
+
+    private async void OnCheckNowClick(object sender, RoutedEventArgs e)
+    {
+        if (_updateChecking || _engine is null) return;
+        if (System.Windows.Application.Current is not App app) return;
+        _updateChecking = true;
+        var label = CheckNowButton.Content;
+        CheckNowButton.IsEnabled = false;
+        CheckNowButton.Content = "…";
+        try
+        {
+            await app.ManualUpdateCheckAsync();
+        }
+        catch
+        {
+        }
+        finally
+        {
+            _updateChecking = false;
+            CheckNowButton.IsEnabled = true;
+            CheckNowButton.Content = label;
+            RenderUpdateResult();
+        }
+    }
+
+    private void RenderUpdateResult()
+    {
+        if (System.Windows.Application.Current is not App app)
+        {
+            UpdateResultRow.Visibility = Visibility.Collapsed;
+            return;
+        }
+        UpdateResultRow.Visibility = Visibility.Visible;
+        var lang = _engine.State.Language;
+        var notice = app.UpdateChecker.SettingsNotice;
+        switch (notice.Kind)
+        {
+            case UpdateNoticeKind.Offer:
+                UpdateResultText.Text = DashboardText.UpdateFound(lang, notice.Version);
+                UpdateResultText.Foreground = ResultHighlightBrush;
+                UpdateInstallButton.Visibility = Visibility.Visible;
+                ShowSkippedAgainButton.Visibility = Visibility.Collapsed;
+                break;
+            case UpdateNoticeKind.Skipped:
+                UpdateResultText.Text = DashboardText.SkippedVersionText(lang, notice.Version);
+                UpdateResultText.Foreground = ResultHighlightBrush;
+                UpdateInstallButton.Visibility = Visibility.Visible;
+                ShowSkippedAgainButton.Visibility = Visibility.Visible;
+                break;
+            default:
+                UpdateResultText.Text = DashboardText.UpToDate(lang, app.UpdateChecker.CurrentVersion);
+                UpdateResultText.Foreground = ResultMutedBrush;
+                UpdateInstallButton.Visibility = Visibility.Collapsed;
+                ShowSkippedAgainButton.Visibility = Visibility.Collapsed;
+                break;
+        }
+    }
+
+    private void OnShowSkippedAgainClick(object sender, RoutedEventArgs e)
+    {
+        if (System.Windows.Application.Current is not App app) return;
+        app.UpdateChecker.ShowSkippedAgain();
+        RenderUpdateResult();
+    }
+
+    private void OnInstallClick(object sender, RoutedEventArgs e)
+    {
+        if (System.Windows.Application.Current is App app)
+            app.OpenReleasePage();
     }
 }

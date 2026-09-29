@@ -415,6 +415,69 @@ public static class DashboardText
             _ => method.Replace('-', ' ')
         };
 
+    // Update notifications (port of the macOS UpdateChecker strings)
+
+    public static string UpdateAvailable(AppLanguage lang, string version, string current) =>
+        T(lang, $"🆕 v{version} 사용 가능 (현재 {current})",
+            $"🆕 v{version} available (you have {current})",
+            $"🆕 v{version} が利用可能（現在 {current}）",
+            $"🆕 v{version} disponible (tienes {current})",
+            $"🆕 v{version} disponible (tu as {current})",
+            $"🆕 v{version} disponível (você tem {current})",
+            $"🆕 v{version} verfügbar (installiert: {current})");
+
+    public static string UpdateButton(AppLanguage lang) =>
+        T(lang, "업데이트", "Update", "更新", "Actualizar", "Mettre à jour", "Instalar",
+            "Aktualisieren");
+
+    public static string SkipThisVersion(AppLanguage lang) =>
+        T(lang, "이 버전 건너뛰기", "Skip this version", "このバージョンをスキップ",
+            "Omitir esta versión", "Ignorer cette version", "Ignorar esta versão",
+            "Diese Version überspringen");
+
+    public static string SkippedVersionText(AppLanguage lang, string version) =>
+        T(lang, $"v{version}을 건너뛰었어요",
+            $"You skipped v{version}",
+            $"v{version} をスキップしました",
+            $"Omitiste la v{version}",
+            $"Tu as ignoré la v{version}",
+            $"Você ignorou a v{version}",
+            $"Du hast v{version} übersprungen");
+
+    public static string ShowSkippedAgain(AppLanguage lang) =>
+        T(lang, "다시 알리기", "Show again", "もう一度表示", "Mostrar de nuevo",
+            "Afficher à nouveau", "Mostrar de novo", "Wieder anzeigen");
+
+    public static string UpdateSectionTitle(AppLanguage lang) =>
+        T(lang, "업데이트", "Updates", "アップデート", "Actualizaciones", "Mises à jour",
+            "Atualizações", "Aktualisierungen");
+
+    public static string UpdateNotificationsLabel(AppLanguage lang) =>
+        T(lang, "업데이트 알림", "Update notifications", "アップデート通知",
+            "Notificaciones de actualización", "Notifications de mise à jour",
+            "Notificações de atualização", "Hinweise auf Aktualisierungen");
+
+    public static string CheckForUpdatesLabel(AppLanguage lang) =>
+        T(lang, "업데이트 확인", "Check for updates", "アップデートを確認",
+            "Buscar actualizaciones", "Rechercher des mises à jour", "Buscar atualizações",
+            "Nach Aktualisierungen suchen");
+
+    public static string CheckNowButton(AppLanguage lang) =>
+        T(lang, "지금 확인", "Check now", "今すぐ確認", "Comprobar ahora", "Vérifier maintenant",
+            "Buscar agora", "Jetzt prüfen");
+
+    public static string UpdateFound(AppLanguage lang, string version) =>
+        T(lang, $"새 버전 v{version} 있어요", $"Version {version} is available",
+            $"バージョン {version} が利用可能です", $"La versión {version} está disponible",
+            $"La version {version} est disponible", $"A versão {version} está disponível",
+            $"Version {version} ist verfügbar");
+
+    public static string UpToDate(AppLanguage lang, string version) =>
+        T(lang, $"최신 버전이에요 (v{version})", $"You're on the latest (v{version})",
+            $"最新です (v{version})", $"Tienes la última versión (v{version})",
+            $"Tu as la dernière version (v{version})", $"Você está na última versão (v{version})",
+            $"Du hast die neueste Version (v{version})");
+
     // Engine event / notice texts
 
     public static string EventHatch(AppLanguage lang, string name, bool shiny) => shiny

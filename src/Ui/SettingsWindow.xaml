@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Settings"
-        Width="480" Height="560"
+        Width="480" Height="640"
         WindowStartupLocation="CenterOwner"
         ResizeMode="CanMinimize">
     <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="14">
@@ -58,6 +58,30 @@
                 <TextBlock x:Name="PetSizeValue" VerticalAlignment="Center" MinWidth="40"
                            FontSize="11" />
             </StackPanel>
+
+            <TextBlock x:Name="UpdateHeader" FontWeight="Bold" Margin="0,18,0,0" />
+            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                <CheckBox x:Name="UpdateNotificationsCheck" VerticalAlignment="Center"
+                          Checked="OnUpdateNotificationsChanged" Unchecked="OnUpdateNotificationsChanged" />
+                <TextBlock x:Name="UpdateNotificationsText" VerticalAlignment="Center"
+                           Margin="6,0,0,0" />
+            </StackPanel>
+            <DockPanel Margin="0,8,0,0">
+                <Button x:Name="CheckNowButton" DockPanel.Dock="Right" MinWidth="100"
+                        Click="OnCheckNowClick" />
+                <TextBlock x:Name="CheckForUpdatesText" VerticalAlignment="Center" />
+            </DockPanel>
+            <DockPanel x:Name="UpdateResultRow" Margin="0,6,0,0" Visibility="Collapsed">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
+                            VerticalAlignment="Center">
+                    <Button x:Name="ShowSkippedAgainButton" MinWidth="90"
+                            Click="OnShowSkippedAgainClick" />
+                    <Button x:Name="UpdateInstallButton" MinWidth="80" Margin="6,0,0,0"
+                            Click="OnInstallClick" />
+                </StackPanel>
+                <TextBlock x:Name="UpdateResultText" VerticalAlignment="Center" FontSize="11"
+                           Foreground="#B45F06" TextWrapping="Wrap" />
+            </DockPanel>
         </StackPanel>
     </ScrollViewer>
 </Window>

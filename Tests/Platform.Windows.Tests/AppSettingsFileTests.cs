@@ -203,4 +203,57 @@ public class AppSettingsFileTests : IDisposable
         var entry = Assert.Single(loaded.ScanRoots);
         Assert.Equal(new ScanRootEntry("claude", @"D:\logs\keep"), entry);
     }
+
+    [Fact]
+    public void MissingFileYieldsUpdateDefaults()
+    {
+        var settings = AppSettingsFile.Load(SettingsPath);
+
+        Assert.Null(settings.SkippedUpdateVersion);
+        Assert.True(settings.UpdateNotificationsEnabled);
+    }
+
+    [Fact]
+    public void RoundTripsUpdatePreferencesAcrossRestart()
+    {
+        var saved = new AppSettings
+        {
+            SkippedUpdateVersion = "0.16.0",
+            UpdateNotificationsEnabled = false,
+        };
+        AppSettingsFile.Save(SettingsPath, saved);
+
+        var loaded = AppSettingsFile.Load(SettingsPath);
+
+        Assert.Equal("0.16.0", loaded.SkippedUpdateVersion);
+        Assert.False(loaded.UpdateNotificationsEnabled);
+    }
+
+    [Fact]
+    public void NullSkippedVersionRoundTripsAndUnskips()
+    {
+        var saved = new AppSettings { SkippedUpdateVersion = "0.16.0" };
+        AppSettingsFile.Save(SettingsPath, saved);
+        var skipped = AppSettingsFile.Load(SettingsPath);
+        Assert.Equal("0.16.0", skipped.SkippedUpdateVersion);
+
+        skipped.SkippedUpdateVersion = null;
+        AppSettingsFile.Save(SettingsPath, skipped);
+
+        var unskipped = AppSettingsFile.Load(SettingsPath);
+        Assert.Null(unskipped.SkippedUpdateVersion);
+        Assert.True(unskipped.UpdateNotificationsEnabled);
+    }
+
+    [Fact]
+    public void GarbageUpdateFieldsFallBackToDefaults()
+    {
+        File.WriteAllText(SettingsPath,
+            """{"skippedUpdateVersion": 5, "updateNotificationsEnabled": "yes"}""");
+
+        var loaded = AppSettingsFile.Load(SettingsPath);
+
+        Assert.Null(loaded.SkippedUpdateVersion);
+        Assert.True(loaded.UpdateNotificationsEnabled);
+    }
 }
