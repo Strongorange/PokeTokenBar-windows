@@ -107,10 +107,26 @@
                                 </Grid>
                             </Border>
                             <StackPanel VerticalAlignment="Center">
-                                <TextBlock x:Name="CompanionName" Text="Token Egg" FontSize="18"
-                                           FontWeight="SemiBold" />
-                                <TextBlock x:Name="CompanionDetail" FontSize="12"
-                                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" />
+                                <DockPanel>
+                                    <Border x:Name="RarityCapsule" DockPanel.Dock="Right"
+                                            CornerRadius="9" Padding="6,1" Margin="8,0,0,1"
+                                            VerticalAlignment="Center" Visibility="Collapsed">
+                                        <TextBlock x:Name="RarityCapsuleText" FontSize="8"
+                                                   FontWeight="Bold" Foreground="White" />
+                                    </Border>
+                                    <TextBlock x:Name="CompanionName" Text="Token Egg" FontSize="18"
+                                               FontWeight="SemiBold" />
+                                </DockPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                    <TextBlock x:Name="CompanionDetail" FontSize="12"
+                                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                                    <Border x:Name="StatusCapsule" CornerRadius="8" Padding="6,1"
+                                            Margin="6,0,0,0" VerticalAlignment="Center"
+                                            Visibility="Collapsed">
+                                        <TextBlock x:Name="StatusCapsuleText" FontSize="8"
+                                                   FontWeight="Bold" />
+                                    </Border>
+                                </StackPanel>
                                 <TextBlock x:Name="CombatText" FontSize="11"
                                            Foreground="{DynamicResource TextTertiaryBrush}" Margin="0,2,0,0"
                                            TextWrapping="Wrap" />
@@ -140,19 +156,9 @@
                     </StackPanel>
                     <Border Grid.Row="3" Style="{StaticResource Card}" Padding="12" Margin="0,8,0,0">
                         <StackPanel>
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock x:Name="ShopHeader" Text="Bag" FontWeight="SemiBold"
-                                           FontSize="13" VerticalAlignment="Center" />
-                                <Button x:Name="UseCandyButton" Content="Use _candy" Margin="10,0,0,0"
-                                        MinWidth="80" Click="OnUseCandyClick" />
-                                <Button x:Name="UseMintButton" Content="Use _mint" Margin="6,0,0,0"
-                                        MinWidth="70" Click="OnUseMintClick" />
-                                <Button x:Name="UseAllButton" Content="Use a_ll" Margin="6,0,0,0"
-                                        MinWidth="60" Click="OnUseAllCandyClick" />
-                            </StackPanel>
-                            <TextBlock x:Name="BagText" FontSize="11"
-                                       Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,6,0,0"
-                                       TextWrapping="Wrap" />
+                            <TextBlock x:Name="ShopHeader" Text="Bag" FontWeight="SemiBold"
+                                       FontSize="13" />
+                            <StackPanel x:Name="BagCards" Margin="0,6,0,0" />
                         </StackPanel>
                     </Border>
                     <Border Grid.Row="4" Style="{StaticResource Card}" Padding="8" Margin="0,8,0,0">
@@ -172,6 +178,8 @@
                         <StackPanel Grid.Row="0" Margin="0,0,0,8">
                             <TextBlock x:Name="DexHeader" FontWeight="SemiBold" FontSize="13"
                                        TextTrimming="CharacterEllipsis" />
+                            <StackPanel x:Name="DexRarityFilter" Orientation="Horizontal"
+                                        Margin="0,6,0,0" />
                         </StackPanel>
                         <ListBox Grid.Row="1" x:Name="DexList">
                             <ListBox.ItemsPanel>
@@ -187,6 +195,23 @@
                                 </Style>
                             </ListBox.ItemContainerStyle>
                         </ListBox>
+                        <Border Grid.Row="1" x:Name="DexEmpty" Visibility="Collapsed"
+                                Padding="0,40,0,40">
+                            <StackPanel>
+                                <Grid Width="96" Height="96" HorizontalAlignment="Center">
+                                    <Image x:Name="DexEmptySprite" Width="96" Height="96"
+                                           Stretch="Uniform" Visibility="Collapsed" />
+                                    <TextBlock x:Name="DexEmptyPlaceholder" Text="❔" FontSize="40"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Grid>
+                                <TextBlock x:Name="DexEmptyTitle" FontSize="13" FontWeight="SemiBold"
+                                           HorizontalAlignment="Center" Margin="0,10,0,0" />
+                                <TextBlock x:Name="DexEmptyHint" FontSize="11"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           HorizontalAlignment="Center" Margin="0,4,0,0"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
                     </Grid>
                 </Border>
             </TabItem>

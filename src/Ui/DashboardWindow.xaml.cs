@@ -16,6 +16,10 @@ public partial class DashboardWindow : Window
     private CompanionGameView? _lastView;
     private CompanionShopRow? _confirmingShopRow;
     private Func<AppLanguage, string>? _feedback;
+    private Rarity? _dexRarityFilter;
+    private int _candyCount = 1;
+    private ItemKind? _confirmingBagItem;
+    private SpriteSlot? _dexEmptySprite;
 
     public DashboardWindow(CompanionEngine engine, SpriteStore sprites)
     {
@@ -49,10 +53,6 @@ public partial class DashboardWindow : Window
         CombinedHeader.Text = DashboardText.CombinedTitle(lang);
         ExportButton.Content = DashboardText.ExportSave(lang);
         ImportButton.Content = DashboardText.ImportSave(lang);
-        UseCandyButton.Content = DashboardText.UseItem(lang, DashboardText.ItemName(lang, ItemKind.RareCandy));
-        UseMintButton.Content = DashboardText.UseItem(lang, DashboardText.ItemName(lang, ItemKind.Mint));
-        UseAllButton.Content = DashboardText.UseAll(lang);
-        ShopHeader.Text = DashboardText.ShopTitle(lang);
         RefreshButton.Content = "_" + DashboardText.RefreshButton(lang);
         SettingsButton.Content = "_" + DashboardText.SettingsTitle(lang) + "…";
         UpdateSkipButton.Content = "_" + DashboardText.SkipThisVersion(lang);
@@ -230,26 +230,47 @@ public partial class DashboardWindow : Window
     {
         var lang = view.Language;
         var shiny = view.HasActive && view.IsShiny ? " ✨" : "";
-        var boost = view.HasGrowthBoost
-            ? "  (" + DashboardText.GrowthBoostMark(lang, PokemonBalance.RepeatGrowthMultiplier) + ")" : "";
-        var rarity = view.Rarity is { } value ? DashboardText.RarityLabel(lang, value) : "";
         CompanionName.Text = (view.HasActive ? view.ActiveName : DashboardText.TokenEgg(lang)) + shiny;
         CompanionName.ToolTip = view.HasActive && view.IsShiny
             ? "✨ " + DashboardText.ShinyLabel(lang)
             : null;
-        CompanionDetail.Text = view.HasActive
-            ? $"{rarity}{boost}"
-            : DashboardText.EggHint(lang);
+
+        if (view.Rarity is { } rarityValue)
+        {
+            RarityCapsule.Visibility = Visibility.Visible;
+            RarityCapsule.Background = RarityBrush(rarityValue);
+            RarityCapsuleText.Text = DashboardText.RarityLabel(lang, rarityValue).ToUpperInvariant();
+        }
+        else
+        {
+            RarityCapsule.Visibility = Visibility.Collapsed;
+        }
 
         if (view.HasActive)
         {
             var stageCaption = view.StageIndex + 1 >= view.TotalForms && view.TotalForms > 0
                 ? DashboardText.FinalForm(lang)
                 : DashboardText.StageLabel(lang, view.StageIndex + 1, view.TotalForms);
-            ProgressLabel.Text =
-                $"{stageCaption} · " +
-                $"{TokenFormatter.Grouped(view.StageUsed)} / {TokenFormatter.Grouped(view.StageThreshold)} " +
-                DashboardText.TokensUnit(lang);
+            var nature = RaisingNature(view);
+            CompanionDetail.Text = nature.Length > 0 ? $"{stageCaption} · {nature}" : stageCaption;
+            if (view.HasGrowthBoost)
+            {
+                StatusCapsule.Visibility = Visibility.Visible;
+                StatusCapsule.Background = HexBrush("#26F7630C");
+                StatusCapsuleText.Text = DashboardText.GrowthBoost(
+                    lang, (int) Math.Round((double) PokemonBalance.RepeatGrowthMultiplier));
+                StatusCapsuleText.Foreground = Token("RarityLegendaryBrush");
+            }
+            else
+            {
+                StatusCapsule.Visibility = Visibility.Collapsed;
+            }
+
+            var remaining = Math.Max(0, view.StageThreshold - view.StageUsed);
+            var isFinal = view.StageIndex + 1 >= view.TotalForms && view.TotalForms > 0;
+            ProgressLabel.Text = isFinal
+                ? DashboardText.ToGraduation(lang, TokenFormatter.Grouped(remaining))
+                : DashboardText.ToNextEvolution(lang, TokenFormatter.Grouped(remaining));
             ProgressBar.Value = view.StageProgress;
             RenderEvolutionLine(view);
             _companionSprite.Update(_sprites, view.ActiveSpeciesID, true, view.IsShiny,
@@ -257,22 +278,64 @@ public partial class DashboardWindow : Window
         }
         else
         {
-            ProgressLabel.Text =
-                $"{DashboardText.TokenEgg(lang)} · {TokenFormatter.Grouped(view.EggUsed)} / " +
-                $"{TokenFormatter.Grouped(view.EggThreshold)} {DashboardText.TokensUnit(lang)}";
+            var imminent = view.EggProgress >= 0.9;
+            CompanionDetail.Text = imminent
+                ? DashboardText.EggImminent(lang)
+                : DashboardText.EggIncubating(lang);
+            CompanionDetail.Foreground = imminent
+                ? Token("RarityLegendaryBrush")
+                : Token("TextSecondaryBrush");
+            if (view.EggGuarantee is { } guarantee)
+            {
+                StatusCapsule.Visibility = Visibility.Visible;
+                StatusCapsule.Background = RarityBrush(guarantee);
+                StatusCapsuleText.Text = DashboardText.EggGuaranteeHint(lang, guarantee);
+                StatusCapsuleText.Foreground = Brushes.White;
+            }
+            else
+            {
+                StatusCapsule.Visibility = Visibility.Collapsed;
+            }
+
+            var toHatch = Math.Max(0, view.EggThreshold - view.EggUsed);
+            ProgressLabel.Text = DashboardText.EggToHatch(lang, TokenFormatter.Grouped(toHatch));
             ProgressBar.Value = view.EggProgress;
             RenderEvolutionLine(view);
             _companionSprite.UpdateEgg(_sprites, "🥚");
         }
+        if (view.HasActive)
+            CompanionDetail.Foreground = Token("TextSecondaryBrush");
         UpdateCombatText(view);
 
         DexHeader.Text = $"{DashboardText.DexTitle(lang)}: {DashboardText.DexSpeciesCount(lang, view.DexCount)} · " +
                          $"{DashboardText.WalletLabel(lang)} {TokenFormatter.Grouped(view.AvailableTokens)} · " +
                          DashboardText.DetailHint(lang);
+        RenderDexFilter(view, lang);
         DexList.Items.Clear();
-        foreach (var row in view.DexRows)
-            DexList.Items.Add(CreateDexTile(row, lang, row.SpeciesID == UnownForms.SpeciesID
-                ? view.UnownForms.Count : 0));
+        if (view.DexRows.Count == 0)
+        {
+            DexList.Visibility = Visibility.Collapsed;
+            DexRarityFilter.Visibility = Visibility.Collapsed;
+            DexEmpty.Visibility = Visibility.Visible;
+            DexEmptyTitle.Text = DashboardText.DexEmptyTitle(lang);
+            DexEmptyHint.Text = DashboardText.DexEmptyHint(lang);
+            if (_dexEmptySprite is null)
+                _dexEmptySprite = new SpriteSlot(DexEmptySprite, DexEmptyPlaceholder);
+            _dexEmptySprite.Update(_sprites, 25, true, false, null, "❔");
+        }
+        else
+        {
+            DexList.Visibility = Visibility.Visible;
+            DexEmpty.Visibility = Visibility.Collapsed;
+            var visibleRows = _dexRarityFilter is { } filter
+                ? view.DexRows.Where(row => row.Rarity == filter).ToList()
+                : view.DexRows;
+            var showFilter = DexRarityFilter.Children.Count > 0;
+            DexRarityFilter.Visibility = showFilter ? Visibility.Visible : Visibility.Collapsed;
+            foreach (var row in visibleRows)
+                DexList.Items.Add(CreateDexTile(row, lang, row.SpeciesID == UnownForms.SpeciesID
+                    ? view.UnownForms.Count : 0));
+        }
         EventsList.Items.Clear();
         foreach (var item in view.RecentEvents)
             EventsList.Items.Add($"{item.At.ToLocalTime():MM-dd HH:mm}  {item.Text}");
@@ -283,15 +346,302 @@ public partial class DashboardWindow : Window
             : $"{DashboardText.LifetimeLabel(lang)} {TokenFormatter.Grouped(view.LifetimeTokens)} {DashboardText.TokensUnit(lang)}";
     }
 
+    private string RaisingNature(CompanionGameView view)
+    {
+        if (!view.HasActive || _engine.Detail(view.ActiveSpeciesID) is not { } detail) return "";
+        var raising = detail.Individuals.FirstOrDefault(individual => individual.IsRaising);
+        return raising is not null && raising.Nature.Length > 0 ? raising.Nature : "";
+    }
+
+    private void RenderDexFilter(CompanionGameView view, AppLanguage lang)
+    {
+        DexRarityFilter.Children.Clear();
+        if (view.DexRows.Count == 0) return;
+        foreach (var rarity in new[] { Rarity.Legendary, Rarity.Rare, Rarity.Uncommon, Rarity.Common })
+        {
+            var count = view.DexRows.Count(row => row.Rarity == rarity);
+            if (count == 0) continue;
+            var selected = _dexRarityFilter == rarity;
+            var brush = RarityBrush(rarity);
+            var capsule = new Border
+            {
+                CornerRadius = new CornerRadius(9),
+                Padding = new Thickness(7, 2, 7, 2),
+                Margin = new Thickness(0, 0, 5, 0),
+                Background = selected ? brush : HexBrush("#14" + ColorOf(rarity)),
+                BorderBrush = brush,
+                BorderThickness = new Thickness(selected ? 1.5 : 0.5),
+                Opacity = 1,
+                Cursor = System.Windows.Input.Cursors.Hand,
+                ToolTip = DashboardText.DexFilterHint(lang),
+            };
+            var row = new StackPanel { Orientation = Orientation.Horizontal };
+            row.Children.Add(new System.Windows.Shapes.Ellipse
+            {
+                Width = 6, Height = 6, Fill = brush,
+                VerticalAlignment = VerticalAlignment.Center,
+            });
+            row.Children.Add(new TextBlock
+            {
+                Text = DashboardText.RarityLabel(lang, rarity),
+                FontSize = 9, FontWeight = selected ? FontWeights.SemiBold : FontWeights.Normal,
+                Foreground = Token("TextPrimaryBrush"), Margin = new Thickness(4, 0, 3, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+            });
+            row.Children.Add(new TextBlock
+            {
+                Text = count.ToString(), FontSize = 9, FontWeight = FontWeights.Bold,
+                Foreground = Token("TextSecondaryBrush"), VerticalAlignment = VerticalAlignment.Center,
+            });
+            capsule.Child = row;
+            var picked = rarity;
+            capsule.MouseLeftButtonUp += (_, _) =>
+            {
+                _dexRarityFilter = _dexRarityFilter == picked ? null : picked;
+                UpdateGame(_engine.View());
+            };
+            DexRarityFilter.Children.Add(capsule);
+        }
+    }
+
+    private static string ColorOf(Rarity rarity) => rarity switch
+    {
+        Rarity.Legendary => "F7630C",
+        Rarity.Rare => "0078D4",
+        Rarity.Uncommon => "107C10",
+        _ => "8A8A8A",
+    };
+
+    private static SolidColorBrush HexBrush(string hex) =>
+        new((Color)ColorConverter.ConvertFromString(hex));
+
     private void UpdateShop(CompanionGameView view)
     {
         _lastView = view;
-        var lang = view.Language;
-        BagText.Text = view.Bag.Count == 0
-            ? DashboardText.BagEmpty(lang)
-            : string.Join(" · ", view.Bag.Select(item =>
-                $"{item.Label} ×{item.Count}"));
+        RenderBagCards(view);
         RenderShopCards(view);
+    }
+
+    private void RenderBagCards(CompanionGameView view)
+    {
+        var lang = view.Language;
+        BagCards.Children.Clear();
+        if (view.Bag.Count == 0)
+        {
+            var empty = new StackPanel { Orientation = Orientation.Horizontal };
+            var host = new Grid { Width = 48, Height = 48, VerticalAlignment = VerticalAlignment.Center };
+            var image = new Image { Width = 48, Height = 48, Stretch = Stretch.Uniform };
+            var placeholder = new TextBlock
+            {
+                Text = "❔", FontSize = 22, HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            host.Children.Add(image);
+            host.Children.Add(placeholder);
+            new SpriteSlot(image, placeholder).Update(_sprites, 143, true, false, null, "❔");
+            empty.Children.Add(host);
+            empty.Children.Add(new TextBlock
+            {
+                Text = DashboardText.BagEmptyTitle(lang), FontSize = 12, FontWeight = FontWeights.SemiBold,
+                Foreground = Token("TextSecondaryBrush"), Margin = new Thickness(10, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+            });
+            BagCards.Children.Add(empty);
+            return;
+        }
+        foreach (var item in view.Bag)
+            BagCards.Children.Add(CreateBagCard(item, view, lang));
+    }
+
+    private Border CreateBagCard(CompanionBagItem item, CompanionGameView view, AppLanguage lang)
+    {
+        var card = new StackPanel();
+
+        var header = new StackPanel { Orientation = Orientation.Horizontal };
+        header.Children.Add(new TextBlock
+        {
+            Text = item.Kind.FallbackEmoji(), FontSize = 15, VerticalAlignment = VerticalAlignment.Center,
+        });
+        header.Children.Add(new TextBlock
+        {
+            Text = item.Label, FontSize = 13, FontWeight = FontWeights.SemiBold,
+            Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center,
+        });
+        if (!item.Kind.IsPassive())
+            header.Children.Add(new TextBlock
+            {
+                Text = "×" + item.Count, FontSize = 11, FontWeight = FontWeights.Bold,
+                Foreground = Token("TextSecondaryBrush"), Margin = new Thickness(6, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+            });
+
+        if (item.Kind == ItemKind.RareCandy && item.CanUse)
+        {
+            var max = Math.Max(1, _engine.MaxRareCandyUseCount());
+            _candyCount = Math.Clamp(_candyCount, 1, max);
+            header.Children.Add(new Border
+            {
+                Width = 1, Background = Token("DividerBrush"), Margin = new Thickness(10, 0, 10, 0),
+                VerticalAlignment = VerticalAlignment.Stretch,
+            });
+            var minus = new Button { Content = "–", MinWidth = 26, MinHeight = 26, Padding = new Thickness(0) };
+            minus.Click += (_, _) => { _candyCount = Math.Max(1, _candyCount - 1); UpdateGame(_engine.View()); };
+            header.Children.Add(minus);
+            header.Children.Add(new TextBlock
+            {
+                Text = "×" + _candyCount, FontSize = 12, FontWeight = FontWeights.SemiBold,
+                Margin = new Thickness(8, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center,
+                MinWidth = 30, TextAlignment = TextAlignment.Center,
+            });
+            var plus = new Button { Content = "+", MinWidth = 26, MinHeight = 26, Padding = new Thickness(0) };
+            plus.Click += (_, _) => { _candyCount = Math.Min(max, _candyCount + 1); UpdateGame(_engine.View()); };
+            header.Children.Add(plus);
+        }
+        card.Children.Add(header);
+
+        if (item.Kind == ItemKind.RareCandy && item.CanUse &&
+            _engine.PlanRareCandyUse(_candyCount) is { } plan)
+        {
+            if (plan.Graduates)
+                card.Children.Add(PreviewLine(DashboardText.CandyGraduatesHint(lang), secondary: true));
+            if (plan.DiscardedXP > 0)
+                card.Children.Add(PreviewLine(
+                    DashboardText.CandyDiscardedXP(lang, TokenFormatter.Compact(plan.DiscardedXP)),
+                    secondary: false));
+            else if (plan.Evolves && !plan.Graduates)
+                card.Children.Add(PreviewLine(
+                    DashboardText.CandyCarryoverXP(lang, TokenFormatter.Compact(plan.CarryoverXP)),
+                    secondary: true));
+        }
+
+        var controls = new DockPanel { Margin = new Thickness(0, 7, 0, 0) };
+        if (item.Kind.IsPassive())
+        {
+            controls.Children.Add(new TextBlock
+            {
+                Text = "✓ " + DashboardText.ShinyCharmEffectHint(lang), FontSize = 11,
+                FontWeight = FontWeights.SemiBold, Foreground = Token("RarityUncommonBrush"),
+                VerticalAlignment = VerticalAlignment.Center,
+            });
+        }
+        else if (item.Kind == ItemKind.Mint && item.CanUse)
+        {
+            controls.Children.Add(new TextBlock
+            {
+                Text = DashboardText.MintEffectHint(lang), FontSize = 11,
+                Foreground = Token("TextTertiaryBrush"), VerticalAlignment = VerticalAlignment.Center,
+            });
+            AddBagUseButton(controls, item, view, lang, DashboardText.UseItemLabel(lang));
+        }
+        else if (item.Kind == ItemKind.RareCandy && item.CanUse)
+        {
+            var hint = "+(" + TokenFormatter.Compact((long) _candyCount * RareCandies.Xp) + " XP)";
+            controls.Children.Add(new TextBlock
+            {
+                Text = hint, FontSize = 11, Foreground = Token("TextTertiaryBrush"),
+                VerticalAlignment = VerticalAlignment.Center,
+            });
+            AddBagUseButton(controls, item, view, lang,
+                DashboardText.UseLabel(lang) + " ×" + _candyCount);
+        }
+        else
+        {
+            controls.Children.Add(new TextBlock
+            {
+                Text = view.IsEgg
+                    ? DashboardText.UseAfterHatch(lang)
+                    : DashboardText.UseNeedsPokemon(lang),
+                FontSize = 11, Foreground = Token("TextTertiaryBrush"),
+                VerticalAlignment = VerticalAlignment.Center,
+            });
+        }
+        card.Children.Add(controls);
+
+        return new Border
+        {
+            Background = HexBrush("#F8F8F8"),
+            CornerRadius = new CornerRadius(6),
+            Padding = new Thickness(10),
+            Margin = new Thickness(0, 0, 0, 8),
+            Child = card,
+        };
+    }
+
+    private TextBlock PreviewLine(string text, bool secondary) => new()
+    {
+        Text = text, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0),
+        Foreground = secondary ? Token("TextSecondaryBrush") : Token("RarityLegendaryBrush"),
+    };
+
+    private void AddBagUseButton(DockPanel controls, CompanionBagItem item, CompanionGameView view,
+        AppLanguage lang, string buttonLabel)
+    {
+        if (_confirmingBagItem == item.Kind)
+        {
+            var row = new StackPanel { Orientation = Orientation.Horizontal };
+            var use = new Button
+            {
+                Content = buttonLabel, MinHeight = 26,
+                Style = (Style) FindResource("AccentButton"),
+            };
+            use.Click += (_, _) =>
+            {
+                _confirmingBagItem = null;
+                UseItem(item.Kind);
+            };
+            var cancel = new Button
+            {
+                Content = DashboardText.CancelLabel(lang), MinWidth = 60, MinHeight = 26,
+                Margin = new Thickness(6, 0, 0, 0),
+            };
+            cancel.Click += (_, _) =>
+            {
+                _confirmingBagItem = null;
+                UpdateGame(_engine.View());
+            };
+            row.Children.Add(use);
+            row.Children.Add(cancel);
+            DockPanel.SetDock(row, Dock.Right);
+            controls.Children.Add(row);
+            controls.Children.Add(new TextBlock
+            {
+                Text = DashboardText.UseOnCurrent(lang, view.ActiveName), FontSize = 11,
+                Foreground = Token("TextSecondaryBrush"), VerticalAlignment = VerticalAlignment.Center,
+                TextWrapping = TextWrapping.Wrap,
+            });
+            return;
+        }
+        var button = new Button { Content = buttonLabel, MinWidth = 70, MinHeight = 26 };
+        button.Click += (_, _) =>
+        {
+            _confirmingBagItem = item.Kind;
+            UpdateGame(_engine.View());
+        };
+        DockPanel.SetDock(button, Dock.Right);
+        controls.Children.Add(button);
+    }
+
+    private void UseItem(ItemKind kind)
+    {
+        if (kind == ItemKind.Mint)
+        {
+            var nature = _engine.UseMint();
+            _feedback = nature is { } picked
+                ? language => DashboardText.MintUsed(language, picked.ToString())
+                : DashboardText.NoMint;
+        }
+        else
+        {
+            var result = _engine.UseRareCandy(_candyCount);
+            _feedback = result switch
+            {
+                CandyUseResult.Graduated => DashboardText.CandyGraduated,
+                CandyUseResult.Evolved => DashboardText.CandyEvolved,
+                CandyUseResult.Progressed => DashboardText.CandyProgressed,
+                _ => DashboardText.NoCandy,
+            };
+        }
+        UpdateGame(_engine.View());
     }
 
     private void RenderShopCards(CompanionGameView view)
@@ -594,43 +944,6 @@ public partial class DashboardWindow : Window
         Margin = new Thickness(0, 0, 0, 10),
         Child = content,
     };
-
-    private void OnUseCandyClick(object sender, RoutedEventArgs e)
-    {
-        var result = _engine.UseRareCandy(1);
-        _feedback = result switch
-        {
-            CandyUseResult.Graduated => DashboardText.CandyGraduated,
-            CandyUseResult.Evolved => DashboardText.CandyEvolved,
-            CandyUseResult.Progressed => DashboardText.CandyProgressed,
-            _ => DashboardText.NoCandy,
-        };
-        UpdateGame(_engine.View());
-    }
-
-    private void OnUseAllCandyClick(object sender, RoutedEventArgs e)
-    {
-        var count = _engine.MaxRareCandyUseCount();
-        if (count <= 0)
-        {
-            _feedback = DashboardText.NoCandy;
-        }
-        else
-        {
-            _engine.UseRareCandy(count);
-            _feedback = language => DashboardText.UsedCandies(language, count);
-        }
-        UpdateGame(_engine.View());
-    }
-
-    private void OnUseMintClick(object sender, RoutedEventArgs e)
-    {
-        var nature = _engine.UseMint();
-        _feedback = nature is { } picked
-            ? language => DashboardText.MintUsed(language, picked.ToString())
-            : DashboardText.NoMint;
-        UpdateGame(_engine.View());
-    }
 
     private void RenderEvolutionLine(CompanionGameView view)
     {

@@ -251,13 +251,13 @@ public static class DashboardText
 
     public static string RarityLabel(AppLanguage lang, Rarity rarity) => rarity switch
     {
-        Rarity.Common => T(lang, "일반", "common", "ノーマル", "común", "commun", "comum",
-            "gewöhnlich"),
-        Rarity.Uncommon => T(lang, "고급", "uncommon", "アンコモン", "poco común", "peu commun",
-            "incomum", "ungewöhnlich"),
-        Rarity.Rare => T(lang, "희귀", "rare", "レア", "raro", "rare", "raro", "selten"),
-        Rarity.Legendary => T(lang, "전설", "legendary", "伝説", "legendario", "légendaire",
-            "lendário", "legendär"),
+        Rarity.Common => T(lang, "일반", "Common", "ノーマル", "Común", "Commun", "Comum",
+            "Gewöhnlich"),
+        Rarity.Uncommon => T(lang, "고급", "Uncommon", "アンコモン", "Poco común", "Peu commun",
+            "Incomum", "Ungewöhnlich"),
+        Rarity.Rare => T(lang, "희귀", "Rare", "レア", "Raro", "Rare", "Raro", "Selten"),
+        Rarity.Legendary => T(lang, "전설", "Legendary", "伝説", "Legendario", "Légendaire",
+            "Lendário", "Legendär"),
         _ => ""
     };
 
@@ -401,6 +401,119 @@ public static class DashboardText
         T(lang, "이로치 놓아주기", "Send shiny off", "手放す", "Soltar variocolor",
             "Laisser partir le chromatique", "Soltar o shiny",
             "Schillerndes Pokémon verabschieden");
+
+    public static string EggIncubating(AppLanguage lang) =>
+        T(lang, "🥚 부화 준비 중", "🥚 Incubating", "🥚 孵化の準備中", "🥚 Incubando",
+            "🥚 En incubation", "🥚 Incubando", "🥚 Wird ausgebrütet");
+
+    public static string EggImminent(AppLanguage lang) =>
+        T(lang, "곧 부화해요!", "About to hatch!", "もうすぐ孵化！", "¡Está a punto de eclosionar!",
+            "Sur le point d'éclore !", "Está quase chocando!", "Schlüpft gleich!");
+
+    public static string EggToHatch(AppLanguage lang, string amount) =>
+        T(lang, $"부화까지 {amount}", $"{amount} to hatch", $"孵化まで {amount}",
+            $"{amount} para eclosionar", $"{amount} avant l'éclosion", $"{amount} para chocar",
+            $"{amount} bis zum Schlüpfen");
+
+    public static string ToNextEvolution(AppLanguage lang, string amount) =>
+        T(lang, $"다음 진화까지 {amount}", $"{amount} to next evolution", $"次の進化まで {amount}",
+            $"{amount} para la siguiente evolución", $"{amount} avant la prochaine évolution",
+            $"{amount} para a próxima evolução", $"{amount} bis zur nächsten Entwicklung");
+
+    public static string ToGraduation(AppLanguage lang, string amount) =>
+        T(lang, $"졸업까지 {amount}", $"{amount} to graduation", $"卒業まで {amount}",
+            $"{amount} para graduarse", $"{amount} avant le diplôme", $"{amount} para se formar",
+            $"{amount} bis zum Abschied");
+
+    public static string GrowthBoost(AppLanguage lang, int multiplier) =>
+        T(lang, $"{multiplier}× 성장", $"{multiplier}× growth", $"成長 {multiplier}倍",
+            $"Crecimiento ×{multiplier}", $"Croissance ×{multiplier}", $"Crescimento ×{multiplier}",
+            $"{multiplier}× Wachstum");
+
+    public static string EggGuaranteeHint(AppLanguage lang, Rarity tier)
+    {
+        var rarity = RarityLabel(lang, tier);
+        return T(lang, $"{rarity} 이상 확정", $"{rarity} or better", $"{rarity} 以上確定",
+            $"{rarity} o superior garantizado", $"{rarity} ou mieux garanti",
+            $"{rarity} ou melhor garantido", $"Garantiert {rarity} oder besser");
+    }
+
+    public static string DexFilterHint(AppLanguage lang) =>
+        T(lang, "탭하면 이 희귀도만 보기 · 다시 탭하면 전체",
+            "Tap to show only this rarity · tap again to clear",
+            "タップでこの希少度のみ表示・再タップで全体",
+            "Toca para ver solo esta rareza · toca de nuevo para ver todo",
+            "Touche pour n'afficher que cette rareté · touche à nouveau pour tout afficher",
+            "Toque para ver só esta raridade · toque de novo para ver tudo",
+            "Tippe, um nur diese Seltenheit zu sehen · tippe erneut für alle");
+
+    public static string DexEmptyTitle(AppLanguage lang) =>
+        T(lang, "아직 포켓몬을 잡지 못했어요!", "No Pokémon caught yet!",
+            "まだポケモンを捕まえていません！", "¡Todavía no has capturado ningún Pokémon!",
+            "Aucun Pokémon capturé pour l'instant !", "Você ainda não capturou nenhum Pokémon!",
+            "Du hast noch kein Pokémon gefangen!");
+
+    public static string DexEmptyHint(AppLanguage lang) =>
+        T(lang, "토큰을 쓰면 첫 포켓몬이 부화해서 도감에 들어와요.",
+            "Spend tokens to hatch your first Pokémon.",
+            "トークンを使うと最初のポケモンが孵化して図鑑に加わります。",
+            "Usa tokens para eclosionar tu primer Pokémon.",
+            "Dépense des tokens pour faire éclore ton premier Pokémon.",
+            "Use tokens para chocar seu primeiro Pokémon.",
+            "Verwende Tokens, damit dein erstes Pokémon schlüpft.");
+
+    public static string BagEmptyTitle(AppLanguage lang) =>
+        T(lang, "아직 가방이 비어있어요!", "Your bag is empty!", "バッグはまだ空っぽです！",
+            "¡Tu bolsa todavía está vacía!", "Ton sac est encore vide !",
+            "Sua bolsa ainda está vazia!", "Dein Beutel ist noch leer!");
+
+    public static string UseItemLabel(AppLanguage lang) =>
+        T(lang, "사용하기", "Use", "つかう", "Usar", "Utiliser", "Usar", "Verwenden");
+
+    public static string UseLabel(AppLanguage lang) =>
+        T(lang, "사용", "Use", "つかう", "Usar", "Utiliser", "Usar", "Verwenden");
+
+    public static string UseOnCurrent(AppLanguage lang, string name) =>
+        T(lang, $"{name}에게 사용할까요?", $"Use on {name}?", $"{name} に使いますか？",
+            $"¿Usar en {name}?", $"Utiliser sur {name} ?", $"Usar em {name}?",
+            $"Bei {name} verwenden?");
+
+    public static string UseAfterHatch(AppLanguage lang) =>
+        T(lang, "부화 후 사용할 수 있어요", "Usable after hatching", "孵化後に使えます",
+            "Se puede usar después de eclosionar", "Utilisable après l'éclosion",
+            "Dá para usar depois que chocar", "Nach dem Schlüpfen verwendbar");
+
+    public static string UseNeedsPokemon(AppLanguage lang) =>
+        T(lang, "사용할 포켓몬이 없어요", "No Pokémon to use it on", "使えるポケモンがいません",
+            "No hay ningún Pokémon en quien usarlo", "Aucun Pokémon sur qui l'utiliser",
+            "Nenhum Pokémon para usar o item", "Kein Pokémon, bei dem du es verwenden kannst");
+
+    public static string CandyGraduatesHint(AppLanguage lang) =>
+        T(lang, "이 포켓몬은 졸업할 것으로 예상돼요.", "Expected to graduate.", "卒業する見込みです。",
+            "Se espera que se gradúe.", "Devrait terminer sa croissance.", "Deve se formar.",
+            "Schließt voraussichtlich sein Training ab.");
+
+    public static string CandyCarryoverXP(AppLanguage lang, string xp) =>
+        T(lang, $"예상 진화 후 이월 경험치: {xp} XP.", $"Expected after evolution: {xp} XP carried over.",
+            $"進化後の予想繰越経験値：{xp} XP。", $"Tras evolucionar: {xp} XP de remanente previsto.",
+            $"Après évolution : {xp} XP de report prévu.", $"Após evoluir: previsão de {xp} XP restantes.",
+            $"Nach der Entwicklung: voraussichtlich {xp} EP übertragen.");
+
+    public static string CandyDiscardedXP(AppLanguage lang, string xp) =>
+        T(lang, $"졸업 시 남는 {xp} XP는 사라져요.", $"On graduation, {xp} leftover XP will be discarded.",
+            $"卒業時、余った{xp} XPは失われます。", $"Al graduarse, se perderán {xp} XP sobrantes.",
+            $"À la fin de la croissance, les {xp} XP restants seront perdus.",
+            $"Ao se formar, {xp} XP restantes serão descartadas.",
+            $"Beim Trainingsabschluss verfallen {xp} überschüssige EP.");
+
+    public static string MintEffectHint(AppLanguage lang) =>
+        T(lang, "성격 랜덤 변경", "Random nature", "せいかくランダム変更", "Naturaleza aleatoria",
+            "Nature aléatoire", "Natureza aleatória", "Zufälliges Wesen");
+
+    public static string ShinyCharmEffectHint(AppLanguage lang) =>
+        T(lang, "이로치 확률 ↑ · 적용 중", "Shiny rate ↑ · active", "色違い率↑ · 適用中",
+            "Prob. variocolor ↑ · activo", "Taux chromatique ↑ · actif", "Chance shiny ↑ · ativo",
+            "Schillerchance ↑ · aktiv");
 
     // Feedback strings
 

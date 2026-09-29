@@ -116,6 +116,7 @@ public sealed record CompanionGameView(
     IReadOnlyList<CompanionBagItem> Bag,
     int ActiveSpeciesID,
     UnownForm? ActiveUnownForm,
+    Rarity? EggGuarantee,
     IReadOnlyList<CompanionUnownFormStatus> UnownForms,
     AppLanguage Language);
 
@@ -1211,6 +1212,7 @@ public sealed class CompanionEngine
             BuildBag(),
             active?.CurrentID ?? 0,
             active?.UnownForm,
+            !hasActive ? _state.EggTier : null,
             BuildUnownForms(),
             _state.Language);
     }
