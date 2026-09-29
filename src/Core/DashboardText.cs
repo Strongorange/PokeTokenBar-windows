@@ -128,6 +128,14 @@ public static class DashboardText
     public static string ShopTitle(AppLanguage lang) =>
         T(lang, "상점", "Shop", "ショップ", "Tienda", "Boutique", "Loja", "Laden");
 
+    public static string CompanionEventsLabel(AppLanguage lang) =>
+        T(lang, "컴패니언 이벤트 (부화·진화·졸업)", "Companion events (hatch / evolve / graduate)",
+            "コンパニオンイベント（孵化・進化・卒業）",
+            "Eventos del compañero (eclosión / evolución / graduación)",
+            "Événements du compagnon (éclosion / évolution / diplôme)",
+            "Eventos do companheiro (nascimento / evolução / formatura)",
+            "Begleiter-Ereignisse (Schlüpfen / Entwicklung / Abschied)");
+
     public static string BuySelected(AppLanguage lang) =>
         T(lang, "선택 구매", "Buy selected", "選択項目を購入", "Comprar selección",
             "Acheter la sélection", "Comprar seleção", "Auswahl kaufen");
@@ -276,6 +284,123 @@ public static class DashboardText
         _ => T(lang, "포켓몬 알", "Pokémon Egg", "ポケモンのタマゴ", "Huevo Pokémon",
             "Œuf Pokémon", "Ovo Pokémon", "Pokémon-Ei")
     };
+
+    public static string BagTitle(AppLanguage lang) =>
+        T(lang, "가방", "Bag", "バッグ", "Bolsa", "Sac", "Bolsa", "Beutel");
+
+    public static string SpendableTokens(AppLanguage lang) =>
+        T(lang, "쓸 수 있는 토큰", "Spendable tokens", "使えるトークン", "Tokens disponibles",
+            "Tokens disponibles", "Tokens disponíveis", "Verfügbare Tokens");
+
+    public static string ShopHint(AppLanguage lang) =>
+        T(lang, "사용한 토큰으로 아이템을 살 수 있어요.", "Spend the tokens you've used on items.",
+            "使ったトークンでアイテムを購入できます。", "Usa los tokens que has consumido para comprar objetos.",
+            "Dépense les tokens que tu as consommés pour acheter des objets.",
+            "Compre itens com os tokens que você já usou.",
+            "Mit deinen verbrauchten Tokens kannst du Gegenstände kaufen.");
+
+    public static string BuyLabel(AppLanguage lang) =>
+        T(lang, "구매", "Buy", "購入", "Comprar", "Acheter", "Comprar", "Kaufen");
+
+    public static string BuyConfirm(AppLanguage lang, string name) =>
+        T(lang, $"{name} 구매할까요?", $"Buy {name}?", $"{name} を購入しますか？",
+            $"¿Comprar {name}?", $"Acheter {name} ?", $"Comprar {name}?", $"{name} kaufen?");
+
+    public static string CancelLabel(AppLanguage lang) =>
+        T(lang, "취소", "Cancel", "キャンセル", "Cancelar", "Annuler", "Cancelar", "Abbrechen");
+
+    public static string NotEnoughTokens(AppLanguage lang) =>
+        T(lang, "토큰이 부족해요", "Not enough tokens", "トークンが足りません",
+            "No tienes suficientes tokens", "Pas assez de tokens", "Tokens insuficientes",
+            "Nicht genug Tokens");
+
+    public static string OwnedCount(AppLanguage lang, int count) =>
+        T(lang, $"보유 ×{count}", $"Owned ×{count}", $"所持 ×{count}", $"En posesión ×{count}",
+            $"Possédés ×{count}", $"Você tem ×{count}", $"Im Beutel ×{count}");
+
+    public static string ShopPriceLabel(AppLanguage lang) =>
+        T(lang, "가격", "Price", "価格", "Precio", "Prix", "Preço", "Preis");
+
+    public static string OwnedAlready(AppLanguage lang) =>
+        T(lang, "보유 중", "Owned", "所持済み", "En posesión", "Possédé", "Já tem", "Im Beutel");
+
+    public static string ItemDescription(AppLanguage lang, ItemKind kind)
+    {
+        var xp = TokenFormatter.Compact(RareCandies.Xp);
+        return kind switch
+        {
+            ItemKind.RareCandy => T(lang, $"현재 포켓몬의 경험치를 {xp} 올려줘요.",
+                $"Raises your Pokémon's EXP by {xp}.", $"ポケモンの経験値を{xp}上げます。",
+                $"Aumenta la experiencia de tu Pokémon en {xp}.",
+                $"Augmente l'EXP de ton Pokémon de {xp}.",
+                $"Aumenta a experiência do seu Pokémon em {xp}.",
+                $"Gibt deinem aktuellen Pokémon {xp} EP."),
+            ItemKind.Mint => T(lang, "현재 포켓몬의 성격을 랜덤으로 바꿔줘요.",
+                "Randomly changes your Pokémon's nature.", "ポケモンのせいかくをランダムに変えます。",
+                "Cambia aleatoriamente la naturaleza de tu Pokémon.",
+                "Change aléatoirement la nature de ton Pokémon.",
+                "Muda a natureza do seu Pokémon aleatoriamente.",
+                "Ändert das Wesen deines aktuellen Pokémon zufällig."),
+            ItemKind.ShinyCharm => T(lang, "보유하면 이로치 포켓몬이 태어날 확률이 올라가요.",
+                "While owned, raises the chance of hatching a shiny.",
+                "持っていると色違いが生まれる確率が上がります。",
+                "Mientras lo tengas, aumenta la probabilidad de que nazca un Pokémon variocolor.",
+                "Tant que tu le possèdes, augmente les chances qu'un Pokémon chromatique éclose.",
+                "Enquanto estiver na sua bolsa, aumenta a chance de nascer um Pokémon shiny.",
+                "Erhöht im Beutel die Chance, dass ein schillerndes Pokémon schlüpft."),
+            _ => ""
+        };
+    }
+
+    public static string EggDescription(AppLanguage lang, Rarity? tier)
+    {
+        if (tier is null || tier == Rarity.Common)
+            return T(lang, "지금 포켓몬을 놓아주고 새 알로 다시 시작해요.",
+                "Send off your current Pokémon and start fresh with a new egg.",
+                "いまのポケモンを手放して新しいタマゴからやり直します。",
+                "Suelta a tu Pokémon actual y empieza de nuevo con un huevo nuevo.",
+                "Laisse partir ton Pokémon actuel et repars de zéro avec un nouvel œuf.",
+                "Solte seu Pokémon atual e recomece com um ovo novo.",
+                "Verabschiede dein aktuelles Pokémon und starte mit einem neuen Ei.");
+        var rarity = RarityLabel(lang, tier.Value);
+        return T(lang, $"지금 포켓몬을 놓아주고 {rarity} 이상이 확정으로 나오는 알을 받아요.",
+            $"Send off your current Pokémon for an egg guaranteed to hatch {rarity} or better.",
+            $"いまのポケモンを手放して {rarity} 以上が確定で孵るタマゴをもらいます。",
+            $"Suelta a tu Pokémon actual y consigue un huevo garantizado de {rarity} o superior.",
+            $"Laisse partir ton Pokémon actuel pour un œuf garanti {rarity} ou mieux.",
+            $"Solte seu Pokémon atual e ganhe um ovo que garante {rarity} ou melhor.",
+            $"Verabschiede dein aktuelles Pokémon und erhalte ein Ei, aus dem garantiert ein Pokémon der Seltenheitsstufe {rarity} oder höher schlüpft.");
+    }
+
+    public static string EggShopLockedHint(AppLanguage lang) =>
+        T(lang, "지금 품고 있는 알이 부화하면 살 수 있어요.",
+            "Available once your current egg hatches.",
+            "いま抱えているタマゴが孵ると購入できます。",
+            "Disponible cuando eclosione tu huevo actual.",
+            "Disponible une fois ton œuf actuel éclos.",
+            "Disponível quando seu ovo atual chocar.",
+            "Verfügbar, sobald dein aktuelles Ei geschlüpft ist.");
+
+    public static string EggConfirm(AppLanguage lang, string monName, string eggName) =>
+        T(lang, $"{monName}을(를) 놓아주고 {eggName}(으)로 바꿀까요?",
+            $"Send off {monName} for the {eggName}?",
+            $"{monName} を手放して {eggName} にしますか？",
+            $"¿Soltar a {monName} y cambiarlo por {eggName}?",
+            $"Laisser partir {monName} pour le {eggName} ?",
+            $"Soltar {monName} e trocar pelo {eggName}?",
+            $"{monName} verabschieden und gegen {eggName} tauschen?");
+
+    public static string FreshEggShinyWarning(AppLanguage lang) =>
+        T(lang, "⚠️ 이로치 포켓몬이에요! 정말 놓아줄까요?", "⚠️ This one is shiny! Really send it off?",
+            "⚠️ 色違いです！本当に手放しますか？", "⚠️ ¡Este es variocolor! ¿Seguro que quieres soltarlo?",
+            "⚠️ Celui-ci est chromatique ! Vraiment le laisser partir ?",
+            "⚠️ Esse é shiny! Quer mesmo soltar?",
+            "⚠️ Dieses Pokémon ist schillernd! Wirklich verabschieden?");
+
+    public static string FreshEggDiscardShiny(AppLanguage lang) =>
+        T(lang, "이로치 놓아주기", "Send shiny off", "手放す", "Soltar variocolor",
+            "Laisser partir le chromatique", "Soltar o shiny",
+            "Schillerndes Pokémon verabschieden");
 
     // Feedback strings
 

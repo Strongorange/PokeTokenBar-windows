@@ -56,6 +56,62 @@ public class DashboardTextTests
     }
 
     [Fact]
+    public void CompanionEventsLabelFollowsMacOSTranslations()
+    {
+        Assert.Equal("컴패니언 이벤트 (부화·진화·졸업)",
+            DashboardText.CompanionEventsLabel(AppLanguage.Ko));
+        Assert.Equal("Companion events (hatch / evolve / graduate)",
+            DashboardText.CompanionEventsLabel(AppLanguage.En));
+        Assert.Equal("コンパニオンイベント（孵化・進化・卒業）",
+            DashboardText.CompanionEventsLabel(AppLanguage.Ja));
+        Assert.Equal("Eventos del compañero (eclosión / evolución / graduación)",
+            DashboardText.CompanionEventsLabel(AppLanguage.Es));
+        Assert.Equal("Événements du compagnon (éclosion / évolution / diplôme)",
+            DashboardText.CompanionEventsLabel(AppLanguage.Fr));
+        Assert.Equal("Eventos do companheiro (nascimento / evolução / formatura)",
+            DashboardText.CompanionEventsLabel(AppLanguage.Pt));
+        Assert.Equal("Begleiter-Ereignisse (Schlüpfen / Entwicklung / Abschied)",
+            DashboardText.CompanionEventsLabel(AppLanguage.De));
+    }
+
+    [Fact]
+    public void ShopStringsFollowMacOSTranslations()
+    {
+        Assert.Equal("쓸 수 있는 토큰", DashboardText.SpendableTokens(AppLanguage.Ko));
+        Assert.Equal("Spendable tokens", DashboardText.SpendableTokens(AppLanguage.En));
+        Assert.Equal("Verfügbare Tokens", DashboardText.SpendableTokens(AppLanguage.De));
+        Assert.Equal("사용한 토큰으로 아이템을 살 수 있어요.", DashboardText.ShopHint(AppLanguage.Ko));
+        Assert.Equal("구매", DashboardText.BuyLabel(AppLanguage.Ko));
+        Assert.Equal("Buy", DashboardText.BuyLabel(AppLanguage.En));
+        Assert.Equal("이상한 사탕 구매할까요?", DashboardText.BuyConfirm(AppLanguage.Ko, "이상한 사탕"));
+        Assert.Equal("Buy Rare Candy?", DashboardText.BuyConfirm(AppLanguage.En, "Rare Candy"));
+        Assert.Equal("취소", DashboardText.CancelLabel(AppLanguage.Ko));
+        Assert.Equal("Cancel", DashboardText.CancelLabel(AppLanguage.En));
+        Assert.Equal("토큰이 부족해요", DashboardText.NotEnoughTokens(AppLanguage.Ko));
+        Assert.Equal("Not enough tokens", DashboardText.NotEnoughTokens(AppLanguage.En));
+        Assert.Equal("보유 ×2", DashboardText.OwnedCount(AppLanguage.Ko, 2));
+        Assert.Equal("가격", DashboardText.ShopPriceLabel(AppLanguage.Ko));
+        Assert.Equal("Price", DashboardText.ShopPriceLabel(AppLanguage.En));
+        Assert.Equal("보유 중", DashboardText.OwnedAlready(AppLanguage.Ko));
+        Assert.Equal("Owned", DashboardText.OwnedAlready(AppLanguage.En));
+        Assert.Equal("가방", DashboardText.BagTitle(AppLanguage.Ko));
+        Assert.Equal("Bag", DashboardText.BagTitle(AppLanguage.En));
+        Assert.Contains("경험치를 100M", DashboardText.ItemDescription(AppLanguage.Ko, ItemKind.RareCandy));
+        Assert.Contains("EXP by 100M", DashboardText.ItemDescription(AppLanguage.En, ItemKind.RareCandy));
+        Assert.Contains("성격을 랜덤으로", DashboardText.ItemDescription(AppLanguage.Ko, ItemKind.Mint));
+        Assert.Contains("새 알로 다시 시작", DashboardText.EggDescription(AppLanguage.Ko, null));
+        Assert.Contains("희귀 이상이 확정", DashboardText.EggDescription(AppLanguage.Ko, Rarity.Rare));
+        Assert.Equal("지금 품고 있는 알이 부화하면 살 수 있어요.",
+            DashboardText.EggShopLockedHint(AppLanguage.Ko));
+        Assert.Contains("리자몽을(를) 놓아주고", DashboardText.EggConfirm(AppLanguage.Ko, "리자몽", "희귀 알"));
+        Assert.Contains("Send off Charizard", DashboardText.EggConfirm(AppLanguage.En, "Charizard", "Rare Egg"));
+        Assert.Contains("이로치 포켓몬이에요", DashboardText.FreshEggShinyWarning(AppLanguage.Ko));
+        Assert.Contains("shiny!", DashboardText.FreshEggShinyWarning(AppLanguage.En));
+        Assert.Equal("이로치 놓아주기", DashboardText.FreshEggDiscardShiny(AppLanguage.Ko));
+        Assert.Equal("Send shiny off", DashboardText.FreshEggDiscardShiny(AppLanguage.En));
+    }
+
+    [Fact]
     public void RarityAndItemNamesFollowMacOSTranslations()
     {
         Assert.Equal("희귀", DashboardText.RarityLabel(AppLanguage.Ko, Rarity.Rare));

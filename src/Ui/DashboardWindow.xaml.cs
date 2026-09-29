@@ -14,6 +14,7 @@ public partial class DashboardWindow : Window
     private readonly SpriteStore _sprites;
     private readonly SpriteSlot _companionSprite;
     private CompanionGameView? _lastView;
+    private CompanionShopRow? _confirmingShopRow;
     private Func<AppLanguage, string>? _feedback;
 
     public DashboardWindow(CompanionEngine engine, SpriteStore sprites)
@@ -36,11 +37,18 @@ public partial class DashboardWindow : Window
         usageTab.Header = "_" + DashboardText.UsageTab(lang);
         var gameTab = (TabItem) MainTabs.Items[1];
         gameTab.Header = "_" + DashboardText.GameTab(lang);
+        var dexTab = (TabItem) MainTabs.Items[2];
+        dexTab.Header = "_" + DashboardText.DexTitle(lang);
+        var shopTab = (TabItem) MainTabs.Items[3];
+        shopTab.Header = "_" + DashboardText.ShopTitle(lang);
+        EventsHeader.Text = DashboardText.CompanionEventsLabel(lang);
+        ShopHeader.Text = DashboardText.BagTitle(lang);
+        SpendableLabel.Text = DashboardText.SpendableTokens(lang);
+        ShopHintText.Text = DashboardText.ShopHint(lang);
         ProvidersHeader.Text = DashboardText.ProvidersTitle(lang);
         CombinedHeader.Text = DashboardText.CombinedTitle(lang);
         ExportButton.Content = DashboardText.ExportSave(lang);
         ImportButton.Content = DashboardText.ImportSave(lang);
-        BuyButton.Content = DashboardText.BuySelected(lang);
         UseCandyButton.Content = DashboardText.UseItem(lang, DashboardText.ItemName(lang, ItemKind.RareCandy));
         UseMintButton.Content = DashboardText.UseItem(lang, DashboardText.ItemName(lang, ItemKind.Mint));
         UseAllButton.Content = DashboardText.UseAll(lang);
@@ -97,6 +105,9 @@ public partial class DashboardWindow : Window
         UpdateTrend(state);
     }
 
+    private Brush Token(string key) =>
+        TryFindResource(key) as Brush ?? Brushes.Gray;
+
     private void UpdateTrend(UsageDisplayState state)
     {
         var lang = _engine.State.Language;
@@ -140,7 +151,7 @@ public partial class DashboardWindow : Window
                 Height = DailyTrendMetrics.BarHeight(day.TotalTokens, peak),
                 VerticalAlignment = VerticalAlignment.Bottom,
                 CornerRadius = new CornerRadius(1),
-                Background = isToday ? SystemColors.HighlightBrush : Brushes.Gray,
+                Background = isToday ? Token("AccentBrush") : Token("TextTertiaryBrush"),
                 Opacity = isToday ? 1 : day.TotalTokens == 0 ? 0.18 : 0.45,
             };
             Grid.SetColumn(bar, index);
@@ -155,7 +166,7 @@ public partial class DashboardWindow : Window
 
             if (DailyTrendMetrics.IsWeekend(day.Date))
             {
-                var tick = new Border { Background = Brushes.Gray, Opacity = 0.5 };
+                var tick = new Border { Background = Token("TextTertiaryBrush"), Opacity = 0.5 };
                 Grid.SetColumn(tick, index);
                 TrendTicksHost.Children.Add(tick);
             }
@@ -165,7 +176,7 @@ public partial class DashboardWindow : Window
                 Text = DailyTrendMetrics.AxisLabel(day.Date, todayKey)?.ToString() ?? "",
                 FontSize = 9,
                 HorizontalAlignment = HorizontalAlignment.Center,
-                Foreground = isToday ? SystemColors.HighlightBrush : new SolidColorBrush(Color.FromRgb(0x66, 0x66, 0x66)),
+                Foreground = isToday ? Token("AccentBrush") : Token("TextSecondaryBrush"),
             };
             Grid.SetColumn(label, index);
             TrendAxisHost.Children.Add(label);
@@ -182,7 +193,7 @@ public partial class DashboardWindow : Window
                 {
                     Text = TokenFormatter.Compact(pair.Value),
                     FontSize = 10,
-                    Foreground = new SolidColorBrush(Color.FromRgb(0x99, 0x99, 0x99)),
+                    Foreground = Token("TextTertiaryBrush"),
                 };
                 DockPanel.SetDock(tokens, Dock.Right);
                 row.Children.Add(tokens);
@@ -190,7 +201,7 @@ public partial class DashboardWindow : Window
                 {
                     Text = pair.Key.Contains('/') ? pair.Key[(pair.Key.LastIndexOf('/') + 1)..] : pair.Key,
                     FontSize = 10,
-                    Foreground = new SolidColorBrush(Color.FromRgb(0x66, 0x66, 0x66)),
+                    Foreground = Token("TextSecondaryBrush"),
                     TextTrimming = TextTrimming.CharacterEllipsis,
                 });
                 TrendModelsHost.Children.Add(row);
@@ -277,41 +288,312 @@ public partial class DashboardWindow : Window
         _lastView = view;
         var lang = view.Language;
         BagText.Text = view.Bag.Count == 0
-            ? $"{DashboardText.BagLabel(lang)}: {DashboardText.BagEmpty(lang)}"
-            : $"{DashboardText.BagLabel(lang)}: " + string.Join(" · ", view.Bag.Select(item =>
+            ? DashboardText.BagEmpty(lang)
+            : string.Join(" · ", view.Bag.Select(item =>
                 $"{item.Label} ×{item.Count}"));
-        ShopList.Items.Clear();
-        foreach (var row in view.ShopRows)
-        {
-            var suffix = row.CanBuy ? ""
-                : row.Item is { } owned && owned.IsPassive() && BagHas(owned, view)
-                    ? "  " + DashboardText.OwnedSuffix(lang)
-                    : "  " + DashboardText.NeedMoreTokens(lang);
-            ShopList.Items.Add($"{row.Label} — {TokenFormatter.Grouped(row.Price)}{suffix}");
-        }
+        RenderShopCards(view);
     }
 
-    private static bool BagHas(ItemKind kind, CompanionGameView view) =>
-        view.Bag.Any(item => item.Kind == kind);
-
-    private void OnBuyClick(object sender, RoutedEventArgs e)
+    private void RenderShopCards(CompanionGameView view)
     {
-        var lang = _engine.State.Language;
-        if (_lastView is not { } view) return;
-        var index = ShopList.SelectedIndex;
-        if (index < 0 || index >= view.ShopRows.Count)
+        var lang = view.Language;
+        SpendableAmount.Text = TokenFormatter.Compact(view.AvailableTokens);
+        ShopCards.Children.Clear();
+        foreach (var row in view.ShopRows)
+            ShopCards.Children.Add(row.EggTier is { } tier
+                ? CreateEggCard(row, tier, view, lang)
+                : CreateItemCard(row, view, lang));
+    }
+
+    private Border CreateItemCard(CompanionShopRow row, CompanionGameView view, AppLanguage lang)
+    {
+        var kind = row.Item ?? ItemKind.RareCandy;
+        var owned = (int) (view.Bag.FirstOrDefault(item => item.Kind == kind)?.Count ?? 0);
+        var passiveOwned = kind.IsPassive() && owned > 0;
+
+        var card = new StackPanel();
+        card.Children.Add(CreateShopCardHeader(
+            kind.FallbackEmoji(),
+            row.Label,
+            owned > 0 && !kind.IsPassive() ? DashboardText.OwnedCount(lang, owned) : "",
+            DashboardText.ItemDescription(lang, kind),
+            null, lang));
+
+        if (passiveOwned)
         {
-            _feedback = _ => DashboardText.SelectShopRowFirst(lang);
-            UpdateGame(_engine.View());
-            return;
+            var ownedRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 8, 0, 0) };
+            ownedRow.Children.Add(new TextBlock
+            {
+                Text = "✓ ", FontSize = 11, FontWeight = FontWeights.SemiBold,
+                Foreground = Token("RarityUncommonBrush"), VerticalAlignment = VerticalAlignment.Center,
+            });
+            ownedRow.Children.Add(new TextBlock
+            {
+                Text = DashboardText.OwnedAlready(lang), FontSize = 11,
+                FontWeight = FontWeights.SemiBold, Foreground = Token("RarityUncommonBrush"),
+                VerticalAlignment = VerticalAlignment.Center,
+            });
+            card.Children.Add(ownedRow);
         }
-        var row = view.ShopRows[index];
-        var bought = row.Item is { } kind ? _engine.Buy(kind) : _engine.BuyEgg(row.EggTier);
+        else
+        {
+            var controls = new DockPanel { Margin = new Thickness(0, 8, 0, 0) };
+            var price = new TextBlock
+            {
+                Text = $"{DashboardText.ShopPriceLabel(lang)} {TokenFormatter.Compact(row.Price)}",
+                FontSize = 11, Foreground = Token("TextTertiaryBrush"),
+                FontFamily = new FontFamily("Consolas"), VerticalAlignment = VerticalAlignment.Center,
+            };
+            DockPanel.SetDock(price, Dock.Left);
+            controls.Children.Add(price);
+
+            if (row.CanBuy)
+            {
+                var confirm = new DockPanel();
+                var buttons = new StackPanel { Orientation = Orientation.Horizontal };
+                var buy = new Button
+                {
+                    Content = DashboardText.BuyLabel(lang), MinWidth = 70, MinHeight = 26,
+                    Style = (Style) FindResource("AccentButton"),
+                };
+                buy.Click += (_, _) =>
+                {
+                    var bought = _engine.Buy(kind);
+                    _feedback = language => bought
+                        ? DashboardText.BoughtItem(language, row.Label)
+                        : DashboardText.CannotBuyItem(language, row.Label);
+                    UpdateGame(_engine.View());
+                };
+                var cancel = new Button
+                {
+                    Content = DashboardText.CancelLabel(lang), MinWidth = 70, MinHeight = 26,
+                    Margin = new Thickness(6, 0, 0, 0),
+                };
+                cancel.Click += (_, _) =>
+                {
+                    _confirmingShopRow = null;
+                    UpdateGame(_engine.View());
+                };
+                buttons.Children.Add(buy);
+                buttons.Children.Add(cancel);
+                DockPanel.SetDock(buttons, Dock.Right);
+                confirm.Children.Add(buttons);
+                confirm.Children.Add(new TextBlock
+                {
+                    Text = DashboardText.BuyConfirm(lang, row.Label),
+                    FontSize = 11, Foreground = Token("TextSecondaryBrush"),
+                    VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap,
+                });
+                controls.Children.Add(confirm);
+            }
+            else
+            {
+                var locked = new TextBlock
+                {
+                    Text = DashboardText.NotEnoughTokens(lang), FontSize = 11,
+                    Foreground = Token("TextTertiaryBrush"),
+                };
+                DockPanel.SetDock(locked, Dock.Right);
+                controls.Children.Add(locked);
+            }
+            card.Children.Add(controls);
+        }
+
+        return WrapShopCard(card);
+    }
+
+    private Border CreateEggCard(CompanionShopRow row, Rarity tier, CompanionGameView view,
+        AppLanguage lang)
+    {
+        var card = new StackPanel();
+        card.Children.Add(CreateShopCardHeader(
+            "🥚", row.Label, "", DashboardText.EggDescription(lang, tier), tier, lang));
+
+        if (!view.HasActive)
+        {
+            var lockedRow = new DockPanel { Margin = new Thickness(0, 8, 0, 0) };
+            var buyDisabled = new Button
+            {
+                Content = DashboardText.BuyLabel(lang), MinWidth = 70, MinHeight = 26,
+                IsEnabled = false,
+            };
+            DockPanel.SetDock(buyDisabled, Dock.Right);
+            lockedRow.Children.Add(buyDisabled);
+            lockedRow.Children.Add(new TextBlock
+            {
+                Text = DashboardText.EggShopLockedHint(lang), FontSize = 11,
+                Foreground = Token("TextTertiaryBrush"), VerticalAlignment = VerticalAlignment.Center,
+                TextWrapping = TextWrapping.Wrap,
+            });
+            card.Children.Add(lockedRow);
+        }
+        else
+        {
+            var controls = new DockPanel { Margin = new Thickness(0, 8, 0, 0) };
+            var price = new TextBlock
+            {
+                Text = $"{DashboardText.ShopPriceLabel(lang)} {TokenFormatter.Compact(row.Price)}",
+                FontSize = 11, Foreground = Token("TextTertiaryBrush"),
+                FontFamily = new FontFamily("Consolas"), VerticalAlignment = VerticalAlignment.Center,
+            };
+            DockPanel.SetDock(price, Dock.Left);
+            controls.Children.Add(price);
+
+            if (row.CanBuy)
+            {
+                var stage = _confirmingShopRow == row;
+                var shinyStage = stage && view.IsShiny;
+                if (stage)
+                {
+                    var confirm = new DockPanel();
+                    var buttons = new StackPanel { Orientation = Orientation.Horizontal };
+                    var buy = new Button
+                    {
+                        Content = shinyStage
+                            ? DashboardText.FreshEggDiscardShiny(lang)
+                            : DashboardText.BuyLabel(lang),
+                        MinHeight = 26,
+                        Style = (Style) FindResource("AccentButton"),
+                    };
+                    buy.Click += (_, _) => CommitEggPurchase(row);
+                    var cancel = new Button
+                    {
+                        Content = DashboardText.CancelLabel(lang), MinWidth = 70, MinHeight = 26,
+                        Margin = new Thickness(6, 0, 0, 0),
+                    };
+                    cancel.Click += (_, _) =>
+                    {
+                        _confirmingShopRow = null;
+                        UpdateGame(_engine.View());
+                    };
+                    buttons.Children.Add(buy);
+                    buttons.Children.Add(cancel);
+                    DockPanel.SetDock(buttons, Dock.Right);
+                    confirm.Children.Add(buttons);
+                    confirm.Children.Add(new TextBlock
+                    {
+                        Text = shinyStage
+                            ? DashboardText.FreshEggShinyWarning(lang)
+                            : DashboardText.EggConfirm(lang, view.ActiveName, row.Label),
+                        FontSize = 11,
+                        FontWeight = shinyStage ? FontWeights.SemiBold : FontWeights.Normal,
+                        Foreground = shinyStage ? Token("WarningBrush") : Token("TextSecondaryBrush"),
+                        VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap,
+                    });
+                    controls.Children.Add(confirm);
+                }
+                else
+                {
+                    var buy = new Button
+                    {
+                        Content = DashboardText.BuyLabel(lang), MinWidth = 70, MinHeight = 26,
+                    };
+                    buy.Click += (_, _) =>
+                    {
+                        _confirmingShopRow = row;
+                        UpdateGame(_engine.View());
+                    };
+                    DockPanel.SetDock(buy, Dock.Right);
+                    controls.Children.Add(buy);
+                }
+            }
+            else
+            {
+                var locked = new TextBlock
+                {
+                    Text = DashboardText.NotEnoughTokens(lang), FontSize = 11,
+                    Foreground = Token("TextTertiaryBrush"),
+                };
+                DockPanel.SetDock(locked, Dock.Right);
+                controls.Children.Add(locked);
+            }
+            card.Children.Add(controls);
+        }
+
+        return WrapShopCard(card);
+    }
+
+    private void CommitEggPurchase(CompanionShopRow row)
+    {
+        _confirmingShopRow = null;
+        var bought = _engine.BuyEgg(row.EggTier!.Value);
         _feedback = language => bought
             ? DashboardText.BoughtItem(language, row.Label)
             : DashboardText.CannotBuyItem(language, row.Label);
         UpdateGame(_engine.View());
     }
+
+    private FrameworkElement CreateShopCardHeader(string icon, string title, string ownedSuffix,
+        string description, Rarity? tier, AppLanguage lang)
+    {
+        var header = new DockPanel();
+
+        var iconBox = new Border
+        {
+            Width = 30, Height = 30, CornerRadius = new CornerRadius(6),
+            Background = Token("AccentSoftBrush"),
+            Child = new TextBlock
+            {
+                Text = icon, FontSize = 15, HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+            },
+        };
+        DockPanel.SetDock(iconBox, Dock.Left);
+        header.Children.Add(iconBox);
+
+        var titleRow = new DockPanel();
+        if (tier is { } rarityTier)
+        {
+            var capsule = new Border
+            {
+                Background = RarityBrush(rarityTier), CornerRadius = new CornerRadius(7),
+                Padding = new Thickness(5, 1, 5, 1), VerticalAlignment = VerticalAlignment.Center,
+                Child = new TextBlock
+                {
+                    Text = DashboardText.RarityLabel(lang, rarityTier).ToUpperInvariant(),
+                    FontSize = 8, FontWeight = FontWeights.Bold, Foreground = Brushes.White,
+                },
+            };
+            DockPanel.SetDock(capsule, Dock.Right);
+            titleRow.Children.Add(capsule);
+        }
+        var titleText = new TextBlock
+        {
+            Text = title + (ownedSuffix.Length > 0 ? "  " + ownedSuffix : ""),
+            FontSize = 13, FontWeight = FontWeights.SemiBold,
+            Foreground = Token("TextPrimaryBrush"), VerticalAlignment = VerticalAlignment.Center,
+        };
+        titleRow.Children.Add(titleText);
+
+        var text = new StackPanel { Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+        text.Children.Add(titleRow);
+        text.Children.Add(new TextBlock
+        {
+            Text = description, FontSize = 11, Foreground = Token("TextSecondaryBrush"),
+            Margin = new Thickness(0, 2, 0, 0), TextWrapping = TextWrapping.Wrap,
+        });
+        header.Children.Add(text);
+        return header;
+    }
+
+    private Brush RarityBrush(Rarity rarity) => rarity switch
+    {
+        Rarity.Legendary => Token("RarityLegendaryBrush"),
+        Rarity.Rare => Token("RarityRareBrush"),
+        Rarity.Uncommon => Token("RarityUncommonBrush"),
+        _ => Token("RarityCommonBrush"),
+    };
+
+    private Border WrapShopCard(StackPanel content) => new()
+    {
+        Background = Token("CardBgBrush"),
+        BorderBrush = Token("CardBorderBrush"),
+        BorderThickness = new Thickness(1),
+        CornerRadius = new CornerRadius(8),
+        Padding = new Thickness(12),
+        Margin = new Thickness(0, 0, 0, 10),
+        Child = content,
+    };
 
     private void OnUseCandyClick(object sender, RoutedEventArgs e)
     {
@@ -363,11 +645,11 @@ public partial class DashboardWindow : Window
         }
     }
 
-    private static TextBlock CreateEvolutionArrow() => new()
+    private TextBlock CreateEvolutionArrow() => new()
     {
         Text = "→",
         FontSize = 11,
-        Foreground = new SolidColorBrush(Color.FromRgb(0x99, 0x99, 0x99)),
+        Foreground = Token("TextTertiaryBrush"),
         Width = 14,
         Height = 40,
         TextAlignment = TextAlignment.Center,
@@ -385,7 +667,7 @@ public partial class DashboardWindow : Window
                 Text = "?",
                 FontSize = 22,
                 FontWeight = FontWeights.Bold,
-                Foreground = new SolidColorBrush(Color.FromRgb(0x66, 0x66, 0x66)),
+                Foreground = Token("TextSecondaryBrush"),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
                 ToolTip = DashboardText.UnknownNextEvolution(view.Language),
@@ -411,7 +693,7 @@ public partial class DashboardWindow : Window
         {
             Width = 4,
             Height = 4,
-            Fill = new SolidColorBrush(Color.FromRgb(0x00, 0x78, 0xD4)),
+            Fill = Token("AccentBrush"),
             HorizontalAlignment = HorizontalAlignment.Center,
             Margin = new Thickness(0, 2, 0, 0),
             Visibility = item.State == EvoLineItemState.Current ? Visibility.Visible : Visibility.Hidden,
@@ -453,7 +735,7 @@ public partial class DashboardWindow : Window
             ? $" · {DashboardText.UnownFormsCollected(lang, unownCollected)}" : "";
         var tile = new Grid
         {
-            Width = 84,
+            Width = 76,
             Margin = new Thickness(1),
             ToolTip = $"#{row.SpeciesID} {row.Name}{star} · {DashboardText.RarityLabel(lang, row.Rarity)}{raising}{unownForms}",
         };
@@ -466,7 +748,7 @@ public partial class DashboardWindow : Window
         {
             Text = "#" + row.SpeciesID,
             FontSize = 10,
-            Foreground = Brushes.Gray,
+            Foreground = Token("TextSecondaryBrush"),
         });
         if (row.IsShiny)
         {

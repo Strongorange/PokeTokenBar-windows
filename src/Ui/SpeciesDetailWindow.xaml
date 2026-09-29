@@ -4,19 +4,36 @@
         Title="Pokemon details"
         Width="480" Height="620"
         WindowStartupLocation="CenterOwner"
-        ResizeMode="CanMinimize">
+        ResizeMode="CanMinimize"
+        Background="{DynamicResource WindowBgBrush}"
+        FontFamily="{DynamicResource UiFont}"
+        Foreground="{DynamicResource TextPrimaryBrush}">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Theme.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
     <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="14">
         <StackPanel>
-            <StackPanel Orientation="Horizontal">
-                <Grid Width="72" Height="72" Margin="0,0,12,0">
-                    <Image x:Name="SpriteImage" Width="72" Height="72" Stretch="Uniform"
-                           Visibility="Collapsed" />
-                    <TextBlock x:Name="SpritePlaceholder" Text="❔" FontSize="32"
-                               HorizontalAlignment="Center" VerticalAlignment="Center" />
-                </Grid>
-                <StackPanel x:Name="HeaderRoot" VerticalAlignment="Center" />
-            </StackPanel>
-            <StackPanel x:Name="ContentRoot" />
+            <Border Style="{StaticResource Card}">
+                <StackPanel Orientation="Horizontal">
+                    <Border Width="72" Height="72" CornerRadius="8"
+                            Background="{DynamicResource AccentSoftBrush}" Margin="0,0,12,0">
+                        <Grid>
+                            <Image x:Name="SpriteImage" Width="72" Height="72" Stretch="Uniform"
+                                   Visibility="Collapsed" />
+                            <TextBlock x:Name="SpritePlaceholder" Text="❔" FontSize="32"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
+                    <StackPanel x:Name="HeaderRoot" VerticalAlignment="Center" />
+                </StackPanel>
+            </Border>
+            <Border Style="{StaticResource Card}" Margin="0,10,0,0" Padding="14">
+                <StackPanel x:Name="ContentRoot" />
+            </Border>
         </StackPanel>
     </ScrollViewer>
 </Window>

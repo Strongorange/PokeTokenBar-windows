@@ -4,84 +4,122 @@
         Title="Settings"
         Width="480" Height="640"
         WindowStartupLocation="CenterOwner"
-        ResizeMode="CanMinimize">
+        ResizeMode="CanMinimize"
+        Background="{DynamicResource WindowBgBrush}"
+        FontFamily="{DynamicResource UiFont}"
+        Foreground="{DynamicResource TextPrimaryBrush}">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Theme.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
     <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="14">
         <StackPanel>
-            <TextBlock x:Name="GeneralHeader" FontWeight="Bold" />
-            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                <TextBlock x:Name="LanguageText" VerticalAlignment="Center" Width="110" />
-                <ComboBox x:Name="LanguageCombo" Width="180"
-                          SelectionChanged="OnLanguageSelectionChanged" />
-            </StackPanel>
-
-            <TextBlock x:Name="DifficultyHeader" FontWeight="Bold" Margin="0,18,0,0" />
-            <TextBlock x:Name="DifficultyHint" FontSize="11" Foreground="#666"
-                       Margin="0,4,0,0" TextWrapping="Wrap" />
-            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                <TextBlock x:Name="GrowthText" VerticalAlignment="Center" Width="110" FontSize="11" />
-                <Slider x:Name="GrowthSlider" Width="200" Minimum="0.1" Maximum="2"
-                        TickFrequency="0.05" IsSnapToTickEnabled="True" VerticalAlignment="Center"
-                        ValueChanged="OnGrowthDifficultyChanged" />
-                <TextBlock x:Name="GrowthValue" VerticalAlignment="Center" Margin="8,0,0,0"
-                           MinWidth="40" FontSize="11" />
-            </StackPanel>
-            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                <TextBlock x:Name="ShopText" VerticalAlignment="Center" Width="110" FontSize="11" />
-                <Slider x:Name="ShopSlider" Width="200" Minimum="0.1" Maximum="2"
-                        TickFrequency="0.05" IsSnapToTickEnabled="True" VerticalAlignment="Center"
-                        ValueChanged="OnShopDifficultyChanged" />
-                <TextBlock x:Name="ShopValue" VerticalAlignment="Center" Margin="8,0,0,0"
-                           MinWidth="40" FontSize="11" />
-            </StackPanel>
-
-            <TextBlock x:Name="ScanHeader" FontWeight="Bold" Margin="0,18,0,0" />
-            <TextBlock x:Name="ScanHint" FontSize="11" Foreground="#666"
-                       Margin="0,4,0,0" TextWrapping="Wrap" />
-            <ListBox x:Name="ScanList" Height="110" Margin="0,8,0,0" />
-            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                <ComboBox x:Name="ProviderCombo" Width="140" />
-                <Button x:Name="AddButton" Content="Add…" Margin="10,0,0,0" MinWidth="90"
-                        Click="OnAddClick" />
-                <Button x:Name="RemoveButton" Content="Remove" Margin="6,0,0,0" MinWidth="80"
-                        Click="OnRemoveClick" />
-            </StackPanel>
-
-            <TextBlock x:Name="PetHeader" FontWeight="Bold" Margin="0,18,0,0" />
-            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                <CheckBox x:Name="PetEnabledCheck" VerticalAlignment="Center"
-                          Checked="OnPetEnabledChanged" Unchecked="OnPetEnabledChanged" />
-                <TextBlock x:Name="PetSizeText" VerticalAlignment="Center" FontSize="11"
-                           Margin="14,0,0,0" />
-                <Slider x:Name="PetSizeSlider" Width="200" Minimum="48" Maximum="384"
-                        TickFrequency="8" IsSnapToTickEnabled="True" VerticalAlignment="Center"
-                        Margin="6,0,4,0" ValueChanged="OnPetSizeChanged" />
-                <TextBlock x:Name="PetSizeValue" VerticalAlignment="Center" MinWidth="40"
-                           FontSize="11" />
-            </StackPanel>
-
-            <TextBlock x:Name="UpdateHeader" FontWeight="Bold" Margin="0,18,0,0" />
-            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                <CheckBox x:Name="UpdateNotificationsCheck" VerticalAlignment="Center"
-                          Checked="OnUpdateNotificationsChanged" Unchecked="OnUpdateNotificationsChanged" />
-                <TextBlock x:Name="UpdateNotificationsText" VerticalAlignment="Center"
-                           Margin="6,0,0,0" />
-            </StackPanel>
-            <DockPanel Margin="0,8,0,0">
-                <Button x:Name="CheckNowButton" DockPanel.Dock="Right" MinWidth="100"
-                        Click="OnCheckNowClick" />
-                <TextBlock x:Name="CheckForUpdatesText" VerticalAlignment="Center" />
-            </DockPanel>
-            <DockPanel x:Name="UpdateResultRow" Margin="0,6,0,0" Visibility="Collapsed">
-                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
-                            VerticalAlignment="Center">
-                    <Button x:Name="ShowSkippedAgainButton" MinWidth="90"
-                            Click="OnShowSkippedAgainClick" />
-                    <Button x:Name="UpdateInstallButton" MinWidth="80" Margin="6,0,0,0"
-                            Click="OnInstallClick" />
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock x:Name="GeneralHeader" Style="{StaticResource SectionHeader}" />
+                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                        <TextBlock x:Name="LanguageText" VerticalAlignment="Center" Width="110" />
+                        <ComboBox x:Name="LanguageCombo" Width="180"
+                                  SelectionChanged="OnLanguageSelectionChanged" />
+                    </StackPanel>
                 </StackPanel>
-                <TextBlock x:Name="UpdateResultText" VerticalAlignment="Center" FontSize="11"
-                           Foreground="#B45F06" TextWrapping="Wrap" />
-            </DockPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}" Margin="0,10,0,0">
+                <StackPanel>
+                    <TextBlock x:Name="DifficultyHeader" Style="{StaticResource SectionHeader}" />
+                    <TextBlock x:Name="DifficultyHint" FontSize="11"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               TextWrapping="Wrap" />
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <TextBlock x:Name="GrowthText" VerticalAlignment="Center" Width="110"
+                                   FontSize="12" />
+                        <Slider x:Name="GrowthSlider" Width="200" Minimum="0.1" Maximum="2"
+                                TickFrequency="0.05" IsSnapToTickEnabled="True"
+                                VerticalAlignment="Center"
+                                ValueChanged="OnGrowthDifficultyChanged" />
+                        <TextBlock x:Name="GrowthValue" VerticalAlignment="Center" Margin="8,0,0,0"
+                                   MinWidth="40" FontSize="12" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                        <TextBlock x:Name="ShopText" VerticalAlignment="Center" Width="110"
+                                   FontSize="12" />
+                        <Slider x:Name="ShopSlider" Width="200" Minimum="0.1" Maximum="2"
+                                TickFrequency="0.05" IsSnapToTickEnabled="True"
+                                VerticalAlignment="Center"
+                                ValueChanged="OnShopDifficultyChanged" />
+                        <TextBlock x:Name="ShopValue" VerticalAlignment="Center" Margin="8,0,0,0"
+                                   MinWidth="40" FontSize="12" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}" Margin="0,10,0,0">
+                <StackPanel>
+                    <TextBlock x:Name="ScanHeader" Style="{StaticResource SectionHeader}" />
+                    <TextBlock x:Name="ScanHint" FontSize="11"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               TextWrapping="Wrap" />
+                    <ListBox x:Name="ScanList" Height="110" Margin="0,8,0,0" FontSize="12" />
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <ComboBox x:Name="ProviderCombo" Width="140" />
+                        <Button x:Name="AddButton" Content="Add…" Margin="10,0,0,0" MinWidth="90"
+                                Click="OnAddClick" />
+                        <Button x:Name="RemoveButton" Content="Remove" Margin="6,0,0,0" MinWidth="80"
+                                Click="OnRemoveClick" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}" Margin="0,10,0,0">
+                <StackPanel>
+                    <TextBlock x:Name="PetHeader" Style="{StaticResource SectionHeader}" />
+                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                        <CheckBox x:Name="PetEnabledCheck" VerticalAlignment="Center"
+                                  Checked="OnPetEnabledChanged" Unchecked="OnPetEnabledChanged" />
+                        <TextBlock x:Name="PetSizeText" VerticalAlignment="Center" FontSize="12"
+                                   Margin="14,0,0,0" />
+                        <Slider x:Name="PetSizeSlider" Width="160" Minimum="48" Maximum="384"
+                                TickFrequency="8" IsSnapToTickEnabled="True" VerticalAlignment="Center"
+                                Margin="6,0,4,0" ValueChanged="OnPetSizeChanged" />
+                        <TextBlock x:Name="PetSizeValue" VerticalAlignment="Center" MinWidth="40"
+                                   FontSize="12" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}" Margin="0,10,0,0">
+                <StackPanel>
+                    <TextBlock x:Name="UpdateHeader" Style="{StaticResource SectionHeader}" />
+                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                        <CheckBox x:Name="UpdateNotificationsCheck" VerticalAlignment="Center"
+                                  Checked="OnUpdateNotificationsChanged"
+                                  Unchecked="OnUpdateNotificationsChanged" />
+                        <TextBlock x:Name="UpdateNotificationsText" VerticalAlignment="Center"
+                                   Margin="8,0,0,0" FontSize="12" />
+                    </StackPanel>
+                    <DockPanel Margin="0,8,0,0">
+                        <Button x:Name="CheckNowButton" DockPanel.Dock="Right" MinWidth="100"
+                                Click="OnCheckNowClick" />
+                        <TextBlock x:Name="CheckForUpdatesText" VerticalAlignment="Center"
+                                   FontSize="12" />
+                    </DockPanel>
+                    <DockPanel x:Name="UpdateResultRow" Margin="0,6,0,0" Visibility="Collapsed">
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
+                                    VerticalAlignment="Center">
+                            <Button x:Name="ShowSkippedAgainButton" MinWidth="90"
+                                    Click="OnShowSkippedAgainClick" />
+                            <Button x:Name="UpdateInstallButton" MinWidth="80" Margin="6,0,0,0"
+                                    Style="{StaticResource AccentButton}" Click="OnInstallClick" />
+                        </StackPanel>
+                        <TextBlock x:Name="UpdateResultText" VerticalAlignment="Center" FontSize="11"
+                                   Foreground="{DynamicResource WarningBrush}" TextWrapping="Wrap" />
+                    </DockPanel>
+                </StackPanel>
+            </Border>
         </StackPanel>
     </ScrollViewer>
 </Window>

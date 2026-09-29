@@ -165,15 +165,18 @@ public partial class SpeciesDetailWindow : Window
         RenderIndividuals();
     }
 
+    private Brush Token(string key) =>
+        TryFindResource(key) as Brush ?? Brushes.Gray;
+
     private void HighlightSelectedForm()
     {
         foreach (var (form, tile) in _formTiles)
         {
             var selected = form == _selectedForm;
-            tile.BorderBrush = selected ? SystemColors.HighlightBrush : null;
+            tile.BorderBrush = selected ? Token("AccentBrush") : null;
             tile.Background = selected
-                ? new SolidColorBrush(Color.FromArgb(0x29, 0x00, 0x78, 0xD7))
-                : new SolidColorBrush(Color.FromArgb(0x14, 0x80, 0x80, 0x80));
+                ? Token("AccentSoftBrush")
+                : Token("HoverBrush");
         }
     }
 
@@ -222,7 +225,8 @@ public partial class SpeciesDetailWindow : Window
         ContentRoot.Children.Add(new TextBlock
         {
             Text = text,
-            FontWeight = FontWeights.Bold,
+            FontWeight = FontWeights.SemiBold,
+            FontSize = 13,
             Margin = new Thickness(0, 14, 0, 4)
         });
 
@@ -242,7 +246,7 @@ public partial class SpeciesDetailWindow : Window
             {
                 Text = text,
                 TextWrapping = TextWrapping.Wrap,
-                Foreground = Brushes.Gray,
+                Foreground = Token("TextSecondaryBrush"),
                 FontSize = 11,
                 Margin = new Thickness(0, 2, 0, 0)
             });
@@ -251,7 +255,7 @@ public partial class SpeciesDetailWindow : Window
         target.Children.Add(new TextBlock
         {
             Text = text,
-            Foreground = Brushes.Gray,
+            Foreground = Token("TextSecondaryBrush"),
             TextWrapping = TextWrapping.Wrap,
             FontSize = 11,
             Margin = new Thickness(0, 2, 0, 0)
@@ -270,7 +274,7 @@ public partial class SpeciesDetailWindow : Window
             Text = label,
             Width = 48,
             FontSize = 11,
-            Foreground = Brushes.Gray
+            Foreground = Token("TextSecondaryBrush")
         });
         var bar = new ProgressBar
         {
