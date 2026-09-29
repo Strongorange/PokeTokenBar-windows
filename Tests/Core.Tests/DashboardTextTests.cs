@@ -91,4 +91,23 @@ public class DashboardTextTests
         Assert.Contains("Evolved into Raticate",
             DashboardText.EventEvolve(AppLanguage.En, "Raticate"));
     }
+
+    [Fact]
+    public void UnownFormStringsFollowMacOSTranslations()
+    {
+        Assert.Equal("안농 글자 5/28", DashboardText.UnownFormsCollected(AppLanguage.Ko, 5));
+        Assert.Equal("Unown forms 5/28", DashboardText.UnownFormsCollected(AppLanguage.En, 5));
+        Assert.Equal("アンノーン 5/28文字", DashboardText.UnownFormsCollected(AppLanguage.Ja, 5));
+        Assert.Equal("Formas Unown 5/28", DashboardText.UnownFormsCollected(AppLanguage.Es, 5));
+        Assert.Equal("Formes Zarbi 5/28", DashboardText.UnownFormsCollected(AppLanguage.Fr, 5));
+        Assert.Equal("Formas Unown 5/28", DashboardText.UnownFormsCollected(AppLanguage.Pt, 5));
+        Assert.Equal("Icognito-Formen 5/28", DashboardText.UnownFormsCollected(AppLanguage.De, 5));
+        Assert.Equal("미수집", DashboardText.UnownNotCollected(AppLanguage.Ko));
+        Assert.Equal("Not collected", DashboardText.UnownNotCollected(AppLanguage.En));
+        Assert.Equal("未収集", DashboardText.UnownNotCollected(AppLanguage.Ja));
+        Assert.Equal("Sin conseguir", DashboardText.UnownNotCollected(AppLanguage.Es));
+        Assert.Equal("Non collectionnée", DashboardText.UnownNotCollected(AppLanguage.Fr));
+        Assert.Equal("Não coletada", DashboardText.UnownNotCollected(AppLanguage.Pt));
+        Assert.Equal("Noch nicht gesammelt", DashboardText.UnownNotCollected(AppLanguage.De));
+    }
 }

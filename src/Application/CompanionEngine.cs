@@ -44,7 +44,9 @@ public static class NoticeKinds
 
 public sealed record CompanionStageItem(string Label, bool Done, bool Current, bool Mystery);
 
-public sealed record CompanionDexRow(int SpeciesID, string Name, Rarity Rarity, bool IsShiny, bool IsRaising);
+    public sealed record CompanionDexRow(int SpeciesID, string Name, Rarity Rarity, bool IsShiny, bool IsRaising);
+
+    public sealed record CompanionUnownFormStatus(UnownForm Form, bool IsShiny);
 
 public sealed record CompanionShopRow(ItemKind? Item, Rarity? EggTier, string Label, long Price, bool CanBuy);
 
@@ -60,6 +62,7 @@ public sealed record CompanionDetailKnownMove(string Name, int LearnedAtLevel);
 
 public sealed record CompanionDetailIndividual(
     string Label,
+    UnownForm? UnownForm,
     bool IsShiny,
     bool IsRaising,
     int Level,
@@ -82,6 +85,7 @@ public sealed record CompanionDetailSnapshot(
     IReadOnlyList<CompanionDetailAbility> Abilities,
     IReadOnlyList<CompanionDetailMoveOption> Moves,
     IReadOnlyList<CompanionDetailIndividual> Individuals,
+    IReadOnlyList<CompanionUnownFormStatus> UnownForms,
     AppLanguage Language);
 
 public sealed record CompanionGameView(
@@ -111,6 +115,7 @@ public sealed record CompanionGameView(
     IReadOnlyList<CompanionBagItem> Bag,
     int ActiveSpeciesID,
     UnownForm? ActiveUnownForm,
+    IReadOnlyList<CompanionUnownFormStatus> UnownForms,
     AppLanguage Language);
 
 public enum CandyUseResult
@@ -1086,7 +1091,8 @@ public sealed class CompanionEngine
                 && language.ResolveName(byLang) is { } dexName)
                 name = dexName;
             if (entry.Profile is not { } profile) continue;
-            individuals.Add(BuildIndividual(individuals.Count + 1, entry.IsShiny, false,
+            individuals.Add(BuildIndividual(individuals.Count + 1,
+                UnownForms.Resolved(speciesID, entry.UnownForm), entry.IsShiny, false,
                 profile, entry.Nature, details, language));
         }
         if (_state.Active is { } active && active.CurrentID == speciesID && active.Profile is { } activeProfile)
@@ -1095,6 +1101,7 @@ public sealed class CompanionEngine
             if (name.Length == 0)
                 name = DisplayName(_options.Lines.Line(active.BaseID), speciesID, active.UnownForm);
             individuals.Add(BuildIndividual(individuals.Count + 1,
+                UnownForms.Resolved(speciesID, active.UnownForm),
                 (active.DittoDisguise is null || active.DittoRevealed) && active.IsShiny,
                 true, activeProfile, active.Nature, details, language));
         }
@@ -1125,17 +1132,20 @@ public sealed class CompanionEngine
                     MoveMethodLabels(language, move).ToList()))
                 .ToList(),
             individuals,
+            BuildUnownForms(),
             language);
     }
 
-    private CompanionDetailIndividual BuildIndividual(int position, bool isShiny, bool isRaising,
-        PokemonProfile profile, PokemonNature? nature, PokemonDetails details, AppLanguage language)
+    private CompanionDetailIndividual BuildIndividual(int position, UnownForm? unownForm, bool isShiny,
+        bool isRaising, PokemonProfile profile, PokemonNature? nature, PokemonDetails details,
+        AppLanguage language)
     {
         var ability = profile.AbilityName is { } abilityName
             ? _options.Lines.ResourceName(PokemonResourceKinds.Ability, abilityName, language)
             : "";
         return new CompanionDetailIndividual(
             $"#{position}",
+            unownForm,
             isShiny,
             isRaising,
             profile.Level,
@@ -1199,8 +1209,16 @@ public sealed class CompanionEngine
             BuildBag(),
             active?.CurrentID ?? 0,
             active?.UnownForm,
+            BuildUnownForms(),
             _state.Language);
     }
+
+    private IReadOnlyList<CompanionUnownFormStatus> BuildUnownForms() =>
+        UnownForms.All
+            .Where(form => _state.OwnsSpecies(UnownForms.SpeciesID, form))
+            .Select(form => new CompanionUnownFormStatus(
+                form, _state.OwnsShinySpecies(UnownForms.SpeciesID, form)))
+            .ToList();
 
     private IReadOnlyList<CompanionStageItem> BuildStageItems(MonState active, EvoLine? line)
     {
@@ -1246,7 +1264,10 @@ public sealed class CompanionEngine
             for (var i = 0; i <= active.StageIndex && i < active.PathIDs.Count; i++)
             {
                 var id = active.PathIDs[i];
-                var name = DisplayName(_options.Lines.Line(active.BaseID), id, active.UnownForm);
+                var activeLine = _options.Lines.Line(active.BaseID);
+                var name = id == UnownForms.SpeciesID && activeLine is not null
+                    ? activeLine.LocalizedName(id, _state.Language)
+                    : DisplayName(activeLine, id, active.UnownForm);
                 var shiny = (active.DittoDisguise is null || active.DittoRevealed) && active.IsShiny;
                 if (rows.TryGetValue(id, out var existing))
                     rows[id] = (existing.Name, existing.Rarity, existing.IsShiny || shiny);

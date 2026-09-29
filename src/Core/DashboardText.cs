@@ -116,6 +116,15 @@ public static class DashboardText
             "detalles con doble clic", "détails par double-clic", "detalhes com duplo clique",
             "Details per Doppelklick");
 
+    public static string UnownFormsCollected(AppLanguage lang, int count) =>
+        T(lang, $"안농 글자 {count}/28", $"Unown forms {count}/28", $"アンノーン {count}/28文字",
+            $"Formas Unown {count}/28", $"Formes Zarbi {count}/28", $"Formas Unown {count}/28",
+            $"Icognito-Formen {count}/28");
+
+    public static string UnownNotCollected(AppLanguage lang) =>
+        T(lang, "미수집", "Not collected", "未収集", "Sin conseguir", "Non collectionnée",
+            "Não coletada", "Noch nicht gesammelt");
+
     public static string ShopTitle(AppLanguage lang) =>
         T(lang, "상점", "Shop", "ショップ", "Tienda", "Boutique", "Loja", "Laden");
 

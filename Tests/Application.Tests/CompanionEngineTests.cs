@@ -997,4 +997,110 @@ public class CompanionEngineTests : IDisposable
 
         Assert.Contains(engine.View().Bag, item => item.Kind == ItemKind.RareCandy && item.CanUse);
     }
+
+    private const string UnownSnapshot = """
+        {
+          "format": "poketokenbar.pokemon-snapshot",
+          "schema": 2,
+          "bases": [ {"id": 201, "captureRate": 225} ],
+          "lines": [
+            {"base": 201, "captureRate": 225, "legendary": false, "mythical": false, "tree": [201, []]}
+          ],
+          "names": {
+            "201": {"en": "Unown", "ko": "안농"}
+          },
+          "details": {
+            "201": {
+              "name": "unown", "height": 5, "weight": 50, "baseExperience": 118, "genderRate": -1,
+              "types": ["psychic"],
+              "baseStats": {"hp": 48, "attack": 72, "defense": 48, "special-attack": 72, "special-defense": 48, "speed": 48},
+              "abilities": [
+                {"name": "levitate", "slot": 1, "hidden": false}
+              ],
+              "moves": [
+                ["hidden-power", "level-up", 1]
+              ]
+            }
+          },
+          "resourceNames": {
+            "type": {"psychic": {"en": "Psychic", "ko": "에스퍼"}},
+            "ability": {"levitate": {"en": "Levitate", "ko": "부유"}},
+            "move": {"hidden-power": {"en": "Hidden Power", "ko": "잠재파워"}}
+          }
+        }
+        """;
+
+    [Fact]
+    public void ViewExposesCollectedUnownFormStatuses()
+    {
+        var engine = BuildEngine(snapshot: UnownSnapshot);
+        engine.State.Language = AppLanguage.En;
+        engine.State.Dex.Add(new DexEntry(201, 201, [201], Rarity.Common, Now, isShiny: true,
+            names: new Dictionary<int, Dictionary<string, string>> { [201] = new() { ["en"] = "Unown" } },
+            unownForm: UnownForm.B));
+        engine.State.Dex.Add(new DexEntry(201, 201, [201], Rarity.Common, Now, unownForm: UnownForm.C));
+
+        var view = engine.View();
+        Assert.Equal(
+        [
+            new CompanionUnownFormStatus(UnownForm.B, true),
+            new CompanionUnownFormStatus(UnownForm.C, false),
+        ], view.UnownForms);
+        var row = Assert.Single(view.DexRows);
+        Assert.Equal("Unown", row.Name);
+    }
+
+    [Fact]
+    public void ActiveUnownKeepsPlainDexRowNameAndCountsItsForm()
+    {
+        var engine = BuildEngine(snapshot: UnownSnapshot);
+        engine.State.Language = AppLanguage.En;
+        engine.State.Active = new MonState(201, [201], null, 0, 0, Rarity.Common, 1,
+            unownForm: UnownForm.B);
+
+        var view = engine.View();
+        Assert.Equal(UnownForm.B, Assert.Single(view.UnownForms).Form);
+        var row = Assert.Single(view.DexRows);
+        Assert.DoesNotContain("[", row.Name);
+        Assert.Equal("Unown", row.Name);
+    }
+
+    [Fact]
+    public void DetailExposesUnownFormsAndFormPerIndividual()
+    {
+        var engine = BuildEngine(snapshot: UnownSnapshot);
+        engine.State.Language = AppLanguage.En;
+        engine.State.Dex.Add(new DexEntry(201, 201, [201], Rarity.Common, Now, isShiny: true,
+            profile: PokemonProfile.Generate(1), unownForm: UnownForm.B));
+        engine.State.Dex.Add(new DexEntry(201, 201, [201], Rarity.Common, Now,
+            profile: PokemonProfile.Generate(2), unownForm: UnownForm.C));
+
+        var detail = engine.Detail(201);
+        Assert.NotNull(detail);
+        Assert.Equal(
+        [
+            new CompanionUnownFormStatus(UnownForm.B, true),
+            new CompanionUnownFormStatus(UnownForm.C, false),
+        ], detail.UnownForms);
+        Assert.Equal(2, detail.Individuals.Count);
+        Assert.Equal(UnownForm.B, detail.Individuals[0].UnownForm);
+        Assert.Equal(UnownForm.C, detail.Individuals[1].UnownForm);
+    }
+
+    [Fact]
+    public void NonUnownDetailCarriesNoForms()
+    {
+        var engine = BuildEngine(snapshot: PokemonLineSourceTests.CombatSnapshot);
+        engine.State.Language = AppLanguage.En;
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        engine.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+
+        var view = engine.View();
+        Assert.Empty(view.UnownForms);
+
+        var detail = engine.Detail(1);
+        Assert.NotNull(detail);
+        Assert.Empty(detail.UnownForms);
+        Assert.All(detail.Individuals, individual => Assert.Null(individual.UnownForm));
+    }
 }

@@ -225,7 +225,8 @@ public partial class DashboardWindow : Window
                          DashboardText.DetailHint(lang);
         DexList.Items.Clear();
         foreach (var row in view.DexRows)
-            DexList.Items.Add(CreateDexTile(row, lang));
+            DexList.Items.Add(CreateDexTile(row, lang, row.SpeciesID == UnownForms.SpeciesID
+                ? view.UnownForms.Count : 0));
         EventsList.Items.Clear();
         foreach (var item in view.RecentEvents)
             EventsList.Items.Add($"{item.At.ToLocalTime():MM-dd HH:mm}  {item.Text}");
@@ -341,15 +342,17 @@ public partial class DashboardWindow : Window
         CombatText.Text = string.Join(" · ", parts);
     }
 
-    private UIElement CreateDexTile(CompanionDexRow row, AppLanguage lang)
+    private UIElement CreateDexTile(CompanionDexRow row, AppLanguage lang, int unownCollected)
     {
         var star = row.IsShiny ? " ★" : "";
         var raising = row.IsRaising ? $"  ← {DashboardText.RaisingLabel(lang)}" : "";
+        var unownForms = unownCollected > 0
+            ? $" · {DashboardText.UnownFormsCollected(lang, unownCollected)}" : "";
         var tile = new Grid
         {
             Width = 84,
             Margin = new Thickness(1),
-            ToolTip = $"#{row.SpeciesID} {row.Name}{star} · {DashboardText.RarityLabel(lang, row.Rarity)}{raising}",
+            ToolTip = $"#{row.SpeciesID} {row.Name}{star} · {DashboardText.RarityLabel(lang, row.Rarity)}{raising}{unownForms}",
         };
         for (var i = 0; i < 3; i++) tile.RowDefinitions.Add(new RowDefinition());
 
@@ -393,9 +396,10 @@ public partial class DashboardWindow : Window
         tile.Children.Add(sprite);
         new SpriteSlot(image, placeholder).Update(_sprites, row.SpeciesID, false, row.IsShiny, null, "❔");
 
+        var nameSuffix = unownCollected > 0 ? $" {unownCollected}/{UnownForms.All.Length}" : "";
         var name = new TextBlock
         {
-            Text = (row.IsRaising ? "← " : "") + row.Name,
+            Text = (row.IsRaising ? "← " : "") + row.Name + nameSuffix,
             FontSize = 11,
             TextAlignment = TextAlignment.Center,
             TextTrimming = TextTrimming.CharacterEllipsis,
