@@ -155,6 +155,9 @@
                             <TextBlock x:Name="ProgressLabel" FontSize="12" />
                             <ProgressBar x:Name="ProgressBar" Height="8" Minimum="0" Maximum="1"
                                          Margin="0,6,0,0" />
+                            <TextBlock x:Name="CompanionStatusText" FontSize="11" Margin="0,5,0,0"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       TextWrapping="Wrap" />
                             <ScrollViewer x:Name="EvolutionScroll" HorizontalScrollBarVisibility="Auto"
                                           VerticalScrollBarVisibility="Disabled" Margin="0,6,0,0">
                                 <StackPanel x:Name="EvolutionLine" Orientation="Horizontal" />
@@ -193,8 +196,18 @@
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
                         <StackPanel Grid.Row="0" Margin="0,0,0,8">
-                            <TextBlock x:Name="DexHeader" FontWeight="SemiBold" FontSize="13"
-                                       TextTrimming="CharacterEllipsis" />
+                            <DockPanel>
+                                <StackPanel x:Name="DexModeToggle" Orientation="Horizontal"
+                                            DockPanel.Dock="Right" Margin="0,0,0,0">
+                                    <RadioButton x:Name="DexModeDexRadio" GroupName="DexMode"
+                                                 Checked="OnDexModeChanged" Margin="0,0,4,0"
+                                                 Cursor="Hand" />
+                                    <RadioButton x:Name="DexModeLogRadio" GroupName="DexMode"
+                                                 Checked="OnDexModeChanged" Cursor="Hand" />
+                                </StackPanel>
+                                <TextBlock x:Name="DexHeader" FontWeight="SemiBold" FontSize="13"
+                                           TextTrimming="CharacterEllipsis" />
+                            </DockPanel>
                             <StackPanel x:Name="DexRarityFilter" Orientation="Horizontal"
                                         Margin="0,6,0,0" />
                         </StackPanel>
@@ -212,6 +225,13 @@
                                 </Style>
                             </ListBox.ItemContainerStyle>
                         </ListBox>
+                        <StackPanel Grid.Row="1" x:Name="CatchLogPanel" Visibility="Collapsed">
+                            <TextBlock x:Name="CatchHeader" FontWeight="SemiBold" FontSize="13" />
+                            <StackPanel x:Name="CatchRarityFilter" Orientation="Horizontal"
+                                        Margin="0,6,0,0" />
+                            <ListBox x:Name="CatchList" Margin="0,8,0,0"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
+                        </StackPanel>
                         <Border Grid.Row="1" x:Name="DexEmpty" Visibility="Collapsed"
                                 Padding="0,40,0,40">
                             <StackPanel>

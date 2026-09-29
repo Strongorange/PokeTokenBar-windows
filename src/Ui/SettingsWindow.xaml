@@ -37,6 +37,11 @@
                                     Click="OnRepresentativeChooseClick" />
                         </StackPanel>
                     </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <TextBlock x:Name="LaunchAtLoginText" VerticalAlignment="Center" Width="110" />
+                        <CheckBox x:Name="LaunchAtLoginCheck" VerticalAlignment="Center"
+                                  Checked="OnLaunchAtLoginChanged" Unchecked="OnLaunchAtLoginChanged" />
+                    </StackPanel>
                 </StackPanel>
             </Border>
 

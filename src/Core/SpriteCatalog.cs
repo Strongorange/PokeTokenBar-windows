@@ -31,4 +31,10 @@ public static class SpriteCatalog
     public const string EggCacheKey = "egg";
 
     public static string EggUrl => $"{PokemonBase}/egg.png";
+
+    public const string ItemsBase = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items";
+
+    public static string ItemCacheKey(string name) => $"item-{name}";
+
+    public static string ItemUrl(string name) => $"{ItemsBase}/{name}.png";
 }

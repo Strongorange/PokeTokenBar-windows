@@ -854,4 +854,94 @@ public static class DashboardText
             $"{name} relâché — un nouvel œuf est arrivé.",
             $"{name} solto — um novo ovo chegou.",
             $"{name} verabschiedet — ein neues Ei ist da.");
+
+    // Catch log (macOS CollectionView/DexSummaryHeader strings)
+
+    public static string CatchLogTitle(AppLanguage lang) =>
+        T(lang, "포획 로그", "Catch log", "捕獲ログ", "Registro de capturas",
+            "Journal de captures", "Registro de capturas", "Fangprotokoll");
+
+    public static string DexTotalCount(AppLanguage lang, int count) =>
+        T(lang, $"총 {count}마리", $"{count} total", $"全{count}匹", $"{count} en total",
+            $"{count} au total", $"{count} no total", $"{count} insgesamt");
+
+    public static string DexReleasedBadge(AppLanguage lang) =>
+        T(lang, "놓아줌", "Released", "逃がした", "Liberado", "Relâché", "Solto",
+            "Freigelassen");
+
+    public static string CaughtAgo(AppLanguage lang, RelativeTimeBucket bucket, int value) => bucket switch
+    {
+        RelativeTimeBucket.Minutes => T(lang, $"{value}분 전", $"{value} min ago", $"{value}分前",
+            $"hace {value} min", $"il y a {value} min", $"{value} min atrás", $"vor {value} Min."),
+        RelativeTimeBucket.Hours => T(lang, $"{value}시간 전", $"{value} hr ago", $"{value}時間前",
+            $"hace {value} h", $"il y a {value} h", $"{value} h atrás", $"vor {value} Std."),
+        RelativeTimeBucket.Days => T(lang, $"{value}일 전", $"{value} d ago", $"{value}日前",
+            $"hace {value} d", $"il y a {value} j", $"{value} d atrás", $"vor {value} T."),
+        _ => ""
+    };
+
+    // Companion status line (macOS CompanionView.statusLine / Localization 790-797)
+
+    public static string StatusEgg(AppLanguage lang) =>
+        T(lang, "곧 깨어나요.", "Hatching soon.", "もうすぐ孵化します。",
+            "Está a punto de eclosionar.", "Bientôt l'éclosion.", "Vai chocar logo.",
+            "Schlüpft bald.");
+
+    public static string StatusIdle(AppLanguage lang) =>
+        T(lang, "오늘은 조용히 자리를 지켜요.", "Keeping quiet today.", "今日は静かにしています。",
+            "Hoy se mantiene tranquilo.", "Tranquille aujourd'hui.", "Hoje está quietinho.",
+            "Ist heute ganz ruhig.");
+
+    public static string StatusWorking(AppLanguage lang) =>
+        T(lang, "오늘의 작업 흔적이 쌓이고 있어요.", "Today's work is piling up.",
+            "本日の作業が積み重なっています。", "El trabajo de hoy se va acumulando.",
+            "Le travail du jour s'accumule.", "O trabalho de hoje está se acumulando.",
+            "Heute kommt einiges an Arbeit zusammen.");
+
+    public static string StatusFocus(AppLanguage lang) =>
+        T(lang, "지금은 집중 모드예요.", "In focus mode now.", "今は集中モードです。",
+            "Ahora está en modo concentración.", "En mode concentration.",
+            "Agora está em modo foco.", "Gerade voll konzentriert.");
+
+    public static string StatusTired(AppLanguage lang) =>
+        T(lang, "한도에 가까워요. 잠깐 쉬어도 괜찮아요.", "Close to the limit. A short break is fine.",
+            "上限が近いです。少し休んでも大丈夫。", "Está cerca del límite. Un pequeño descanso no vendría mal.",
+            "Proche de la limite. Une petite pause ne fait pas de mal.",
+            "Está perto do limite. Uma pausa cai bem.",
+            "Fast am Limit. Eine kurze Pause tut gut.");
+
+    public static string StatusSleep(AppLanguage lang) =>
+        T(lang, "지금은 자고 있어요.", "Sleeping now.", "今は眠っています。", "Ahora está durmiendo.",
+            "En train de dormir.", "Agora está dormindo.", "Schläft gerade.");
+
+    public static string StatusEvolved(AppLanguage lang, string name) =>
+        T(lang, $"{name}(으)로 진화했어요!", $"Evolved into {name}!", $"{name} に進化しました！",
+            $"¡Evolucionó a {name}!", $"A évolué en {name} !", $"Evoluiu para {name}!",
+            $"Hat sich zu {name} entwickelt!");
+
+    public static string StatusGrew(AppLanguage lang) =>
+        T(lang, "성장했어요!", "It grew!", "成長しました！", "¡Ha crecido!", "Il a grandi !",
+            "Cresceu!", "Ist gewachsen!");
+
+    public static string StatusLine(AppLanguage lang, CompanionStatusKind kind,
+        string? evolvedName = null) => kind switch
+    {
+        CompanionStatusKind.Egg => StatusEgg(lang),
+        CompanionStatusKind.Idle => StatusIdle(lang),
+        CompanionStatusKind.Working => StatusWorking(lang),
+        CompanionStatusKind.Focus => StatusFocus(lang),
+        CompanionStatusKind.Tired => StatusTired(lang),
+        CompanionStatusKind.Sleep => StatusSleep(lang),
+        CompanionStatusKind.LevelUp => evolvedName is { Length: > 0 } name
+            ? StatusEvolved(lang, name)
+            : StatusGrew(lang),
+        _ => ""
+    };
+
+    // Settings — general
+
+    public static string LaunchAtLoginLabel(AppLanguage lang) =>
+        T(lang, "로그인 시 자동 시작", "Launch at login", "ログイン時に自動起動",
+            "Iniciar al arrancar sesión", "Lancer à l'ouverture de session",
+            "Abrir ao iniciar sessão", "Bei der Anmeldung starten");
 }

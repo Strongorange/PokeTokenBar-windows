@@ -373,4 +373,90 @@ public class DashboardTextTests
         Assert.Equal("Você está na última versão (v0.15.0)", DashboardText.UpToDate(AppLanguage.Pt, "0.15.0"));
         Assert.Equal("Du hast die neueste Version (v0.15.0)", DashboardText.UpToDate(AppLanguage.De, "0.15.0"));
     }
+
+    [Fact]
+    public void CatchLogStringsFollowMacOSTranslations()
+    {
+        Assert.Equal("포획 로그", DashboardText.CatchLogTitle(AppLanguage.Ko));
+        Assert.Equal("Catch log", DashboardText.CatchLogTitle(AppLanguage.En));
+        Assert.Equal("捕獲ログ", DashboardText.CatchLogTitle(AppLanguage.Ja));
+        Assert.Equal("Registro de capturas", DashboardText.CatchLogTitle(AppLanguage.Es));
+        Assert.Equal("Journal de captures", DashboardText.CatchLogTitle(AppLanguage.Fr));
+        Assert.Equal("Registro de capturas", DashboardText.CatchLogTitle(AppLanguage.Pt));
+        Assert.Equal("Fangprotokoll", DashboardText.CatchLogTitle(AppLanguage.De));
+        Assert.Equal("총 3마리", DashboardText.DexTotalCount(AppLanguage.Ko, 3));
+        Assert.Equal("3 total", DashboardText.DexTotalCount(AppLanguage.En, 3));
+        Assert.Equal("全3匹", DashboardText.DexTotalCount(AppLanguage.Ja, 3));
+        Assert.Equal("3 en total", DashboardText.DexTotalCount(AppLanguage.Es, 3));
+        Assert.Equal("3 au total", DashboardText.DexTotalCount(AppLanguage.Fr, 3));
+        Assert.Equal("3 no total", DashboardText.DexTotalCount(AppLanguage.Pt, 3));
+        Assert.Equal("3 insgesamt", DashboardText.DexTotalCount(AppLanguage.De, 3));
+        Assert.Equal("놓아줌", DashboardText.DexReleasedBadge(AppLanguage.Ko));
+        Assert.Equal("Released", DashboardText.DexReleasedBadge(AppLanguage.En));
+        Assert.Equal("逃がした", DashboardText.DexReleasedBadge(AppLanguage.Ja));
+        Assert.Equal("Liberado", DashboardText.DexReleasedBadge(AppLanguage.Es));
+        Assert.Equal("Relâché", DashboardText.DexReleasedBadge(AppLanguage.Fr));
+        Assert.Equal("Solto", DashboardText.DexReleasedBadge(AppLanguage.Pt));
+        Assert.Equal("Freigelassen", DashboardText.DexReleasedBadge(AppLanguage.De));
+    }
+
+    [Fact]
+    public void CaughtAgoBucketsFormatInAllLanguages()
+    {
+        Assert.Equal("42분 전", DashboardText.CaughtAgo(AppLanguage.Ko, RelativeTimeBucket.Minutes, 42));
+        Assert.Equal("42 min ago", DashboardText.CaughtAgo(AppLanguage.En, RelativeTimeBucket.Minutes, 42));
+        Assert.Equal("42分前", DashboardText.CaughtAgo(AppLanguage.Ja, RelativeTimeBucket.Minutes, 42));
+        Assert.Equal("5시간 전", DashboardText.CaughtAgo(AppLanguage.Ko, RelativeTimeBucket.Hours, 5));
+        Assert.Equal("5 hr ago", DashboardText.CaughtAgo(AppLanguage.En, RelativeTimeBucket.Hours, 5));
+        Assert.Equal("hace 5 h", DashboardText.CaughtAgo(AppLanguage.Es, RelativeTimeBucket.Hours, 5));
+        Assert.Equal("il y a 5 h", DashboardText.CaughtAgo(AppLanguage.Fr, RelativeTimeBucket.Hours, 5));
+        Assert.Equal("7일 전", DashboardText.CaughtAgo(AppLanguage.Ko, RelativeTimeBucket.Days, 7));
+        Assert.Equal("7 d ago", DashboardText.CaughtAgo(AppLanguage.En, RelativeTimeBucket.Days, 7));
+        Assert.Equal("vor 7 T.", DashboardText.CaughtAgo(AppLanguage.De, RelativeTimeBucket.Days, 7));
+        Assert.Equal("", DashboardText.CaughtAgo(AppLanguage.Ko, RelativeTimeBucket.None, 0));
+    }
+
+    [Fact]
+    public void StatusLineStringsFollowMacOSTranslations()
+    {
+        Assert.Equal("곧 깨어나요.", DashboardText.StatusLine(AppLanguage.Ko, CompanionStatusKind.Egg));
+        Assert.Equal("Hatching soon.", DashboardText.StatusLine(AppLanguage.En, CompanionStatusKind.Egg));
+        Assert.Equal("もうすぐ孵化します。", DashboardText.StatusLine(AppLanguage.Ja, CompanionStatusKind.Egg));
+        Assert.Equal("Está a punto de eclosionar.", DashboardText.StatusLine(AppLanguage.Es, CompanionStatusKind.Egg));
+        Assert.Equal("Bientôt l'éclosion.", DashboardText.StatusLine(AppLanguage.Fr, CompanionStatusKind.Egg));
+        Assert.Equal("Vai chocar logo.", DashboardText.StatusLine(AppLanguage.Pt, CompanionStatusKind.Egg));
+        Assert.Equal("Schlüpft bald.", DashboardText.StatusLine(AppLanguage.De, CompanionStatusKind.Egg));
+        Assert.Equal("오늘은 조용히 자리를 지켜요.", DashboardText.StatusLine(AppLanguage.Ko, CompanionStatusKind.Idle));
+        Assert.Equal("Keeping quiet today.", DashboardText.StatusLine(AppLanguage.En, CompanionStatusKind.Idle));
+        Assert.Equal("오늘의 작업 흔적이 쌓이고 있어요.",
+            DashboardText.StatusLine(AppLanguage.Ko, CompanionStatusKind.Working));
+        Assert.Equal("Today's work is piling up.",
+            DashboardText.StatusLine(AppLanguage.En, CompanionStatusKind.Working));
+        Assert.Equal("지금은 집중 모드예요.", DashboardText.StatusLine(AppLanguage.Ko, CompanionStatusKind.Focus));
+        Assert.Equal("In focus mode now.", DashboardText.StatusLine(AppLanguage.En, CompanionStatusKind.Focus));
+        Assert.Equal("한도에 가까워요. 잠깐 쉬어도 괜찮아요.",
+            DashboardText.StatusLine(AppLanguage.Ko, CompanionStatusKind.Tired));
+        Assert.Equal("Close to the limit. A short break is fine.",
+            DashboardText.StatusLine(AppLanguage.En, CompanionStatusKind.Tired));
+        Assert.Equal("지금은 자고 있어요.", DashboardText.StatusLine(AppLanguage.Ko, CompanionStatusKind.Sleep));
+        Assert.Equal("Sleeping now.", DashboardText.StatusLine(AppLanguage.En, CompanionStatusKind.Sleep));
+        Assert.Equal("리자몽(으)로 진화했어요!",
+            DashboardText.StatusLine(AppLanguage.Ko, CompanionStatusKind.LevelUp, "리자몽"));
+        Assert.Equal("Evolved into Charizard!",
+            DashboardText.StatusLine(AppLanguage.En, CompanionStatusKind.LevelUp, "Charizard"));
+        Assert.Equal("성장했어요!", DashboardText.StatusLine(AppLanguage.Ko, CompanionStatusKind.LevelUp));
+        Assert.Equal("It grew!", DashboardText.StatusLine(AppLanguage.En, CompanionStatusKind.LevelUp));
+    }
+
+    [Fact]
+    public void LaunchAtLoginLabelFollowsMacOSTranslations()
+    {
+        Assert.Equal("로그인 시 자동 시작", DashboardText.LaunchAtLoginLabel(AppLanguage.Ko));
+        Assert.Equal("Launch at login", DashboardText.LaunchAtLoginLabel(AppLanguage.En));
+        Assert.Equal("ログイン時に自動起動", DashboardText.LaunchAtLoginLabel(AppLanguage.Ja));
+        Assert.Equal("Iniciar al arrancar sesión", DashboardText.LaunchAtLoginLabel(AppLanguage.Es));
+        Assert.Equal("Lancer à l'ouverture de session", DashboardText.LaunchAtLoginLabel(AppLanguage.Fr));
+        Assert.Equal("Abrir ao iniciar sessão", DashboardText.LaunchAtLoginLabel(AppLanguage.Pt));
+        Assert.Equal("Bei der Anmeldung starten", DashboardText.LaunchAtLoginLabel(AppLanguage.De));
+    }
 }

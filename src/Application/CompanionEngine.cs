@@ -46,6 +46,20 @@ public sealed record CompanionStageItem(string Label, bool Done, bool Current, b
 
     public sealed record CompanionDexRow(int SpeciesID, string Name, Rarity Rarity, bool IsShiny, bool IsRaising);
 
+    public sealed record CompanionChainNode(int SpeciesID, string Name);
+
+    public sealed record CompanionCatchRow(
+        string Key,
+        int BaseID,
+        Rarity Rarity,
+        bool IsShiny,
+        bool IsRaising,
+        bool IsReleased,
+        string Nature,
+        UnownForm? UnownForm,
+        DateTimeOffset? CaughtAt,
+        IReadOnlyList<CompanionChainNode> Chain);
+
     public sealed record CompanionUnownFormStatus(UnownForm Form, bool IsShiny);
 
 public sealed record CompanionShopRow(ItemKind? Item, Rarity? EggTier, string Label, long Price, bool CanBuy);
@@ -120,6 +134,9 @@ public sealed record CompanionGameView(
     int? RepresentativeSpeciesID,
     bool RepresentativeIsShiny,
     UnownForm? RepresentativeUnownForm,
+    CompanionStatusKind Status,
+    string? StatusEvolvedName,
+    IReadOnlyList<CompanionCatchRow> CatchRows,
     IReadOnlyList<CompanionUnownFormStatus> UnownForms,
     AppLanguage Language);
 
@@ -151,6 +168,13 @@ public sealed class CompanionEngine
     private bool _lastHasUsage;
     private double _growthDifficulty;
     private double _shopDifficulty;
+    private bool _statusHasUsage;
+    private long _statusTodayTokens;
+    private double _statusBurnPerMinute;
+    private DateTimeOffset? _statusLastObservation;
+    private long _statusLastTotal;
+    private DateTimeOffset? _statusWindowUntil;
+    private string? _statusEvolvedName;
 
     public CompanionEngine(CompanionEngineOptions? options = null)
     {
@@ -274,6 +298,7 @@ public sealed class CompanionEngine
                 if (delta > 0) ApplyDelta(delta);
             }
         }
+        TrackStatusInputs(map, hasUsageData);
         changed |= HatchIfReady();
         return changed;
     }
@@ -293,6 +318,45 @@ public sealed class CompanionEngine
                 return false;
         return true;
     }
+
+    /// <summary>
+    /// Feeds the companion status machine (port of macOS computeState inputs).
+    /// Burn rate is approximated from consecutive same-day refresh deltas
+    /// (tokens gained ÷ minutes elapsed); macOS reads it from active provider
+    /// blocks which the Windows port does not have.
+    /// </summary>
+    private void TrackStatusInputs(IReadOnlyDictionary<string, long> map, bool hasUsageData)
+    {
+        var total = map.Values.Sum();
+        var now = _options.Clock();
+        if (hasUsageData && map.Count > 0)
+        {
+            if (_statusLastObservation is { } previous && now > previous)
+            {
+                var minutes = (now - previous).TotalMinutes;
+                var delta = total - _statusLastTotal;
+                _statusBurnPerMinute = delta > 0 && minutes > 0 ? delta / minutes : 0;
+            }
+            _statusLastObservation = now;
+            _statusLastTotal = total;
+        }
+        else
+        {
+            _statusBurnPerMinute = 0;
+            _statusLastObservation = null;
+            _statusLastTotal = 0;
+        }
+        _statusHasUsage = hasUsageData;
+        _statusTodayTokens = total;
+    }
+
+    private void SetStatusLevelUpWindow(string? evolvedName)
+    {
+        _statusWindowUntil = _options.Clock() + StatusWindowDuration;
+        _statusEvolvedName = evolvedName;
+    }
+
+    private static readonly TimeSpan StatusWindowDuration = TimeSpan.FromSeconds(4);
 
     private bool HatchIfReady()
     {
@@ -351,6 +415,7 @@ public sealed class CompanionEngine
             AppLog.Write($"hatch: base={line.BaseID} rarity={Rarities.Raw(line.Rarity)} shiny={isShiny} " +
                          $"forms={plan.Count} boost={hasGrowthBoost} ditto={dittoDisguise is not null}");
             AddEvent(EventText.Hatch, DisplayName(line, line.BaseID, unownForm), isShiny);
+            SetStatusLevelUpWindow(null);
             EnrichActiveProfile();
             if (overflow > 0) ApplyGrowth(overflow);
             return true;
@@ -433,6 +498,7 @@ public sealed class CompanionEngine
             _state.Active.UsedAtStage = active.UsedAtStage - threshold;
             var newName = DisplayName(line, next.SpeciesID, _state.Active.UnownForm);
             AddEvent(EventText.Evolve, newName);
+            SetStatusLevelUpWindow(newName);
             EnrichActiveProfile();
             mutated = true;
         }
@@ -468,6 +534,7 @@ public sealed class CompanionEngine
         AppLog.Write($"ditto reveal: disguise={previousBaseID} → ditto " +
                      $"rarity={Rarities.Raw(dittoLine.Rarity)} shiny={active.IsShiny}");
         AddEvent(EventText.DittoReveal, disguiseName, active.IsShiny);
+        SetStatusLevelUpWindow(null);
         ApplyGrowth(0);
     }
 
@@ -495,6 +562,7 @@ public sealed class CompanionEngine
         AppLog.Write($"graduate: base={active.BaseID} final={finalID} shiny={active.IsShiny} " +
                      $"dex={_state.Dex.Count}");
         AddEvent(EventText.Graduate, name, active.IsShiny);
+        SetStatusLevelUpWindow(null);
         _state.Active = null;
         _state.ReconcileRepresentativeSelection();
         _state.EggUsage = 0;
@@ -1059,6 +1127,8 @@ public sealed class CompanionEngine
             EnrichCombatProfiles();
             _events.Clear();
             _pendingNotices.Clear();
+            _statusWindowUntil = null;
+            _statusEvolvedName = null;
             SaveCore();
             AppLog.Write($"save imported from {envelope.SourceDevice}: " +
                          $"dex={_state.Dex.Count} lifetime={_state.UsedSinceInstall}");
@@ -1202,6 +1272,10 @@ public sealed class CompanionEngine
         var eggProgress = Math.Min(1, eggUsed / (double)eggThreshold);
         var representativeForm =
             UnownForms.Resolved(_state.RepresentativeSpeciesID ?? 0, _state.RepresentativeUnownForm);
+        var now = _options.Clock();
+        var status = CompanionStatus.Compute(hasActive,
+            _statusWindowUntil is { } until && now < until,
+            false, _statusHasUsage, _statusTodayTokens, _statusBurnPerMinute);
         return new CompanionGameView(
             hasActive,
             hasActive ? DisplayName(line, active!.CurrentID, active.UnownForm) : "Token Egg",
@@ -1235,6 +1309,9 @@ public sealed class CompanionEngine
             _state.RepresentativeSpeciesID is { } representativeID
                 && _state.OwnsShinySpecies(representativeID, representativeForm),
             representativeForm,
+            status,
+            status == CompanionStatusKind.LevelUp ? _statusEvolvedName : null,
+            BuildCatchRows(),
             BuildUnownForms(),
             _state.Language);
     }
@@ -1330,6 +1407,54 @@ public sealed class CompanionEngine
             })
             .ToList();
     }
+
+    /// <summary>
+    /// Catch log rows — one per individual (macOS dexEntriesSorted): the
+    /// currently-raised mon pinned first, then graduated/released records by
+    /// caught-at descending (records without a timestamp sort last).
+    /// </summary>
+    private IReadOnlyList<CompanionCatchRow> BuildCatchRows()
+    {
+        var rows = new List<CompanionCatchRow>();
+        foreach (var entry in _state.Dex)
+            rows.Add(new CompanionCatchRow(
+                entry.ID,
+                entry.BaseID,
+                entry.Rarity,
+                entry.IsShiny,
+                false,
+                entry.IsReleased,
+                entry.Nature is { } nature ? PokemonNatures.Name(nature, _state.Language) : "",
+                entry.UnownForm,
+                entry.CaughtAt,
+                entry.ChainOrder.Select(id => new CompanionChainNode(
+                    id, ChainNodeName(entry.Names, id))).ToList()));
+        rows.Sort((a, b) => (b.CaughtAt ?? DateTimeOffset.MinValue)
+            .CompareTo(a.CaughtAt ?? DateTimeOffset.MinValue));
+        if (_state.Active is { } active)
+        {
+            var shiny = (active.DittoDisguise is null || active.DittoRevealed) && active.IsShiny;
+            var line = _options.Lines.Line(active.BaseID);
+            rows.Insert(0, new CompanionCatchRow(
+                $"active-{active.BaseID}-{active.CurrentID}",
+                active.BaseID,
+                active.Rarity,
+                shiny,
+                true,
+                false,
+                active.Nature is { } nature ? PokemonNatures.Name(nature, _state.Language) : "",
+                active.UnownForm,
+                null,
+                active.PathIDs.Select(id => new CompanionChainNode(
+                    id, line is not null ? line.LocalizedName(id, _state.Language) : $"#{id}")).ToList()));
+        }
+        return rows;
+    }
+
+    private string ChainNodeName(Dictionary<int, Dictionary<string, string>>? names, int id) =>
+        names is not null && names.TryGetValue(id, out var byLang)
+            ? _state.Language.ResolveName(byLang) ?? $"#{id}"
+            : $"#{id}";
 
     private void SaveCore()
     {

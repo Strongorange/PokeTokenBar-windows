@@ -112,6 +112,36 @@ public class SpriteStoreTests : IDisposable
     }
 
     [Fact]
+    public void ItemSpritesFetchFromItemsBaseAndCacheUnderItemKey()
+    {
+        var fetched = new List<Uri>();
+        var store = new SpriteStore(_dir, url => FetchRecorder(fetched, url, Png));
+
+        Assert.Null(store.CachedItem("rare-candy"));
+        Assert.Equal(Png, store.Item("rare-candy"));
+        Assert.EndsWith("/sprites/items/rare-candy.png", fetched.Single().AbsoluteUri);
+        Assert.True(File.Exists(Path.Combine(_dir, "item-rare-candy.png")));
+
+        var restarted = new SpriteStore(_dir, url => FetchRecorder(fetched, url, Png));
+        Assert.Equal(Png, restarted.CachedItem("rare-candy"));
+        Assert.Single(fetched);
+    }
+
+    [Fact]
+    public void NullOrMissingItemNameNeverFetches()
+    {
+        var fetched = new List<Uri>();
+        var store = new SpriteStore(_dir, url => FetchRecorder(fetched, url, Png));
+
+        Assert.Null(store.CachedItem(""));
+        Assert.Null(store.CachedItem(null!));
+        Assert.Null(store.Item(""));
+        Assert.Null(store.Item(null!));
+        Assert.Empty(fetched);
+        Assert.False(File.Exists(Path.Combine(_dir, "item-.png")));
+    }
+
+    [Fact]
     public void MemoryEvictionKeepsRetrievableFromDisk()
     {
         var store = new SpriteStore(_dir, _ => Png);

@@ -262,6 +262,22 @@ public partial class App : System.Windows.Application
 
     public bool UpdateNotificationsEnabled => _settings.UpdateNotificationsEnabled;
 
+    public bool LaunchAtLoginEnabled =>
+        Environment.ProcessPath is { } exe && LoginItem.IsEnabled(exe);
+
+    public void ApplyLaunchAtLogin(bool enabled)
+    {
+        try
+        {
+            if (Environment.ProcessPath is { } exe)
+                LoginItem.SetEnabled(enabled, exe);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Write($"launch-at-login apply failed: {ex.Message}");
+        }
+    }
+
     public void ApplyLanguage(AppLanguage language)
     {
         try

@@ -18,6 +18,9 @@ public partial class DashboardWindow : Window
     private CompanionShopRow? _confirmingShopRow;
     private Func<AppLanguage, string>? _feedback;
     private Rarity? _dexRarityFilter;
+    private Rarity? _catchRarityFilter;
+    private bool _dexShowLog;
+    private IReadOnlyList<CompanionDexRow> _visibleDexRows = [];
     private string? _selectedProviderId;
     private int _candyCount = 1;
     private ItemKind? _confirmingBagItem;
@@ -52,6 +55,8 @@ public partial class DashboardWindow : Window
         dexTab.Header = "_" + DashboardText.DexTitle(lang);
         var shopTab = (TabItem) MainTabs.Items[3];
         shopTab.Header = "_" + DashboardText.ShopTitle(lang);
+        DexModeDexRadio.Content = DashboardText.DexTitle(lang);
+        DexModeLogRadio.Content = DashboardText.CatchLogTitle(lang);
         EventsHeader.Text = DashboardText.CompanionEventsLabel(lang);
         ShopHeader.Text = DashboardText.BagTitle(lang);
         SpendableLabel.Text = DashboardText.SpendableTokens(lang);
@@ -146,8 +151,7 @@ public partial class DashboardWindow : Window
 
         var selectable = available.Where(provider => provider.TodayTokens > 0
             || provider.MonthTokens > 0 || provider.WeekTokens > 0).ToList();
-        if (_selectedProviderId is null || selectable.All(provider => provider.ProviderId != _selectedProviderId))
-            _selectedProviderId = selectable.FirstOrDefault()?.ProviderId;
+        _selectedProviderId = CompanionPresentation.ResolveSelectedProvider(selectable, _selectedProviderId);
         var selected = selectable.FirstOrDefault(provider => provider.ProviderId == _selectedProviderId);
 
         if (selectable.Count > 1)
@@ -489,37 +493,9 @@ public partial class DashboardWindow : Window
         if (view.HasActive)
             CompanionDetail.Foreground = Token("TextSecondaryBrush");
         UpdateCombatText(view);
+        CompanionStatusText.Text = DashboardText.StatusLine(lang, view.Status, view.StatusEvolvedName);
 
-        DexHeader.Text = $"{DashboardText.DexTitle(lang)}: {DashboardText.DexSpeciesCount(lang, view.DexCount)} · " +
-                         $"{DashboardText.WalletLabel(lang)} {TokenFormatter.Grouped(view.AvailableTokens)} · " +
-                         DashboardText.DetailHint(lang);
-        RenderDexFilter(view, lang);
-        DexList.Items.Clear();
-        if (view.DexRows.Count == 0)
-        {
-            DexList.Visibility = Visibility.Collapsed;
-            DexRarityFilter.Visibility = Visibility.Collapsed;
-            DexEmpty.Visibility = Visibility.Visible;
-            DexEmptyTitle.Text = DashboardText.DexEmptyTitle(lang);
-            DexEmptyHint.Text = DashboardText.DexEmptyHint(lang);
-            if (_dexEmptySprite is null)
-                _dexEmptySprite = new SpriteSlot(DexEmptySprite, DexEmptyPlaceholder);
-            _dexEmptySprite.Update(_sprites, 25, true, false, null, "❔");
-        }
-        else
-        {
-            DexList.Visibility = Visibility.Visible;
-            DexEmpty.Visibility = Visibility.Collapsed;
-            var visibleRows = _dexRarityFilter is { } filter
-                ? view.DexRows.Where(row => row.Rarity == filter).ToList()
-                : view.DexRows;
-            var showFilter = DexRarityFilter.Children.Count > 0;
-            DexRarityFilter.Visibility = showFilter ? Visibility.Visible : Visibility.Collapsed;
-            foreach (var row in visibleRows)
-                DexList.Items.Add(CreateDexTile(row, lang,
-                    row.SpeciesID == UnownForms.SpeciesID ? view.UnownForms.Count : 0,
-                    row.SpeciesID == view.RepresentativeSpeciesID));
-        }
+        RenderDexTab(view, lang);
         EventsList.Items.Clear();
         foreach (var item in view.RecentEvents)
             EventsList.Items.Add($"{item.At.ToLocalTime():MM-dd HH:mm}  {item.Text}");
@@ -537,64 +513,132 @@ public partial class DashboardWindow : Window
         return raising is not null && raising.Nature.Length > 0 ? raising.Nature : "";
     }
 
+    private void RenderDexTab(CompanionGameView view, AppLanguage lang)
+    {
+        DexModeToggle.Visibility = view.DexRows.Count == 0
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+        CatchLogPanel.Visibility = Visibility.Collapsed;
+        DexList.Items.Clear();
+        CatchList.Items.Clear();
+        if (view.DexRows.Count == 0)
+        {
+            DexHeader.Text = "";
+            DexList.Visibility = Visibility.Collapsed;
+            DexRarityFilter.Visibility = Visibility.Collapsed;
+            DexEmpty.Visibility = Visibility.Visible;
+            DexEmptyTitle.Text = DashboardText.DexEmptyTitle(lang);
+            DexEmptyHint.Text = DashboardText.DexEmptyHint(lang);
+            if (_dexEmptySprite is null)
+                _dexEmptySprite = new SpriteSlot(DexEmptySprite, DexEmptyPlaceholder);
+            _dexEmptySprite.Update(_sprites, 25, true, false, null, "❔");
+            return;
+        }
+        DexEmpty.Visibility = Visibility.Collapsed;
+        if (_dexShowLog)
+        {
+            DexHeader.Text = "";
+            DexList.Visibility = Visibility.Collapsed;
+            DexRarityFilter.Visibility = Visibility.Collapsed;
+            CatchLogPanel.Visibility = Visibility.Visible;
+            CatchHeader.Text = $"{DashboardText.CatchLogTitle(lang)} · " +
+                               DashboardText.DexTotalCount(lang, view.CatchRows.Count);
+            RenderCatchFilter(view, lang);
+            foreach (var row in CompanionPresentation.VisibleCatchRows(view.CatchRows, _catchRarityFilter))
+                CatchList.Items.Add(CreateCatchCard(row, lang));
+            return;
+        }
+        DexHeader.Text = $"{DashboardText.DexTitle(lang)}: {DashboardText.DexSpeciesCount(lang, view.DexCount)} · " +
+                         $"{DashboardText.WalletLabel(lang)} {TokenFormatter.Grouped(view.AvailableTokens)} · " +
+                         DashboardText.DetailHint(lang);
+        RenderDexFilter(view, lang);
+        DexList.Visibility = Visibility.Visible;
+        var showFilter = DexRarityFilter.Children.Count > 0;
+        DexRarityFilter.Visibility = showFilter ? Visibility.Visible : Visibility.Collapsed;
+        _visibleDexRows = CompanionPresentation.VisibleDexRows(view.DexRows, _dexRarityFilter);
+        foreach (var row in _visibleDexRows)
+            DexList.Items.Add(CreateDexTile(row, lang,
+                row.SpeciesID == UnownForms.SpeciesID ? view.UnownForms.Count : 0,
+                row.SpeciesID == view.RepresentativeSpeciesID));
+    }
+
+    private void OnDexModeChanged(object sender, RoutedEventArgs e)
+    {
+        _dexShowLog = ReferenceEquals(sender, DexModeLogRadio);
+        if (_lastView is { } view)
+            UpdateGame(view);
+    }
+
     private void RenderDexFilter(CompanionGameView view, AppLanguage lang)
     {
-        DexRarityFilter.Children.Clear();
-        if (view.DexRows.Count == 0) return;
-        foreach (var rarity in new[] { Rarity.Legendary, Rarity.Rare, Rarity.Uncommon, Rarity.Common })
+        RenderRarityTally(DexRarityFilter,
+            rarity => view.DexRows.Count(row => row.Rarity == rarity),
+            _dexRarityFilter, lang,
+            rarity => _dexRarityFilter = _dexRarityFilter == rarity ? null : rarity);
+    }
+
+    private void RenderCatchFilter(CompanionGameView view, AppLanguage lang)
+    {
+        RenderRarityTally(CatchRarityFilter,
+            rarity => view.CatchRows.Count(row => row.Rarity == rarity),
+            _catchRarityFilter, lang,
+            rarity => _catchRarityFilter = _catchRarityFilter == rarity ? null : rarity);
+    }
+
+    private void RenderRarityTally(StackPanel host, Func<Rarity, int> countOf, Rarity? selected,
+        AppLanguage lang, Action<Rarity> toggle)
+    {
+        host.Children.Clear();
+        foreach (var rarity in CompanionPresentation.RarityDisplayOrder)
         {
-            var count = view.DexRows.Count(row => row.Rarity == rarity);
+            var count = countOf(rarity);
             if (count == 0) continue;
-            var selected = _dexRarityFilter == rarity;
-            var brush = RarityBrush(rarity);
-            var capsule = new Border
-            {
-                CornerRadius = new CornerRadius(9),
-                Padding = new Thickness(7, 2, 7, 2),
-                Margin = new Thickness(0, 0, 5, 0),
-                Background = selected ? brush : HexBrush("#14" + ColorOf(rarity)),
-                BorderBrush = brush,
-                BorderThickness = new Thickness(selected ? 1.5 : 0.5),
-                Opacity = 1,
-                Cursor = System.Windows.Input.Cursors.Hand,
-                ToolTip = DashboardText.DexFilterHint(lang),
-            };
-            var row = new StackPanel { Orientation = Orientation.Horizontal };
-            row.Children.Add(new System.Windows.Shapes.Ellipse
-            {
-                Width = 6, Height = 6, Fill = brush,
-                VerticalAlignment = VerticalAlignment.Center,
-            });
-            row.Children.Add(new TextBlock
-            {
-                Text = DashboardText.RarityLabel(lang, rarity),
-                FontSize = 9, FontWeight = selected ? FontWeights.SemiBold : FontWeights.Normal,
-                Foreground = Token("TextPrimaryBrush"), Margin = new Thickness(4, 0, 3, 0),
-                VerticalAlignment = VerticalAlignment.Center,
-            });
-            row.Children.Add(new TextBlock
-            {
-                Text = count.ToString(), FontSize = 9, FontWeight = FontWeights.Bold,
-                Foreground = Token("TextSecondaryBrush"), VerticalAlignment = VerticalAlignment.Center,
-            });
-            capsule.Child = row;
-            var picked = rarity;
-            capsule.MouseLeftButtonUp += (_, _) =>
-            {
-                _dexRarityFilter = _dexRarityFilter == picked ? null : picked;
-                UpdateGame(_engine.View());
-            };
-            DexRarityFilter.Children.Add(capsule);
+            host.Children.Add(CreateRarityTallyCapsule(rarity, count, selected == rarity, lang, toggle));
         }
     }
 
-    private static string ColorOf(Rarity rarity) => rarity switch
+    private Border CreateRarityTallyCapsule(Rarity rarity, int count, bool selected,
+        AppLanguage lang, Action<Rarity> toggle)
     {
-        Rarity.Legendary => "F7630C",
-        Rarity.Rare => "0078D4",
-        Rarity.Uncommon => "107C10",
-        _ => "8A8A8A",
-    };
+        var brush = RarityBrush(rarity);
+        var capsule = new Border
+        {
+            CornerRadius = new CornerRadius(9),
+            Padding = new Thickness(7, 2, 7, 2),
+            Margin = new Thickness(0, 0, 5, 0),
+            Background = selected ? brush : HexBrush("#14" + CompanionPresentation.RarityHex(rarity)),
+            BorderBrush = brush,
+            BorderThickness = new Thickness(selected ? 1.5 : 0.5),
+            Opacity = 1,
+            Cursor = System.Windows.Input.Cursors.Hand,
+            ToolTip = DashboardText.DexFilterHint(lang),
+        };
+        var row = new StackPanel { Orientation = Orientation.Horizontal };
+        row.Children.Add(new System.Windows.Shapes.Ellipse
+        {
+            Width = 6, Height = 6, Fill = brush,
+            VerticalAlignment = VerticalAlignment.Center,
+        });
+        row.Children.Add(new TextBlock
+        {
+            Text = DashboardText.RarityLabel(lang, rarity),
+            FontSize = 9, FontWeight = selected ? FontWeights.SemiBold : FontWeights.Normal,
+            Foreground = Token("TextPrimaryBrush"), Margin = new Thickness(4, 0, 3, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+        });
+        row.Children.Add(new TextBlock
+        {
+            Text = count.ToString(), FontSize = 9, FontWeight = FontWeights.Bold,
+            Foreground = Token("TextSecondaryBrush"), VerticalAlignment = VerticalAlignment.Center,
+        });
+        capsule.Child = row;
+        capsule.MouseLeftButtonUp += (_, _) =>
+        {
+            toggle(rarity);
+            UpdateGame(_engine.View());
+        };
+        return capsule;
+    }
 
     private static SolidColorBrush HexBrush(string hex) =>
         new((Color)ColorConverter.ConvertFromString(hex));
@@ -642,10 +686,7 @@ public partial class DashboardWindow : Window
         var card = new StackPanel();
 
         var header = new StackPanel { Orientation = Orientation.Horizontal };
-        header.Children.Add(new TextBlock
-        {
-            Text = item.Kind.FallbackEmoji(), FontSize = 15, VerticalAlignment = VerticalAlignment.Center,
-        });
+        header.Children.Add(CreateItemIcon(item.Kind));
         header.Children.Add(new TextBlock
         {
             Text = item.Label, FontSize = 13, FontWeight = FontWeights.SemiBold,
@@ -847,7 +888,7 @@ public partial class DashboardWindow : Window
 
         var card = new StackPanel();
         card.Children.Add(CreateShopCardHeader(
-            kind.FallbackEmoji(),
+            CreateItemIcon(kind, 30),
             row.Label,
             owned > 0 && !kind.IsPassive() ? DashboardText.OwnedCount(lang, owned) : "",
             DashboardText.ItemDescription(lang, kind),
@@ -941,7 +982,12 @@ public partial class DashboardWindow : Window
     {
         var card = new StackPanel();
         card.Children.Add(CreateShopCardHeader(
-            "🥚", row.Label, "", DashboardText.EggDescription(lang, tier), tier, lang));
+            new TextBlock
+            {
+                Text = "🥚", FontSize = 15, HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+            },
+            row.Label, "", DashboardText.EggDescription(lang, tier), tier, lang));
 
         if (!view.HasActive)
         {
@@ -1057,7 +1103,23 @@ public partial class DashboardWindow : Window
         UpdateGame(_engine.View());
     }
 
-    private FrameworkElement CreateShopCardHeader(string icon, string title, string ownedSuffix,
+    private FrameworkElement CreateItemIcon(ItemKind kind, double size = 24)
+    {
+        var grid = new Grid { Width = size, Height = size };
+        var image = new Image { Width = size, Height = size, Stretch = Stretch.Uniform };
+        var placeholder = new TextBlock
+        {
+            FontSize = Math.Max(11, size * 0.5),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        grid.Children.Add(placeholder);
+        grid.Children.Add(image);
+        new ItemIconSlot(image, placeholder).Update(_sprites, kind);
+        return grid;
+    }
+
+    private FrameworkElement CreateShopCardHeader(FrameworkElement icon, string title, string ownedSuffix,
         string description, Rarity? tier, AppLanguage lang)
     {
         var header = new DockPanel();
@@ -1066,11 +1128,7 @@ public partial class DashboardWindow : Window
         {
             Width = 30, Height = 30, CornerRadius = new CornerRadius(6),
             Background = Token("AccentSoftBrush"),
-            Child = new TextBlock
-            {
-                Text = icon, FontSize = 15, HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-            },
+            Child = icon,
         };
         DockPanel.SetDock(iconBox, Dock.Left);
         header.Children.Add(iconBox);
@@ -1315,12 +1373,166 @@ public partial class DashboardWindow : Window
         };
     }
 
+    /// <summary>
+    /// Catch log card — port of the macOS DexEntryRow: rarity capsule +
+    /// raising/released badge + ✨ header with the nature on the right, the
+    /// reached evolution chain as sprites with names, caught-at relative line.
+    /// </summary>
+    private Border CreateCatchCard(CompanionCatchRow row, AppLanguage lang)
+    {
+        var card = new StackPanel();
+
+        var header = new DockPanel();
+        if (row.Nature.Length > 0)
+        {
+            var nature = new TextBlock
+            {
+                Text = row.Nature,
+                FontSize = 9,
+                Foreground = Token("TextSecondaryBrush"),
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            DockPanel.SetDock(nature, Dock.Right);
+            header.Children.Add(nature);
+        }
+        var badges = new StackPanel { Orientation = Orientation.Horizontal };
+        badges.Children.Add(new Border
+        {
+            Background = RarityBrush(row.Rarity),
+            CornerRadius = new CornerRadius(7),
+            Padding = new Thickness(5, 1, 5, 1),
+            VerticalAlignment = VerticalAlignment.Center,
+            Child = new TextBlock
+            {
+                Text = DashboardText.RarityLabel(lang, row.Rarity).ToUpperInvariant(),
+                FontSize = 8, FontWeight = FontWeights.Bold, Foreground = Brushes.White,
+            },
+        });
+        if (row.IsRaising)
+        {
+            badges.Children.Add(new Border
+            {
+                Background = Token("AccentSoftBrush"),
+                CornerRadius = new CornerRadius(7),
+                Padding = new Thickness(5, 1, 5, 1),
+                Margin = new Thickness(5, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+                Child = new TextBlock
+                {
+                    Text = DashboardText.RaisingLabel(lang).ToUpperInvariant(),
+                    FontSize = 8, FontWeight = FontWeights.Bold,
+                    Foreground = Token("AccentBrush"),
+                },
+            });
+        }
+        else if (row.IsReleased)
+        {
+            badges.Children.Add(new Border
+            {
+                Background = HexBrush("#148A8A8A"),
+                CornerRadius = new CornerRadius(7),
+                Padding = new Thickness(5, 1, 5, 1),
+                Margin = new Thickness(5, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+                Child = new TextBlock
+                {
+                    Text = DashboardText.DexReleasedBadge(lang).ToUpperInvariant(),
+                    FontSize = 8, FontWeight = FontWeights.Bold,
+                    Foreground = Token("TextSecondaryBrush"),
+                },
+            });
+        }
+        if (row.IsShiny)
+        {
+            badges.Children.Add(new TextBlock
+            {
+                Text = "✨", FontSize = 10, Margin = new Thickness(5, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+                ToolTip = "✨ " + DashboardText.ShinyLabel(lang),
+            });
+        }
+        header.Children.Add(badges);
+        card.Children.Add(header);
+
+        var chain = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 6, 0, 0) };
+        for (var i = 0; i < row.Chain.Count; i++)
+        {
+            if (i > 0)
+                chain.Children.Add(new TextBlock
+                {
+                    Text = "→",
+                    FontSize = 10,
+                    Foreground = Token("TextTertiaryBrush"),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(2, 0, 2, 12),
+                });
+            chain.Children.Add(CreateChainNode(row.Chain[i], row));
+        }
+        card.Children.Add(chain);
+
+        var ago = CaughtAgoText(row.CaughtAt, lang);
+        if (ago.Length > 0)
+            card.Children.Add(new TextBlock
+            {
+                Text = ago,
+                FontSize = 9,
+                Foreground = Token("TextTertiaryBrush"),
+                Margin = new Thickness(0, 3, 0, 0),
+            });
+
+        return new Border
+        {
+            Background = HexBrush("#0F000000"),
+            CornerRadius = new CornerRadius(10),
+            Padding = new Thickness(8),
+            Margin = new Thickness(0, 0, 0, 8),
+            Child = card,
+        };
+    }
+
+    private StackPanel CreateChainNode(CompanionChainNode node, CompanionCatchRow row)
+    {
+        var cell = new StackPanel { Width = 48 };
+        var slot = new Grid { Width = 40, Height = 40, HorizontalAlignment = HorizontalAlignment.Center };
+        var image = new Image { Width = 40, Height = 40, Stretch = Stretch.Uniform };
+        RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.NearestNeighbor);
+        var placeholder = new TextBlock
+        {
+            Text = "❔",
+            FontSize = 16,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        slot.Children.Add(image);
+        slot.Children.Add(placeholder);
+        cell.Children.Add(slot);
+        cell.Children.Add(new TextBlock
+        {
+            Text = node.Name,
+            FontSize = 9,
+            TextAlignment = TextAlignment.Center,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            Margin = new Thickness(0, 2, 0, 0),
+        });
+        var form = node.SpeciesID == UnownForms.SpeciesID ? row.UnownForm : null;
+        new SpriteSlot(image, placeholder).Update(_sprites, node.SpeciesID, false, row.IsShiny, form, "❔");
+        return cell;
+    }
+
+    private static string CaughtAgoText(DateTimeOffset? caughtAt, AppLanguage lang)
+    {
+        if (caughtAt is not { } at) return "";
+        var now = DateTimeOffset.Now;
+        return DashboardText.CaughtAgo(lang, RelativeTimes.Bucket(at, now),
+            RelativeTimes.BucketValue(at, now));
+    }
+
     private void OnDexDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
         if (_lastView is not { } view) return;
         var index = DexList.SelectedIndex;
-        if (index < 0 || index >= view.DexRows.Count) return;
-        var row = view.DexRows[index];
+        if (index < 0 || index >= _visibleDexRows.Count) return;
+        var row = _visibleDexRows[index];
         try
         {
             if (_engine.Detail(row.SpeciesID) is { } detail)

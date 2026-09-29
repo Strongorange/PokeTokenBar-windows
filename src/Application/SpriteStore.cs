@@ -135,6 +135,25 @@ public sealed class SpriteStore
         return fetched;
     }
 
+    public byte[]? CachedItem(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return null;
+        return CachedFile(SpriteCatalog.ItemCacheKey(name), "png");
+    }
+
+    public byte[]? Item(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return null;
+        var key = SpriteCatalog.ItemCacheKey(name);
+        var cached = CachedFile(key, "png");
+        if (cached is not null) return cached;
+        var fetched = _fetch(new Uri(SpriteCatalog.ItemUrl(name)));
+        if (fetched is null || fetched.Length == 0) return null;
+        WriteDisk(key, "png", fetched);
+        Remember(key, fetched);
+        return fetched;
+    }
+
     private byte[]? CachedFile(string key, string ext)
     {
         lock (_gate)

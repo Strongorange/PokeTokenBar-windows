@@ -1235,4 +1235,135 @@ public class CompanionEngineTests : IDisposable
         Assert.Empty(detail.UnownForms);
         Assert.All(detail.Individuals, individual => Assert.Null(individual.UnownForm));
     }
+
+    private CompanionEngine BuildEngine(Func<DateTimeOffset> clock, string? snapshot = null)
+    {
+        var lines = PokemonLineSource.Load(
+            new MemoryStream(Encoding.UTF8.GetBytes(snapshot ?? PokemonLineSourceTests.MinimalSnapshot)));
+        return new CompanionEngine(new CompanionEngineOptions
+        {
+            StateFilePath = Path.Combine(_dir, Guid.NewGuid().ToString("N") + ".json"),
+            Clock = clock,
+            NextRoll = new SequenceRng().Next,
+            Lines = lines,
+        });
+    }
+
+    [Fact]
+    public void StatusLineFollowsTheUsageLifecycle()
+    {
+        var now = Now;
+        var engine = BuildEngine(() => now);
+        engine.State.Language = AppLanguage.En;
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        Assert.Equal(CompanionStatusKind.Egg, engine.View().Status);
+
+        now += TimeSpan.FromMinutes(10);
+        engine.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+        var view = engine.View();
+        Assert.True(view.HasActive);
+        Assert.Equal(CompanionStatusKind.LevelUp, view.Status);
+        Assert.Null(view.StatusEvolvedName);
+
+        now += TimeSpan.FromSeconds(5);
+        view = engine.View();
+        Assert.NotEqual(CompanionStatusKind.LevelUp, view.Status);
+        Assert.Null(view.StatusEvolvedName);
+        Assert.Equal(CompanionStatusKind.Focus, view.Status);
+
+        now += TimeSpan.FromMinutes(10);
+        engine.ApplyUsage(Map(("claude_code", 5_020_000)), "2026-09-23", true);
+        Assert.Equal(CompanionStatusKind.Working, engine.View().Status);
+
+        now += TimeSpan.FromMinutes(10);
+        engine.ApplyUsage(Map(("claude_code", 5_020_000)), "2026-09-23", true);
+        Assert.Equal(CompanionStatusKind.Idle, engine.View().Status);
+
+        now += TimeSpan.FromMinutes(10);
+        engine.ApplyUsage(Map(), "2026-09-23", false);
+        Assert.Equal(CompanionStatusKind.Sleep, engine.View().Status);
+    }
+
+    [Fact]
+    public void EvolveNamesTheLevelUpStatusLine()
+    {
+        var now = Now;
+        var engine = BuildEngine(() => now);
+        engine.State.Language = AppLanguage.En;
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        now += TimeSpan.FromMinutes(10);
+        engine.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+        now += TimeSpan.FromSeconds(5);
+        now += TimeSpan.FromMinutes(10);
+
+        engine.ApplyUsage(Map(("claude_code", 130_000_000)), "2026-09-23", true);
+
+        var view = engine.View();
+        Assert.Equal(CompanionStatusKind.LevelUp, view.Status);
+        Assert.Equal("Specimature", view.StatusEvolvedName);
+
+        now += TimeSpan.FromSeconds(5);
+        view = engine.View();
+        Assert.NotEqual(CompanionStatusKind.LevelUp, view.Status);
+        Assert.Null(view.StatusEvolvedName);
+    }
+
+    [Fact]
+    public void ViewCarriesCatchRowsActiveFirstThenGraduated()
+    {
+        var engine = BuildEngine();
+        engine.State.Language = AppLanguage.En;
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        engine.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+        engine.ApplyUsage(Map(("claude_code", 130_000_000)), "2026-09-23", true);
+        engine.ApplyUsage(Map(("claude_code", 380_000_000)), "2026-09-23", true);
+        engine.ApplyUsage(Map(("claude_code", 755_000_000)), "2026-09-23", true);
+        Assert.Null(engine.State.Active);
+        engine.ApplyUsage(Map(("claude_code", 1_000_000_000)), "2026-09-23", true);
+
+        var rows = engine.View().CatchRows;
+        Assert.Equal(2, rows.Count);
+        Assert.True(rows[0].IsRaising);
+        Assert.False(rows[0].IsReleased);
+        Assert.Null(rows[0].CaughtAt);
+        Assert.Equal("active-1-3", rows[0].Key);
+        Assert.Equal(3, rows[0].Chain.Count);
+        Assert.Equal("Speciemon", rows[0].Chain[0].Name);
+        Assert.Equal("Specimature", rows[0].Chain[1].Name);
+        Assert.Equal("Specifinal", rows[0].Chain[2].Name);
+        Assert.Equal(PokemonNatures.Name(PokemonNatures.All[1], AppLanguage.En), rows[0].Nature);
+
+        Assert.False(rows[1].IsRaising);
+        Assert.False(rows[1].IsReleased);
+        Assert.Equal(Now, rows[1].CaughtAt);
+        Assert.Equal(
+            [("1", "Speciemon"), ("2", "Specimature"), ("3", "Specifinal")],
+            rows[1].Chain.Select(node => (node.SpeciesID.ToString(), node.Name)));
+    }
+
+    [Fact]
+    public void CatchRowsSortMissingTimestampsLastAndCarryBadges()
+    {
+        var engine = BuildEngine();
+        engine.State.Language = AppLanguage.En;
+        engine.State.Dex.Add(new DexEntry(10, 10, [10], Rarity.Uncommon,
+            new DateTimeOffset(2026, 9, 20, 9, 0, 0, TimeSpan.Zero)));
+        engine.State.Dex.Add(new DexEntry(50, 50, [50], Rarity.Rare, null, isShiny: true));
+        engine.State.Dex.Add(new DexEntry(1, 3, [1, 2, 3], Rarity.Common,
+            new DateTimeOffset(2026, 9, 25, 9, 0, 0, TimeSpan.Zero),
+            releasedAt: new DateTimeOffset(2026, 9, 26, 9, 0, 0, TimeSpan.Zero)));
+
+        var rows = engine.View().CatchRows;
+
+        Assert.Equal(3, rows.Count);
+        Assert.Equal(1, rows[0].BaseID);
+        Assert.True(rows[0].IsReleased);
+        Assert.Equal(10, rows[1].BaseID);
+        Assert.Equal("#10", Assert.Single(rows[1].Chain).Name);
+        Assert.Equal(50, rows[2].BaseID);
+        Assert.True(rows[2].IsShiny);
+        Assert.Equal("#50", Assert.Single(rows[2].Chain).Name);
+        Assert.Null(rows[2].CaughtAt);
+        Assert.Equal("", rows[2].Nature);
+    }
 }

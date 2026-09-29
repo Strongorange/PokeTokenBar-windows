@@ -56,6 +56,16 @@ public class SpriteCatalogTests
     }
 
     [Fact]
+    public void ItemSpritesUseItemsBaseWithMacOSCacheKey()
+    {
+        Assert.Equal("item-rare-candy", SpriteCatalog.ItemCacheKey("rare-candy"));
+        Assert.Equal("https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rare-candy.png",
+            SpriteCatalog.ItemUrl("rare-candy"));
+        Assert.Equal("https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/shiny-charm.png",
+            SpriteCatalog.ItemUrl("shiny-charm"));
+    }
+
+    [Fact]
     public void UnownAssetNamesFollowPokeApiFormNaming()
     {
         Assert.Equal("201", SpriteCatalog.AssetName(201, UnownForm.A));

@@ -89,6 +89,7 @@ public partial class SettingsWindow : Window
                 PetEnabledCheck.IsChecked = app.PetEnabled;
                 PetSizeSlider.Value = app.PetSize;
                 UpdateNotificationsCheck.IsChecked = app.UpdateNotificationsEnabled;
+                LaunchAtLoginCheck.IsChecked = app.LaunchAtLoginEnabled;
                 _scanRoots.AddRange(app.ScanRoots);
             }
             else
@@ -96,6 +97,7 @@ public partial class SettingsWindow : Window
                 PetEnabledCheck.IsChecked = false;
                 PetSizeSlider.Value = AppSettingsFile.DefaultPetSize;
                 UpdateNotificationsCheck.IsChecked = true;
+                LaunchAtLoginCheck.IsChecked = false;
             }
             PetSizeValue.Text = $"{(int)PetSizeSlider.Value}px";
             RebuildScanList();
@@ -114,6 +116,7 @@ public partial class SettingsWindow : Window
         RepresentativeText.Text = DashboardText.RepresentativePokemonLabel(lang);
         RepresentativeResetButton.Content = "_" + DashboardText.RepresentativeFollowCurrent(lang);
         RepresentativeChooseButton.Content = "_" + DashboardText.RepresentativeChooseFromDex(lang);
+        LaunchAtLoginText.Text = DashboardText.LaunchAtLoginLabel(lang);
         RenderRepresentativeRow();
         DifficultyHeader.Text = DashboardText.DifficultySection(lang);
         DifficultyHint.Text = DashboardText.DifficultyHint(lang);
@@ -251,6 +254,14 @@ public partial class SettingsWindow : Window
         if (_updating || _engine is null) return;
         if (System.Windows.Application.Current is App app)
             app.ApplyUpdateNotifications(UpdateNotificationsCheck.IsChecked == true);
+    }
+
+    private void OnLaunchAtLoginChanged(object sender, RoutedEventArgs e)
+    {
+        if (_updating || _engine is null) return;
+        if (System.Windows.Application.Current is not App app) return;
+        app.ApplyLaunchAtLogin(LaunchAtLoginCheck.IsChecked == true);
+        LaunchAtLoginCheck.IsChecked = app.LaunchAtLoginEnabled;
     }
 
     private async void OnCheckNowClick(object sender, RoutedEventArgs e)
