@@ -30,7 +30,7 @@ activity.
 
 ### Explicitly deferred
 
-- Start automatically at sign-in
+- Start automatically at sign-in — shipped in M23 after all (HKCU Run key)
 - Credential Manager integration
 - Automatic updates, MSIX, winget, and public distribution
 - Remote error reporting or Sentry
@@ -389,10 +389,32 @@ stats at scale 300). No engine/data changes — `CompanionDetailSnapshot`
 already carried everything; 8 macOS-verbatim strings added (`IndividualsTitle`
 removed as unused).
 
+Twelfth slice (M23, version 0.22.0, user-verified): a four-feature bundle
+("everything one thread can handle" per the user's kickoff pick). Catch log
+view: the dex tab gained a segment toggle (Pokédex / catch log); the log lists
+one card per individual — rarity capsule, "Raising"/"Released" badge, ✨,
+nature on the right, the reached evolution chain as sprites with names, and a
+relative caught-at line ("n일 전") — with the currently-raised mon pinned
+first and per-individual rarity filter capsules (engine `BuildCatchRows` +
+`CompanionCatchRow` view rows; macOS `dexEntriesSorted` ordering). Companion
+status line: a one-line mood under the progress bar (egg / idle / working /
+focus / tired / sleep / level-up) ported as the pure `CompanionStatus.Compute`
+machine with macOS burn thresholds; the engine approximates burn rate from
+consecutive refresh deltas (macOS reads active provider blocks) and holds a 4s
+"Evolved into X!" window after hatch/evolve/reveal. Shop/bag item icons:
+`ItemIconSlot` renders PokeAPI item sprites cached-first (`item-{name}.png`,
+macOS-compatible keys) with emoji fallback (mint has no sprite by design).
+Launch at login: settings general-group toggle backed by
+`Platform.Windows.LoginItem` (HKCU Run key, registry access delegate-injected
+so encoding/matching stay unit-tested). Engineering quality rode along:
+`CompanionPresentation` + `RelativeTimes` extracted from the dashboard
+code-behind with tests, and a pre-existing dex-filter double-click misindex
+was fixed. ~20 macOS-verbatim strings added.
+
 Remaining UI-parity candidates live in `docs/ui-parity-audit.md` (Tier 2:
-celebration animation package, catch-log view, companion status line,
-incident banner; Tier 3: constrained items incl.
+celebration animation package — deliberately its own slice; incident banner,
+deprioritized by the user; Tier 3: dark mode, constrained items incl.
 official limits, rejected by the no-credentials rule; engineering quality:
-extract pure UI-adjacent logic from the dashboard code-behind). Confirm the
-next slice with the user first. Windows keeps the tray + dashboard model —
-inline menu-bar text stays out of scope by design.
+partially done in M23, render/confirm-state builders still in code-behind).
+Confirm the next slice with the user first. Windows keeps the tray +
+dashboard model — inline menu-bar text stays out of scope by design.
