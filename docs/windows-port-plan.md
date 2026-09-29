@@ -292,8 +292,30 @@ notifications toggle in settings.json. Dormant but correct until releases
 newer than the installed version are uploaded (releases so far use
 `v<Version>` tags; only v0.10.0 exists today).
 
+Seventh slice (M18, version 0.17.0): evolution-line visuals and shiny
+sparkle parity in the game tab, porting the macOS `EvoLineView`. The engine
+now exposes `EvoLine` (structured `EvoLineItem`s: species id or one mystery
+cell for branch points, state Done/Current/Future — the Core record types
+that had existed unused since the initial port) on `CompanionGameView` next
+to the label-only `StageItems`. The dashboard's old text chain (`A → B → C`
+in `StageLine`) became a horizontal row of 40px static sprite cells with
+arrow separators, future stages at 0.32 opacity, an accent dot under the
+current stage, a bold `?` cell (tooltip `unknownNextEvolution`) where a
+line branches, whole-line shiny sprites when the individual is shiny, and
+an overflow ScrollViewer. The progress caption shows `finalForm`
+("최종 진화체"/"Final form") instead of "Stage i/k" at the last stage. Shiny
+markers switched from a gray `★` suffix to macOS-style `✨` on the companion
+name (tooltip `dexShinyLabel` — the previously dormant `ShinyLabel`, now
+capitalized per the macOS table), dex tile stars, species-detail individual
+headers, and Unown form thumbs. New macOS-verbatim strings: `FinalForm`,
+`UnknownNextEvolution`; `ShinyLabel` values corrected to the macOS
+capitalization.
+
 Remaining UI-parity candidates, in rough value order (each is its own slice;
-confirm with the user first): shiny banner and evolution-line visuals;
-resizable dashboard window. Windows
-keeps the tray + dashboard model — inline menu-bar text stays out of scope by
-design.
+confirm with the user first). After M18 the user noted the overall UI still
+looks rough next to the macOS original, so the leading candidate is a
+general visual-quality pass (cards, spacing, typography, colors, window
+chrome toward macOS polish). Others: hatch/evolve celebration animation
+(macOS white-flash + spring pop + delayed ✨ burst on shiny); resizable
+dashboard window. Windows keeps the tray + dashboard model — inline
+menu-bar text stays out of scope by design.
