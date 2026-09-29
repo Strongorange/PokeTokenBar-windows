@@ -279,11 +279,18 @@ the hero sprite to that form. Engine surfaces this via
 `CompanionDetailSnapshot` plus `UnownForm` per detail individual, and the
 active Unown dex row keeps a plain name.
 
-Sixth slice (M17, agreed 2026-09-29, not started): new-version notifications,
+Sixth slice (M17, version 0.16.0, user-verified): new-version notifications,
 porting the macOS `UpdateChecker` — GitHub `releases/latest` check on startup
-with a debounce, tray balloon + banner, skip-this-version, a settings section
-with a manual check, and "open the release page" as the apply action (no
-auto-download). Requires releases to use consistent tags (`v<Version>`).
+and dashboard open (30-minute in-memory debounce, manual check bypasses it),
+tray balloon + dashboard banner with skip-this-version, a settings "Updates"
+section with a manual check and an update-notifications toggle, and "open the
+release page" as the apply action (no auto-download; https + github.com URL
+validation before opening). Pure version compare in
+`src/Core/VersionText.cs`, the checker service with injectable
+fetch/clock/skip store in `src/Application/UpdateChecker.cs`, skip version +
+notifications toggle in settings.json. Dormant but correct until releases
+newer than the installed version are uploaded (releases so far use
+`v<Version>` tags; only v0.10.0 exists today).
 
 Remaining UI-parity candidates, in rough value order (each is its own slice;
 confirm with the user first): shiny banner and evolution-line visuals;
