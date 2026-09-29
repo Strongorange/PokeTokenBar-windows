@@ -42,6 +42,12 @@ Legend: ☐ todo · ◐ in progress · ☑ done (milestone) · ✗ rejected (rea
 | ☐ Dark mode | n/a (macOS free via materials) | large: token swap + title bar |
 | ☐ Launch at login setting | SettingsView general group | small feature, registry/shortcut |
 
+## Engineering quality (non-parity, user principle: every unit modular + individually testable)
+
+| Item | Status |
+|------|--------|
+| ☐ Extract pure UI-adjacent logic from `DashboardWindow.xaml.cs` (~1200 lines: dex filter decision, capsule/color mapping incl. `ColorOf` duplicating Theme brushes, bag/shop row presentation states) into testable helpers in Core/Application so it gets unit coverage instead of headless-manual-only | todo (raised at M20 close) |
+
 ## Done history (UI parity)
 
 - M12 sprites + 7-language localization · M13 dex tile grid · M14 month

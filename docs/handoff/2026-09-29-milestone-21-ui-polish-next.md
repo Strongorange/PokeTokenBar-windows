@@ -104,6 +104,12 @@ something new):
   Detail-window polish (type capsules, individual picker, actual-stats).
   Incident banner (statuspage.io, no auth, network + privacy doc).
 - Tier 3: shop item sprite images; dark mode; launch-at-login.
+- Engineering quality (user principle from M20 close: every unit modular and
+  individually testable): extract pure UI-adjacent logic from
+  `DashboardWindow.xaml.cs` (~1200 lines — dex filter decision, capsule
+  color mapping incl. `ColorOf` duplicating Theme brushes, bag/shop row
+  presentation states) into Core/Application helpers with unit tests.
+  Can ride along with a UI slice that touches the same code.
 
 ## Contracts
 - Engine: `ApplyUsage(...)`, shop/candy/mint/difficulty members,
