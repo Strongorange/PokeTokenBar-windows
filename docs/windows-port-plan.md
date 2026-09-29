@@ -311,11 +311,34 @@ headers, and Unown form thumbs. New macOS-verbatim strings: `FinalForm`,
 `UnknownNextEvolution`; `ShinyLabel` values corrected to the macOS
 capitalization.
 
+Eighth slice (M19, version 0.18.0, user-verified): a general visual-quality
+pass over the dashboard, settings and detail windows, moving from bare default
+WPF controls to a Fluent/Windows-11 light theme. `src/Ui/Theme.xaml` (merged in
+App.xaml AND per-window so headless tests resolve resources) holds the design
+tokens (window/card/text/accent/rarity brushes, Segoe UI Variable) and implicit
+styles for Button (+ keyed accent variant), ListBox/ListBoxItem, TabControl/
+TabItem (pivot tabs with accent underline), ProgressBar, ToolTip, CheckBox,
+ComboBox/ComboBoxItem, Slider and a flat thin ScrollBar, plus keyed Card/
+SectionHeader/Caption styles. The dashboard game/usage sections, settings
+sections and detail header/content are grouped into cards; the update banner
+is accent-tinted. Code-built visuals (trend bars, evo cells, dex captions,
+detail rows) read theme brushes through a `Token(key)` helper. During review
+the user asked for a bigger dex and macOS-parity shop, so the slice also
+grew: the window became 640x800 and resizable (min 560x640), the dex moved to
+its own full-width tab (7 columns of 76px tiles) with the game tab keeping a
+companion-events card, and the shop moved to its own tab modeled on the macOS
+ShopView — wallet card with a big spendable number plus per-entry cards
+(emoji icon, description, owned count, price, per-card buy with inline
+confirm, egg cards with a send-off warning and a second shiny warning, tier
+capsules in rarity colors). The game tab's old shop list became a "bag" card
+with the candy/mint use buttons. New macOS-verbatim strings for the shop/bag
+(passive-owned, egg confirm, shiny-discard warning, companion-events header).
+
 Remaining UI-parity candidates, in rough value order (each is its own slice;
-confirm with the user first). After M18 the user noted the overall UI still
-looks rough next to the macOS original, so the leading candidate is a
-general visual-quality pass (cards, spacing, typography, colors, window
-chrome toward macOS polish). Others: hatch/evolve celebration animation
-(macOS white-flash + spring pop + delayed ✨ burst on shiny); resizable
-dashboard window. Windows keeps the tray + dashboard model — inline
-menu-bar text stays out of scope by design.
+confirm with the user first): hatch/evolve celebration animation (macOS
+white-flash + spring pop + delayed ✨ burst on shiny hatch); richer provider
+rows in the usage tab; item sprite images for the shop cards (currently emoji
+fallback). Done since the reopen note: the general visual-quality pass,
+resizable dashboard window and the dex/shop tab restructure (M19). Windows
+keeps the tray + dashboard model — inline menu-bar text stays out of scope by
+design.
