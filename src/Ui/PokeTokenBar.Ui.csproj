@@ -8,7 +8,7 @@
     <Nullable>enable</Nullable>
     <AssemblyName>PokeTokenBar</AssemblyName>
     <RootNamespace>PokeTokenBar.Ui</RootNamespace>
-    <Version>0.16.0</Version>
+    <Version>0.17.0</Version>
     <ApplicationIcon>..\..\assets\pokeball.ico</ApplicationIcon>
   </PropertyGroup>
 

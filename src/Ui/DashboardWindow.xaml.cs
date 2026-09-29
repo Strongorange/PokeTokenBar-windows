@@ -218,23 +218,29 @@ public partial class DashboardWindow : Window
     public void UpdateGame(CompanionGameView view)
     {
         var lang = view.Language;
-        var shiny = view.HasActive && view.IsShiny ? " ★" : "";
+        var shiny = view.HasActive && view.IsShiny ? " ✨" : "";
         var boost = view.HasGrowthBoost
             ? "  (" + DashboardText.GrowthBoostMark(lang, PokemonBalance.RepeatGrowthMultiplier) + ")" : "";
         var rarity = view.Rarity is { } value ? DashboardText.RarityLabel(lang, value) : "";
         CompanionName.Text = (view.HasActive ? view.ActiveName : DashboardText.TokenEgg(lang)) + shiny;
+        CompanionName.ToolTip = view.HasActive && view.IsShiny
+            ? "✨ " + DashboardText.ShinyLabel(lang)
+            : null;
         CompanionDetail.Text = view.HasActive
             ? $"{rarity}{boost}"
             : DashboardText.EggHint(lang);
 
         if (view.HasActive)
         {
+            var stageCaption = view.StageIndex + 1 >= view.TotalForms && view.TotalForms > 0
+                ? DashboardText.FinalForm(lang)
+                : DashboardText.StageLabel(lang, view.StageIndex + 1, view.TotalForms);
             ProgressLabel.Text =
-                $"{DashboardText.StageLabel(lang, view.StageIndex + 1, view.TotalForms)} · " +
+                $"{stageCaption} · " +
                 $"{TokenFormatter.Grouped(view.StageUsed)} / {TokenFormatter.Grouped(view.StageThreshold)} " +
                 DashboardText.TokensUnit(lang);
             ProgressBar.Value = view.StageProgress;
-            StageLine.Text = string.Join(" → ", view.StageItems.Select(ItemText));
+            RenderEvolutionLine(view);
             _companionSprite.Update(_sprites, view.ActiveSpeciesID, true, view.IsShiny,
                 view.ActiveUnownForm, "❔");
         }
@@ -244,7 +250,7 @@ public partial class DashboardWindow : Window
                 $"{DashboardText.TokenEgg(lang)} · {TokenFormatter.Grouped(view.EggUsed)} / " +
                 $"{TokenFormatter.Grouped(view.EggThreshold)} {DashboardText.TokensUnit(lang)}";
             ProgressBar.Value = view.EggProgress;
-            StageLine.Text = "";
+            RenderEvolutionLine(view);
             _companionSprite.UpdateEgg(_sprites, "🥚");
         }
         UpdateCombatText(view);
@@ -344,8 +350,76 @@ public partial class DashboardWindow : Window
         UpdateGame(_engine.View());
     }
 
-    private static string ItemText(CompanionStageItem item) =>
-        item.Mystery ? item.Label : item.Label;
+    private void RenderEvolutionLine(CompanionGameView view)
+    {
+        EvolutionLine.Children.Clear();
+        var visible = view.HasActive && view.EvoLine.Count > 0;
+        EvolutionScroll.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+        if (!visible) return;
+        for (var i = 0; i < view.EvoLine.Count; i++)
+        {
+            if (i > 0) EvolutionLine.Children.Add(CreateEvolutionArrow());
+            EvolutionLine.Children.Add(CreateEvolutionCell(view.EvoLine[i], view));
+        }
+    }
+
+    private static TextBlock CreateEvolutionArrow() => new()
+    {
+        Text = "→",
+        FontSize = 11,
+        Foreground = new SolidColorBrush(Color.FromRgb(0x99, 0x99, 0x99)),
+        Width = 14,
+        Height = 40,
+        TextAlignment = TextAlignment.Center,
+        VerticalAlignment = VerticalAlignment.Center,
+    };
+
+    private StackPanel CreateEvolutionCell(EvoLineItem item, CompanionGameView view)
+    {
+        var cell = new StackPanel { Width = 40 };
+        var slot = new Grid { Width = 40, Height = 40 };
+        if (item.Content.Kind == EvoLineItemContentKind.Mystery)
+        {
+            slot.Children.Add(new TextBlock
+            {
+                Text = "?",
+                FontSize = 22,
+                FontWeight = FontWeights.Bold,
+                Foreground = new SolidColorBrush(Color.FromRgb(0x66, 0x66, 0x66)),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                ToolTip = DashboardText.UnknownNextEvolution(view.Language),
+            });
+        }
+        else
+        {
+            var image = new Image { Width = 40, Height = 40, Stretch = Stretch.Uniform };
+            var placeholder = new TextBlock
+            {
+                Text = "❔",
+                FontSize = 18,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            slot.Children.Add(placeholder);
+            slot.Children.Add(image);
+            new SpriteSlot(image, placeholder).Update(_sprites, item.Content.SpeciesID,
+                false, view.IsShiny, view.ActiveUnownForm, "❔");
+        }
+        cell.Children.Add(slot);
+        cell.Children.Add(new System.Windows.Shapes.Ellipse
+        {
+            Width = 4,
+            Height = 4,
+            Fill = new SolidColorBrush(Color.FromRgb(0x00, 0x78, 0xD4)),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 2, 0, 0),
+            Visibility = item.State == EvoLineItemState.Current ? Visibility.Visible : Visibility.Hidden,
+        });
+        if (item.State == EvoLineItemState.Future)
+            cell.Opacity = 0.32;
+        return cell;
+    }
 
     private void UpdateCombatText(CompanionGameView view)
     {
@@ -373,7 +447,7 @@ public partial class DashboardWindow : Window
 
     private UIElement CreateDexTile(CompanionDexRow row, AppLanguage lang, int unownCollected)
     {
-        var star = row.IsShiny ? " ★" : "";
+        var star = row.IsShiny ? " ✨" : "";
         var raising = row.IsRaising ? $"  ← {DashboardText.RaisingLabel(lang)}" : "";
         var unownForms = unownCollected > 0
             ? $" · {DashboardText.UnownFormsCollected(lang, unownCollected)}" : "";
@@ -398,10 +472,10 @@ public partial class DashboardWindow : Window
         {
             var shiny = new TextBlock
             {
-                Text = "★",
+                Text = "✨",
                 FontSize = 10,
-                Foreground = Brushes.Gray,
                 HorizontalAlignment = HorizontalAlignment.Right,
+                ToolTip = "✨ " + DashboardText.ShinyLabel(lang),
             };
             Grid.SetColumn(shiny, 1);
             caption.Children.Add(shiny);

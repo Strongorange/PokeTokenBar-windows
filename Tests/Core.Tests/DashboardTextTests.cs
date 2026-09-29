@@ -112,6 +112,32 @@ public class DashboardTextTests
     }
 
     [Fact]
+    public void EvolutionLineStringsFollowMacOSTranslations()
+    {
+        Assert.Equal("최종 진화체", DashboardText.FinalForm(AppLanguage.Ko));
+        Assert.Equal("Final form", DashboardText.FinalForm(AppLanguage.En));
+        Assert.Equal("最終進化", DashboardText.FinalForm(AppLanguage.Ja));
+        Assert.Equal("Forma final", DashboardText.FinalForm(AppLanguage.Es));
+        Assert.Equal("Forme finale", DashboardText.FinalForm(AppLanguage.Fr));
+        Assert.Equal("Forma final", DashboardText.FinalForm(AppLanguage.Pt));
+        Assert.Equal("Letzte Entwicklungsstufe", DashboardText.FinalForm(AppLanguage.De));
+        Assert.Equal("알 수 없는 다음 진화", DashboardText.UnknownNextEvolution(AppLanguage.Ko));
+        Assert.Equal("Unknown next evolution", DashboardText.UnknownNextEvolution(AppLanguage.En));
+        Assert.Equal("次の進化先は不明", DashboardText.UnknownNextEvolution(AppLanguage.Ja));
+        Assert.Equal("Próxima evolución desconocida", DashboardText.UnknownNextEvolution(AppLanguage.Es));
+        Assert.Equal("Prochaine évolution inconnue", DashboardText.UnknownNextEvolution(AppLanguage.Fr));
+        Assert.Equal("Próxima evolución desconhecida", DashboardText.UnknownNextEvolution(AppLanguage.Pt));
+        Assert.Equal("Nächste Entwicklung unbekannt", DashboardText.UnknownNextEvolution(AppLanguage.De));
+        Assert.Equal("이로치", DashboardText.ShinyLabel(AppLanguage.Ko));
+        Assert.Equal("Shiny", DashboardText.ShinyLabel(AppLanguage.En));
+        Assert.Equal("色違い", DashboardText.ShinyLabel(AppLanguage.Ja));
+        Assert.Equal("Variocolor", DashboardText.ShinyLabel(AppLanguage.Es));
+        Assert.Equal("Chromatique", DashboardText.ShinyLabel(AppLanguage.Fr));
+        Assert.Equal("Shiny", DashboardText.ShinyLabel(AppLanguage.Pt));
+        Assert.Equal("Schillernd", DashboardText.ShinyLabel(AppLanguage.De));
+    }
+
+    [Fact]
     public void UpdateStringsFollowMacOSTranslations()
     {
         Assert.Equal("🆕 v0.16.0 사용 가능 (현재 0.15.0)",

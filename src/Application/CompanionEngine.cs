@@ -109,6 +109,7 @@ public sealed record CompanionGameView(
     double GrowthDifficulty,
     double ShopDifficulty,
     IReadOnlyList<CompanionStageItem> StageItems,
+    IReadOnlyList<EvoLineItem> EvoLine,
     IReadOnlyList<CompanionDexRow> DexRows,
     IReadOnlyList<CompanionEvent> RecentEvents,
     IReadOnlyList<CompanionShopRow> ShopRows,
@@ -1203,6 +1204,7 @@ public sealed class CompanionEngine
             _growthDifficulty,
             _shopDifficulty,
             hasActive ? BuildStageItems(active!, line) : [],
+            hasActive ? BuildEvoLineItems(active!, line) : [],
             BuildDexRows(),
             _events.ToList(),
             BuildShopRows(),
@@ -1240,6 +1242,28 @@ public sealed class CompanionEngine
                 DisplayName(line, next.SpeciesID, active.UnownForm), false, false, false)));
             if (node.Children.Count > 1)
                 items.Add(new CompanionStageItem("???", false, false, true));
+        }
+        return items;
+    }
+
+    private IReadOnlyList<EvoLineItem> BuildEvoLineItems(MonState active, EvoLine? line)
+    {
+        var items = new List<EvoLineItem>();
+        for (var i = 0; i <= active.StageIndex && i < active.PathIDs.Count; i++)
+            items.Add(new EvoLineItem(
+                EvoLineItemContent.Species(active.PathIDs[i]),
+                i < active.StageIndex ? EvoLineItemState.Done : EvoLineItemState.Current));
+        if (line is not null && line.Tree.NodeWithID(active.CurrentID) is { } current)
+        {
+            var node = current;
+            while (node.Children.Count == 1 && node.Children[0] is { } child)
+            {
+                items.Add(new EvoLineItem(
+                    EvoLineItemContent.Species(child.SpeciesID), EvoLineItemState.Future));
+                node = child;
+            }
+            if (node.Children.Count > 1)
+                items.Add(new EvoLineItem(EvoLineItemContent.Mystery(), EvoLineItemState.Future));
         }
         return items;
     }

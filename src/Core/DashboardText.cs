@@ -230,7 +230,16 @@ public static class DashboardText
             "in Aufzucht");
 
     public static string ShinyLabel(AppLanguage lang) =>
-        T(lang, "이로치", "shiny", "色違い", "variocolor", "chromatique", "shiny", "schillernd");
+        T(lang, "이로치", "Shiny", "色違い", "Variocolor", "Chromatique", "Shiny", "Schillernd");
+
+    public static string FinalForm(AppLanguage lang) =>
+        T(lang, "최종 진화체", "Final form", "最終進化", "Forma final", "Forme finale", "Forma final",
+            "Letzte Entwicklungsstufe");
+
+    public static string UnknownNextEvolution(AppLanguage lang) =>
+        T(lang, "알 수 없는 다음 진화", "Unknown next evolution", "次の進化先は不明",
+            "Próxima evolución desconocida", "Prochaine évolution inconnue",
+            "Próxima evolución desconhecida", "Nächste Entwicklung unbekannt");
 
     public static string RarityLabel(AppLanguage lang, Rarity rarity) => rarity switch
     {

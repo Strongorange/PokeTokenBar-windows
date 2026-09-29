@@ -116,9 +116,8 @@ public partial class SpeciesDetailWindow : Window
         if (status?.IsShiny == true)
             spriteHost.Children.Add(new TextBlock
             {
-                Text = "★",
+                Text = "✨",
                 FontSize = 8,
-                Foreground = Brushes.Gray,
                 HorizontalAlignment = HorizontalAlignment.Right,
                 VerticalAlignment = VerticalAlignment.Top,
             });
@@ -136,7 +135,7 @@ public partial class SpeciesDetailWindow : Window
             Cursor = status is null ? null : Cursors.Hand,
             ToolTip = status is null
                 ? $"{symbol} · {DashboardText.UnownNotCollected(lang)}"
-                : $"{symbol}{(status.IsShiny ? " ★" : "")}",
+                : $"{symbol}{(status.IsShiny ? " ✨" : "")}",
             Child = new StackPanel
             {
                 Children =
@@ -196,7 +195,7 @@ public partial class SpeciesDetailWindow : Window
         foreach (var individual in individuals)
         {
             var header = new List<string> { individual.Label };
-            if (individual.IsShiny) header.Add("★");
+            if (individual.IsShiny) header.Add("✨");
             if (individual.IsRaising) header.Add(DashboardText.RaisingLabel(lang));
             header.Add($"Lv. {individual.Level}");
             if (individual.Gender.Length > 0) header.Add(individual.Gender);

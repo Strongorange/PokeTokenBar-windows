@@ -659,6 +659,64 @@ public class CompanionEngineTests : IDisposable
     }
 
     [Fact]
+    public void ViewExposesEvolutionLineWithSpeciesIDsAndStates()
+    {
+        var engine = BuildEngine();
+        engine.State.Language = AppLanguage.En;
+        engine.State.Active = new MonState(1, [1, 2], null, 1, 0, Rarity.Common, 3);
+
+        var view = engine.View();
+        Assert.Equal(
+        [
+            new EvoLineItem(EvoLineItemContent.Species(1), EvoLineItemState.Done),
+            new EvoLineItem(EvoLineItemContent.Species(2), EvoLineItemState.Current),
+            new EvoLineItem(EvoLineItemContent.Species(3), EvoLineItemState.Future),
+        ], view.EvoLine);
+    }
+
+    [Fact]
+    public void FinalStageEvolutionLineEndsAtCurrentWithoutFutureItems()
+    {
+        var engine = BuildEngine();
+        engine.State.Language = AppLanguage.En;
+        engine.State.Active = new MonState(1, [1, 2, 3], null, 2, 0, Rarity.Common, 3);
+
+        var view = engine.View();
+        Assert.Equal(
+        [
+            new EvoLineItem(EvoLineItemContent.Species(1), EvoLineItemState.Done),
+            new EvoLineItem(EvoLineItemContent.Species(2), EvoLineItemState.Done),
+            new EvoLineItem(EvoLineItemContent.Species(3), EvoLineItemState.Current),
+        ], view.EvoLine);
+    }
+
+    [Fact]
+    public void BranchingEvolutionLineCollapsesToSingleMysteryItem()
+    {
+        var engine = BuildEngine(snapshot: BranchSnapshot);
+        engine.State.Language = AppLanguage.En;
+        engine.State.Active = new MonState(133, [133], null, 0, 0, Rarity.Common, 2);
+
+        var view = engine.View();
+        Assert.Equal(
+        [
+            new EvoLineItem(EvoLineItemContent.Species(133), EvoLineItemState.Current),
+            new EvoLineItem(EvoLineItemContent.Mystery(), EvoLineItemState.Future),
+        ], view.EvoLine);
+    }
+
+    [Fact]
+    public void EggViewHasEmptyEvolutionLine()
+    {
+        var engine = BuildEngine();
+        engine.State.Language = AppLanguage.En;
+
+        var view = engine.View();
+        Assert.True(view.IsEgg);
+        Assert.Empty(view.EvoLine);
+    }
+
+    [Fact]
     public void ShopBuyUsesWalletSemanticsAndBlocksInsufficientFundsAndRepurchase()
     {
         var statePath = Path.Combine(_dir, "shop-state.json");
@@ -997,6 +1055,23 @@ public class CompanionEngineTests : IDisposable
 
         Assert.Contains(engine.View().Bag, item => item.Kind == ItemKind.RareCandy && item.CanUse);
     }
+
+    private const string BranchSnapshot = """
+        {
+          "format": "poketokenbar.pokemon-snapshot",
+          "schema": 1,
+          "bases": [ {"id": 133, "captureRate": 45} ],
+          "lines": [
+            {"base": 133, "captureRate": 45, "legendary": false, "mythical": false,
+             "tree": [133, [[134, []], [135, []]]]}
+          ],
+          "names": {
+            "133": {"en": "Branchmon"},
+            "134": {"en": "Leftmon"},
+            "135": {"en": "Rightmon"}
+          }
+        }
+        """;
 
     private const string UnownSnapshot = """
         {
