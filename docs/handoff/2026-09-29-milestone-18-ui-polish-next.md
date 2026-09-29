@@ -113,6 +113,32 @@ Remaining UI-parity candidates, in rough value order (each is its own slice):
 - Or the user's own pick (that is how M17 came about — a second user started
   using the app).
 
+## Confirmed ready task (no re-confirmation needed): README rewrite
+Scoped with the user 2026-09-29 after the repo went public and the v0.16.0
+release went up. The root `README.md` / `README.ko.md` / `README.ja.md` are
+still the macOS original verbatim — menu bar, macOS 14+ / Swift 6 / Homebrew
+badges, chattymin's sponsor + trendshift badges, and a 13-provider list this
+port does not support. Misleading for anyone arriving from the release page.
+Decisions already made with the user:
+- Keep **English + Korean** only (`README.md` + `README.ko.md`); delete
+  `README.ja.md` and drop the ja cross-links from both survivors.
+- **No screenshots to start**: existing `assets/` images are macOS captures —
+  drop them from the READMEs; Windows screenshots can be added in a later
+  pass. The `assets/icon.png` header image may stay.
+- Badges: release badge for THIS repo (`Strongorange/PokeTokenBar-windows`),
+  Windows 10/11 + .NET 10 + MIT. Remove chattymin's sponsor/trendshift
+  badges; keep clear fork attribution + link to `chattymin/PokeTokenBar`.
+- Content must reflect the actual app: tray + dashboard (no menu bar),
+  supported providers Claude Code / Codex / OpenCode reading Windows + WSL
+  logs, install = download the self-contained `PokeTokenBar.exe` from
+  Releases and run (no installer), data under `%LOCALAPPDATA%\PokeTokenBar`
+  (`PTB_STATE_DIR` override), seven languages, floating pet, game loop
+  (egg → hatch → evolve → graduate → dex, shiny, shop/candy/mint/shiny
+  charm, Unown forms), new-version notifications (M17), development via
+  `dotnet test PokeTokenBar.Windows.slnx` + `docs/` for the port plan.
+- Do NOT touch `CONTRIBUTING*` / `RELEASE.md` / `Package.swift` in this task
+  (they are also macOS leftovers but were not requested).
+
 ## Contracts
 - Engine (unchanged in M17): `ApplyUsage(...)`, shop/candy/mint/difficulty
   members, `SetLanguage(AppLanguage)`, `View()` → `CompanionGameView` (ends
@@ -283,9 +309,11 @@ Remaining UI-parity candidates, in rough value order (each is its own slice):
 Read docs/handoff/2026-09-29-milestone-18-ui-polish-next.md end to end.
 Work in C:\Users\USER\my-pjts\poketoken-bars-windows, branch main, base main.
 The project is reopened for UI parity polish; M12-M17 are done (0.16.0 shipped,
-update notifications live). First confirm the M18 slice with the user (shiny
-banner/evolution-line visuals, resizable dashboard window, or their own pick),
-then implement that slice only, prove pure parts with tests, run the manual
-checklist, and verify with dotnet test PokeTokenBar.Windows.slnx.
-Do not bundle other work into the slice.
+update notifications live). Two tasks this session: FIRST do the already-scoped
+README rewrite (section "Confirmed ready task" — en+ko only, delete README.ja.md,
+no screenshots, real Windows app content, see the decisions there), THEN confirm
+the M18 UI slice with the user (shiny banner/evolution-line visuals, resizable
+dashboard window, or their own pick) and implement that slice only.
+Prove pure parts with tests, run the manual checklist, and verify with
+dotnet test PokeTokenBar.Windows.slnx. Do not bundle other work into the slice.
 ```
