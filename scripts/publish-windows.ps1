@@ -43,8 +43,51 @@ $shortcut.WorkingDirectory = $installDir
 $shortcut.IconLocation = "$installedExe,0"
 $shortcut.Save()
 
+$releaseDir = Join-Path $repo 'artifacts\release'
+New-Item -ItemType Directory -Path $releaseDir -Force | Out-Null
+
+$changelogPath = Join-Path $repo 'CHANGELOG.md'
+if (-not (Test-Path -LiteralPath $changelogPath)) { throw "CHANGELOG.md not found — release notes are generated from it" }
+$changelogLines = Get-Content -LiteralPath $changelogPath -Encoding UTF8
+$bodyStart = -1
+for ($i = 0; $i -lt $changelogLines.Count; $i++)
+{
+    if ($changelogLines[$i] -match '^## v') { $bodyStart = $i; break }
+}
+if ($bodyStart -lt 0 -or $changelogLines[$bodyStart] -notmatch "^## v$([regex]::Escape($version))(\s|$)")
+{
+    throw "CHANGELOG.md's newest section is '$($changelogLines[$bodyStart])' but the csproj version is $version — add the v$version section before releasing"
+}
+
+$zipPath = Join-Path $releaseDir "PokeTokenBar-$version-win-x64.zip"
+if (Test-Path -LiteralPath $zipPath) { Remove-Item -LiteralPath $zipPath -Force }
+Compress-Archive -Path $stagedExe -DestinationPath $zipPath
+
+$notes = @(
+    "# PokeTokenBar for Windows v$version",
+    "",
+    "Cumulative release: everything since v0.10.0, the full macOS-parity",
+    "polish series. Newest changes first.",
+    ""
+) + $changelogLines[$bodyStart..($changelogLines.Count - 1)] + @(
+    "",
+    "## Install",
+    "",
+    "1. Download ``PokeTokenBar-$version-win-x64.zip`` below and unzip it anywhere.",
+    "2. Run ``PokeTokenBar.exe``. State lives under ``%LOCALAPPDATA%\PokeTokenBar``;",
+    "   unzipping or deleting the exe never touches your save.",
+    "",
+    "Upgrading from an earlier version: replace the old files (or unzip to a new",
+    "folder) and launch — the save, settings and sprite cache are picked up",
+    "automatically."
+)
+$notesPath = Join-Path $releaseDir "release-notes-v$version.md"
+Set-Content -LiteralPath $notesPath -Value $notes -Encoding utf8
+
 Write-Host "PokeTokenBar $version installed:"
 Write-Host "  exe      = $installedExe"
 Write-Host "  shortcut = $shortcutPath"
+Write-Host "  zip      = $zipPath"
+Write-Host "  notes    = $notesPath"
 
 if ($Launch) { Start-Process -FilePath $installedExe -WorkingDirectory $installDir }

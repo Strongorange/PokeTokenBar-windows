@@ -79,11 +79,16 @@ this same checkout in parallel, they will conflict (repo pushes straight to
   sprites remain the separate online-cached concern (`SpriteStore`).
 - Packaging: version = Ui csproj, bumped with the shipping slice (0.24.0 =
   M25; M26 ships 0.25.0). Publish via `scripts\publish-windows.ps1` (kills
-  the installed app; relaunch the exe yourself). Releases by hand,
-  `v<Version>` tags; update checker wired to `Strongorange/PokeTokenBar-windows`.
-  Release zip = `PokeTokenBar-<version>-win-x64.zip` containing ONLY
-  PokeTokenBar.exe (pdbs excluded — README's install section names this exact
-  zip); notes = changelog since v0.10.0. `gh` CLI NOT authenticated and the
+  the installed app; relaunch the exe yourself). THE SCRIPT NOW ALSO
+  PRODUCES, in `artifacts\release\` (the single canonical artifact
+  location): `PokeTokenBar-<version>-win-x64.zip` (exe only, pdbs excluded —
+  README's install section names this exact zip) and
+  `release-notes-v<version>.md` generated from the committed root
+  `CHANGELOG.md` — it REFUSES to publish if the newest CHANGELOG section
+  doesn't match the csproj version, so add the version's section to
+  CHANGELOG.md as part of every shipping slice. Releases by hand,
+  `v<Version>` tags; update checker wired to `Strongorange/PokeTokenBar-windows`;
+  notes = the generated cumulative file. `gh` CLI NOT authenticated and the
   GitHub API is 403 rate-limited without a token, so the user uploads the
   release + asset by hand in the browser.
 - State under `%LOCALAPPDATA%\PokeTokenBar` (`PTB_STATE_DIR` overrides).
@@ -218,12 +223,11 @@ Pick from `docs/ui-parity-audit.md`. Remaining:
   comes from `last_token_usage`.
 - GitHub API from this machine without a token is 403 rate-limited; manual
   update checks masquerade as "up to date". `gh` CLI NOT authenticated.
-  Releases by hand in the browser: v0.22.0 uploaded at M24 close;
-  v0.23.0 (`PokeTokenBar-0.23.0-win-x64.zip`, tag `v0.23.0`) was still
-  pending at M25 close — CONFIRM with the user whether it went up; if not,
-  v0.24.0 (`PokeTokenBar-0.24.0-win-x64.zip`, tag `v0.24.0`, exe only) can
-  supersede it. Until uploads land, installed 0.10.0–0.23.0 clients see no
-  update.
+  Releases by hand in the browser: tags v0.10.0/v0.16.0/v0.21.0/v0.22.0/
+  v0.23.0 all exist on the remote (v0.23.0 uploaded — confirmed via
+  `git ls-remote --tags` at M25 close). v0.24.0 zip + notes are READY in
+  `artifacts\release\` (script-generated) — the user still uploads release +
+  asset by hand; until then installed 0.10.0–0.23.0 clients see no update.
 - Normal and unrelated: git CRLF warnings; `docker-desktop` in `wsl -l -v`;
   SSH trap if push denied (`ssh-add -d <key>; ssh-add <key>`, verify
   `ssh -T git@github-personal` greets `Strongorange`).
@@ -246,8 +250,8 @@ Pick from `docs/ui-parity-audit.md`. Remaining:
   handoff on this file; update `docs/ui-parity-audit.md` when a slice lands.
 
 ## Open Risks
-- v0.24.0 release upload is manual (user, browser); installed clients see no
-  update until then.
+- v0.24.0 release upload is manual (user, browser) — zip + notes are ready
+  in `artifacts\release\`; installed clients see no update until then.
 - Celebrations drain in `UpdateGame` — if the dashboard is CLOSED when an
   event fires, the queue holds and plays on the next open (window recreation
   calls UpdateGame; macOS-parity). If the window exists but is MINIMIZED the
@@ -270,8 +274,10 @@ Pick from `docs/ui-parity-audit.md`. Remaining:
 - [ ] `dotnet test PokeTokenBar.Windows.slnx` fully green (515 + new)
 - [ ] `docs/ui-parity-audit.md` updated for the shipped items
 - [ ] Manual smoke on this machine incl. app restart; user confirms
-      (publish via `scripts\publish-windows.ps1`; bump `<Version>` to
-      0.25.0; relaunch the exe after publishing)
+      (add the v0.25.0 section to `CHANGELOG.md`, publish via
+      `scripts\publish-windows.ps1` — it fails without the matching
+      changelog section — bump `<Version>` to 0.25.0; relaunch the exe
+      after publishing)
 - [ ] Handoff for the next slice written and committed (if the series
       continues)
 
