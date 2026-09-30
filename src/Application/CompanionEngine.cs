@@ -162,6 +162,7 @@ public sealed class CompanionEngine
     private readonly object _gate = new();
     private readonly List<CompanionEvent> _events = [];
     private readonly List<CompanionNotice> _pendingNotices = [];
+    private readonly CelebrationQueue _celebrations = new();
     private CompanionState _state = new();
     private IReadOnlyDictionary<string, long>? _lastMap;
     private string _lastDate = "";
@@ -198,6 +199,11 @@ public sealed class CompanionEngine
             _pendingNotices.Clear();
             return drained;
         }
+    }
+
+    public IReadOnlyList<CompanionCelebration> DrainCelebrations()
+    {
+        lock (_gate) return _celebrations.Drain();
     }
 
     public CompanionState State
@@ -418,6 +424,9 @@ public sealed class CompanionEngine
             SetStatusLevelUpWindow(null);
             EnrichActiveProfile();
             if (overflow > 0) ApplyGrowth(overflow);
+            if (_state.Active is not null)
+                _celebrations.Enqueue(new CompanionCelebration(
+                    CompanionCelebrationKind.Hatch, Shiny: isShiny && dittoDisguise is null));
             return true;
         }
         return false;
@@ -499,6 +508,7 @@ public sealed class CompanionEngine
             var newName = DisplayName(line, next.SpeciesID, _state.Active.UnownForm);
             AddEvent(EventText.Evolve, newName);
             SetStatusLevelUpWindow(newName);
+            _celebrations.Enqueue(new CompanionCelebration(CompanionCelebrationKind.Evolve));
             EnrichActiveProfile();
             mutated = true;
         }
@@ -535,6 +545,8 @@ public sealed class CompanionEngine
                      $"rarity={Rarities.Raw(dittoLine.Rarity)} shiny={active.IsShiny}");
         AddEvent(EventText.DittoReveal, disguiseName, active.IsShiny);
         SetStatusLevelUpWindow(null);
+        _celebrations.Enqueue(new CompanionCelebration(
+            CompanionCelebrationKind.DittoReveal, Shiny: active.IsShiny));
         ApplyGrowth(0);
     }
 
@@ -889,6 +901,8 @@ public sealed class CompanionEngine
             var xp = (long)consumed * RareCandies.Xp;
             _state.Inventory[ItemKinds.Raw(ItemKind.RareCandy)] = ItemCount(ItemKind.RareCandy) - consumed;
             var beforeStage = _state.Active?.StageIndex ?? 0;
+            _celebrations.Enqueue(new CompanionCelebration(
+                CompanionCelebrationKind.CandyXp, Amount: xp));
             ApplyGrowth(xp);
             SaveCore();
             result = _state.Active is null
@@ -913,6 +927,7 @@ public sealed class CompanionEngine
             picked = pool[(int)(_options.NextRoll() % (ulong)pool.Length)];
             mon.Nature = picked;
             _state.Inventory[ItemKinds.Raw(ItemKind.Mint)] = ItemCount(ItemKind.Mint) - 1;
+            _celebrations.Enqueue(new CompanionCelebration(CompanionCelebrationKind.MintSparkle));
             SaveCore();
         }
         Changed?.Invoke();
@@ -1127,6 +1142,7 @@ public sealed class CompanionEngine
             EnrichCombatProfiles();
             _events.Clear();
             _pendingNotices.Clear();
+            _celebrations.Clear();
             _statusWindowUntil = null;
             _statusEvolvedName = null;
             SaveCore();

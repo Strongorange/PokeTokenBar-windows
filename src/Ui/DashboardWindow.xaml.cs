@@ -13,6 +13,7 @@ public partial class DashboardWindow : Window
     private readonly CompanionEngine _engine;
     private readonly SpriteStore _sprites;
     private readonly SpriteSlot _companionSprite;
+    private readonly CompanionCelebrationPlayer _celebrations;
     private CompanionGameView? _lastView;
     private UsageDisplayState? _lastUsageState;
     private CompanionShopRow? _confirmingShopRow;
@@ -32,6 +33,15 @@ public partial class DashboardWindow : Window
         _engine = engine;
         _sprites = sprites;
         _companionSprite = new SpriteSlot(CompanionSprite, CompanionSpritePlaceholder);
+        CelebrationShiny.Children.Add(CelebrationGlyphs.Sparkle(24));
+        CelebrationDitto.Children.Add(CelebrationGlyphs.TheaterMasks());
+        CelebrationGlyphs.FillMintCluster(CelebrationMint);
+        _celebrations = new CompanionCelebrationPlayer(
+            CompanionTile, CompanionScale, CompanionRotation, CelebrationFlash,
+            CelebrationShiny, CelebrationShinyScale,
+            CelebrationDitto, CelebrationDittoScale,
+            CelebrationCandy, CelebrationCandyText, CelebrationCandySlide,
+            CelebrationMint, CelebrationMintScale);
         LocalizeStaticText(engine.State.Language);
     }
 
@@ -415,6 +425,8 @@ public partial class DashboardWindow : Window
 
     public void UpdateGame(CompanionGameView view)
     {
+        _celebrations.Play(_engine.DrainCelebrations());
+        _celebrations.SetEggImminent(!view.HasActive && view.EggProgress >= 0.9);
         var lang = view.Language;
         var shiny = view.HasActive && view.IsShiny ? " ✨" : "";
         CompanionName.Text = (view.HasActive ? view.ActiveName : DashboardText.TokenEgg(lang)) + shiny;

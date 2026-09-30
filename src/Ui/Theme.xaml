@@ -17,6 +17,7 @@
     <SolidColorBrush x:Key="TrackBrush" Color="#E5E5E5" />
     <SolidColorBrush x:Key="HoverBrush" Color="#F5F5F5" />
     <SolidColorBrush x:Key="RarityCommonBrush" Color="#8A8A8A" />
+    <SolidColorBrush x:Key="SparkleBrush" Color="#FFC83D" />
     <SolidColorBrush x:Key="RarityUncommonBrush" Color="#107C10" />
     <SolidColorBrush x:Key="RarityRareBrush" Color="#0078D4" />
     <SolidColorBrush x:Key="RarityLegendaryBrush" Color="#F7630C" />

@@ -113,16 +113,54 @@
                     </Grid.RowDefinitions>
                     <Border Grid.Row="0" Style="{StaticResource Card}" Padding="12">
                         <StackPanel Orientation="Horizontal">
-                            <Border Width="64" Height="64" CornerRadius="8"
-                                    Background="{DynamicResource AccentSoftBrush}" Margin="0,0,12,0">
+                        <Grid Width="64" Height="64" Margin="0,0,12,0">
+                            <Border x:Name="CompanionTile" Width="64" Height="64" CornerRadius="8"
+                                    Background="{DynamicResource AccentSoftBrush}" RenderTransformOrigin="0.5,0.5">
+                                <Border.RenderTransform>
+                                    <TransformGroup>
+                                        <ScaleTransform x:Name="CompanionScale" />
+                                        <RotateTransform x:Name="CompanionRotation" />
+                                    </TransformGroup>
+                                </Border.RenderTransform>
                                 <Grid>
                                     <Image x:Name="CompanionSprite" Width="64" Height="64"
                                            Stretch="Uniform" Visibility="Collapsed" />
                                     <TextBlock x:Name="CompanionSpritePlaceholder" Text="🥚"
                                                FontSize="30" HorizontalAlignment="Center"
                                                VerticalAlignment="Center" />
+                                    <Border x:Name="CelebrationFlash" Background="White" CornerRadius="8"
+                                            Opacity="0" IsHitTestVisible="False" />
                                 </Grid>
                             </Border>
+                            <Grid x:Name="CelebrationShiny" Opacity="0"
+                                  IsHitTestVisible="False" HorizontalAlignment="Right"
+                                  VerticalAlignment="Top" Margin="0,-8,2,0" RenderTransformOrigin="0.5,0.5">
+                                <Grid.RenderTransform>
+                                    <ScaleTransform x:Name="CelebrationShinyScale" ScaleX="0" ScaleY="0" />
+                                </Grid.RenderTransform>
+                            </Grid>
+                            <Grid x:Name="CelebrationDitto" Opacity="0"
+                                  IsHitTestVisible="False" HorizontalAlignment="Center"
+                                  VerticalAlignment="Top" Margin="0,-14,0,0" RenderTransformOrigin="0.5,0.5">
+                                <Grid.RenderTransform>
+                                    <ScaleTransform x:Name="CelebrationDittoScale" ScaleX="0" ScaleY="0" />
+                                </Grid.RenderTransform>
+                            </Grid>
+                            <Border x:Name="CelebrationCandy" CornerRadius="9" Padding="6,2" Opacity="0"
+                                    IsHitTestVisible="False" HorizontalAlignment="Center"
+                                    VerticalAlignment="Top" Margin="0,-16,0,0">
+                                <Border.RenderTransform>
+                                    <TranslateTransform x:Name="CelebrationCandySlide" Y="10" />
+                                </Border.RenderTransform>
+                                <TextBlock x:Name="CelebrationCandyText" FontSize="9" FontWeight="Bold" />
+                            </Border>
+                            <Grid x:Name="CelebrationMint" Opacity="0" IsHitTestVisible="False"
+                                  RenderTransformOrigin="0.5,0.5">
+                                <Grid.RenderTransform>
+                                    <ScaleTransform x:Name="CelebrationMintScale" ScaleX="0" ScaleY="0" />
+                                </Grid.RenderTransform>
+                            </Grid>
+                        </Grid>
                             <StackPanel VerticalAlignment="Center">
                                 <DockPanel>
                                     <Border x:Name="RarityCapsule" DockPanel.Dock="Right"

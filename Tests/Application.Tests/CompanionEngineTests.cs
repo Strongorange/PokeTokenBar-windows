@@ -1366,4 +1366,181 @@ public class CompanionEngineTests : IDisposable
         Assert.Null(rows[2].CaughtAt);
         Assert.Equal("", rows[2].Nature);
     }
+
+    [Fact]
+    public void HatchFiresCelebrationOnceWithShinyFlag()
+    {
+        var engine = BuildEngine();
+        engine.State.Language = AppLanguage.En;
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        Assert.Empty(engine.DrainCelebrations());
+
+        engine.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+
+        var celebration = Assert.Single(engine.DrainCelebrations());
+        Assert.Equal(CompanionCelebrationKind.Hatch, celebration.Kind);
+        Assert.False(celebration.Shiny);
+        Assert.Empty(engine.DrainCelebrations());
+
+        var shiny = BuildEngine(new SequenceRng(64, 64), "shiny-celebration-state.json");
+        shiny.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        shiny.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+
+        var shinyCelebration = Assert.Single(shiny.DrainCelebrations());
+        Assert.Equal(CompanionCelebrationKind.Hatch, shinyCelebration.Kind);
+        Assert.True(shinyCelebration.Shiny);
+    }
+
+    [Fact]
+    public void OverflowEvolutionPlaysBeforeHatchCelebration()
+    {
+        var engine = BuildEngine();
+        engine.State.Language = AppLanguage.En;
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+
+        engine.ApplyUsage(Map(("claude_code", 130_000_000)), "2026-09-23", true);
+
+        var drained = engine.DrainCelebrations();
+        Assert.Equal(2, drained.Count);
+        Assert.Equal(CompanionCelebrationKind.Evolve, drained[0].Kind);
+        Assert.Equal(CompanionCelebrationKind.Hatch, drained[1].Kind);
+    }
+
+    [Fact]
+    public void InstantGraduationHatchOmitsHatchCelebration()
+    {
+        var engine = BuildEngine();
+        engine.State.Language = AppLanguage.En;
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+
+        engine.ApplyUsage(Map(("claude_code", 805_000_000)), "2026-09-23", true);
+
+        Assert.Null(engine.State.Active);
+        Assert.DoesNotContain(engine.DrainCelebrations(),
+            celebration => celebration.Kind == CompanionCelebrationKind.Hatch);
+    }
+
+    [Fact]
+    public void EvolveFiresCelebrationExactlyOncePerStage()
+    {
+        var engine = BuildEngine();
+        engine.State.Language = AppLanguage.En;
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        engine.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+        engine.DrainCelebrations();
+
+        engine.ApplyUsage(Map(("claude_code", 130_000_000)), "2026-09-23", true);
+
+        var celebration = Assert.Single(engine.DrainCelebrations());
+        Assert.Equal(CompanionCelebrationKind.Evolve, celebration.Kind);
+        Assert.False(celebration.Shiny);
+    }
+
+    [Fact]
+    public void DittoRevealFiresItsCelebrationWithShinyFlag()
+    {
+        var engine = BuildEngine(new SequenceRng(1, 1, 1, 128));
+        engine.State.Language = AppLanguage.En;
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        engine.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+        engine.DrainCelebrations();
+
+        engine.ApplyUsage(Map(("claude_code", 130_000_000)), "2026-09-23", true);
+
+        var celebration = Assert.Single(engine.DrainCelebrations());
+        Assert.Equal(CompanionCelebrationKind.DittoReveal, celebration.Kind);
+        Assert.False(celebration.Shiny);
+    }
+
+    [Fact]
+    public void DisguisedShinyHatchHidesShinyUntilReveal()
+    {
+        var engine = BuildEngine(new SequenceRng(1, 64, 1, 128));
+        engine.State.Language = AppLanguage.En;
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+
+        engine.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+
+        Assert.NotNull(engine.State.Active!.DittoDisguise);
+        var hatch = Assert.Single(engine.DrainCelebrations());
+        Assert.Equal(CompanionCelebrationKind.Hatch, hatch.Kind);
+        Assert.False(hatch.Shiny);
+
+        engine.ApplyUsage(Map(("claude_code", 130_000_000)), "2026-09-23", true);
+
+        var reveal = Assert.Single(engine.DrainCelebrations());
+        Assert.Equal(CompanionCelebrationKind.DittoReveal, reveal.Kind);
+        Assert.True(reveal.Shiny);
+    }
+
+    [Fact]
+    public void CandyUseFiresXpCelebrationWithAppliedAmount()
+    {
+        var engine = BuildEngine();
+        engine.State.Language = AppLanguage.En;
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        engine.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+        engine.State.Inventory[ItemKinds.Raw(ItemKind.RareCandy)] = 1;
+        engine.DrainCelebrations();
+
+        Assert.Equal(CandyUseResult.Progressed, engine.UseRareCandy(1));
+
+        var celebration = Assert.Single(engine.DrainCelebrations());
+        Assert.Equal(CompanionCelebrationKind.CandyXp, celebration.Kind);
+        Assert.Equal(RareCandies.Xp, celebration.Amount);
+        Assert.False(celebration.Shiny);
+    }
+
+    [Fact]
+    public void CandyEvolutionKeepsBothCueAndCelebration()
+    {
+        var engine = BuildEngine();
+        engine.State.Language = AppLanguage.En;
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        engine.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+        engine.State.Inventory[ItemKinds.Raw(ItemKind.RareCandy)] = 2;
+        engine.DrainCelebrations();
+
+        Assert.Equal(CandyUseResult.Evolved, engine.UseRareCandy(2));
+
+        var drained = engine.DrainCelebrations();
+        Assert.Contains(drained, celebration =>
+            celebration.Kind == CompanionCelebrationKind.CandyXp && celebration.Amount == 2 * RareCandies.Xp);
+        Assert.Contains(drained, celebration =>
+            celebration.Kind == CompanionCelebrationKind.Evolve);
+    }
+
+    [Fact]
+    public void MintUseFiresSparkleCelebration()
+    {
+        var engine = BuildEngine();
+        engine.State.Language = AppLanguage.En;
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        engine.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+        engine.State.Inventory[ItemKinds.Raw(ItemKind.Mint)] = 1;
+        engine.DrainCelebrations();
+
+        Assert.NotNull(engine.UseMint());
+
+        var celebration = Assert.Single(engine.DrainCelebrations());
+        Assert.Equal(CompanionCelebrationKind.MintSparkle, celebration.Kind);
+    }
+
+    [Fact]
+    public void ImportSaveClearsPendingCelebrations()
+    {
+        var engine = BuildEngine();
+        engine.State.Language = AppLanguage.En;
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        engine.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+        engine.ApplyUsage(Map(("claude_code", 130_000_000)), "2026-09-23", true);
+        Assert.NotEmpty(engine.DrainCelebrations());
+        engine.ApplyUsage(Map(("claude_code", 380_000_000)), "2026-09-23", true);
+        Assert.NotEmpty(engine.DrainNotices());
+
+        var imported = new CompanionState { InstallBaselineSet = true, UsedSinceInstall = 1 };
+        engine.ImportSave(SaveTransfer.Encode(imported, "test", "other-device", Now));
+
+        Assert.Empty(engine.DrainCelebrations());
+    }
 }
