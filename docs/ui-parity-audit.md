@@ -31,7 +31,7 @@ Legend: ☐ todo · ◐ in progress · ☑ done (milestone) · ✗ rejected (rea
 | ☑ Catch log view: per-individual rows (rarity capsule, evolution-chain sprites, nature, caught-at, released badge) + rarity filter | `CollectionView.catchLog`, `DexEntryRow` 1460 | M23 | engine `BuildCatchRows` (active pinned first, caught-at desc, nulls last) + `CompanionCatchRow` view rows; dex-tab segment toggle (Pokédex / catch log), per-individual cards w/ chain sprites + relative caught-at (`RelativeTimes` buckets) |
 | ☑ Companion status line (egg/idle/working/focus/tired/sleep/level-up) | CompanionView.swift `statusLine` 705 | M23 | Core `CompanionStatus.Compute` (pure port of `computeState`; burn tiers = macOS thresholds); engine approximates burn from refresh deltas; 4s level-up window on hatch/evolve/reveal/graduate; `tired` reachable but unused (no limits feature on Windows) |
 | ☑ Detail window polish: type color capsules, individual picker (multi-catch), actual-stats section w/ IV | `PokemonDetailView` 1047 | M22 | no engine change; species-data section (capsules + value pairs + abilities), picker, XOR base/actual stats, `DisplayScaleMaximum` bars |
-| ☐ Provider incident banner (statuspage.io, no auth) | `providerStatusBanner` 303 | todo (deprioritized) | network fetch + privacy doc update; user deprioritized at M23 kickoff ("장애 배너까지는 굳이") |
+| ✗ Provider incident banner (statuspage.io, no auth) | `providerStatusBanner` 303 | rejected by user | deprioritized at M23 ("장애 배너까지는 굳이") and rejected outright at the 0.25.0 close ("다크모드랑 장애 배너는 굳이야", 2026-09-30) |
 | ☑ Shop card inline-confirm parity: item two-step (idle price → confirm), egg shiny re-confirm, basic-egg card as egg | ShopView.swift `ShopItemCard.buyControls`/`EggCard.controls` | M25 | fixed two pre-existing bugs while extracting the shop builders to `ShopCards` (Ui): item cards rendered the confirm row unconditionally (cancel was a no-op), and the basic egg row (Item=null, EggTier=null) fell through to the item-card builder showing the rare-candy icon/description/owned count; egg confirm now follows the macOS three-stage flow (idle → confirm → shiny-discard warning) via Application `ShopFlow` |
 
 ## Tier 3 — constrained / large
@@ -40,7 +40,7 @@ Legend: ☐ todo · ◐ in progress · ☑ done (milestone) · ✗ rejected (rea
 |------|-----------------|--------|
 | ✗ Official limit gauges (5h/weekly, pace marker, depletion forecast) | PopoverView.swift `limitsSection` | rejected by default: requires provider OAuth credentials ("never read credentials" rule); revisit only with an explicit user-designed opt-in |
 | ☑ Shop item sprite images (PokeAPI items, emoji fallback) | `ItemIconView` | M23 | `ItemIconSlot` (cached-first, emoji fallback; mint has no sprite → 🌿 by design); `SpriteStore.Item`/`CachedItem` + `SpriteCatalog.ItemUrl` (`item-{name}.png` cache keys, macOS-compatible) |
-| ☐ Dark mode | n/a (macOS free via materials) | large: token swap + title bar |
+| ✗ Dark mode | n/a (macOS free via materials) | rejected by user ("굳이", 2026-09-30); also large: token swap + title bar, and no macOS design reference to port |
 | ☑ Launch at login setting | SettingsView general group | M23 | `Platform.Windows.LoginItem` — HKCU Run key (registry access delegate-injected for tests), settings general-group toggle |
 
 ## Engineering quality (non-parity, user principle: every unit modular + individually testable)

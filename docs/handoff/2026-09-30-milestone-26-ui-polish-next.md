@@ -1,19 +1,20 @@
-# Handoff — Milestone 26: next slice (confirm choice first)
+# Handoff — Milestone 26: engineering-quality finish (game-tab builders)
 
 ## Goal
-UI parity polish with the macOS original continues. M12–M25 are done and
-user-verified (see `docs/windows-port-plan.md` "Reopened" section). M25
-(0.24.0) shipped the shop/usage extraction with two shop-parity bug fixes
-(item-card two-step confirm, basic-egg card) — the engineering-quality list
-named in the audit is now down to the game-tab builders. M26 candidates from
-`docs/ui-parity-audit.md`: Tier-2 incident banner (statuspage.io — user said
-"장애 배너까지는 굳이" at M23, reconfirm first), Tier-3 dark mode (large:
-token swap + title bar), or the remaining engineering-quality slice
-(companion header / dex tiles / catch cards / evolution line builders still
-in `DashboardWindow.xaml.cs`, now 799 lines). Do NOT scaffold before
-confirming the choice with the user. NOTE: if more than one session works
-this same checkout in parallel, they will conflict (repo pushes straight to
-`main`); coordinate landings.
+UI parity polish is COMPLETE — the audit's remaining parity candidates were
+all rejected by the user at the 0.25.0 close (2026-09-30: incident banner
+and dark mode both "굳이"; official limits stay rejected by the
+no-credentials rule). M12–M25 are done and user-verified (see
+`docs/windows-port-plan.md` "Reopened" section). M26 is the final slice of
+the series: the engineering-quality remainder — extract the game-tab render
+builders from `DashboardWindow.xaml.cs` (799 lines) following the M25
+pattern: pure decisions to Application/Core with unit tests, WPF builders
+to Ui-internal renderer classes. Scope: companion header/progress +
+combat text, dex tiles + rarity tally, catch cards, evolution line. No
+visual or behavior changes planned — if a real bug surfaces in the moved
+code (like M25's shop fixes), fix it and get a user checkpoint. NOTE: if
+more than one session works this same checkout in parallel, they will
+conflict (repo pushes straight to `main`); coordinate landings.
 
 ## Workspace
 - Checkout: `C:\Users\USER\my-pjts\poketoken-bars-windows` (Windows 11 25H2
@@ -100,16 +101,11 @@ this same checkout in parallel, they will conflict (repo pushes straight to
   implement → validate → commit+push → write next handoff). Remote `origin`
   = `git@github-personal:Strongorange/PokeTokenBar-windows.git`.
 
-## Decision Needed at Start (confirm with user before scaffolding)
-Pick from `docs/ui-parity-audit.md`. Remaining:
-- Tier 2: incident banner (statuspage.io, no auth) — deprioritized at M23
-  kickoff; reconfirm interest first.
-- Tier 3: dark mode (large: token swap + title bar).
-- Engineering quality (user principle: every unit modular and individually
-  testable): ◐ — game-tab builders still in `DashboardWindow.xaml.cs`:
-  companion header/progress, dex tiles + rarity tally, catch cards,
-  evolution line, combat text. Natural candidate if another visual slice
-  touches the same code.
+## Decision Needed at Start
+None — the user chose the engineering-quality finish on 2026-09-30 and
+rejected the alternatives outright ("다크모드랑 장애 배너는 굳이야"; both now
+✗ in `docs/ui-parity-audit.md`). If the user reopens a parity candidate,
+re-confirm before scaffolding.
 
 ## Contracts
 - Engine: `ApplyUsage(...)`, shop/candy/mint/difficulty members,
@@ -278,7 +274,8 @@ Pick from `docs/ui-parity-audit.md`. Remaining:
   `view.ShopRows`, never hardcode.
 
 ## Acceptance Criteria
-- [ ] M26 slice confirmed with the user before any code
+- [x] M26 slice confirmed with the user before any code (2026-09-30:
+      engineering-quality finish; dark mode + incident banner rejected)
 - [ ] `dotnet test PokeTokenBar.Windows.slnx` fully green (515 + new)
 - [ ] `docs/ui-parity-audit.md` updated for the shipped items
 - [ ] Manual smoke on this machine incl. app restart; user confirms
@@ -307,16 +304,17 @@ Pick from `docs/ui-parity-audit.md`. Remaining:
 ```text
 Read docs/handoff/2026-09-30-milestone-26-ui-polish-next.md end to end.
 Work in C:\Users\USER\my-pjts\poketoken-bars-windows, branch main, base main.
-The project is reopened for UI parity polish; M12-M25 are done (0.24.0
-shipped: shop/usage extraction, item-card two-step confirm, basic-egg card
-fix, egg shiny re-confirm). The candidate list lives in
-docs/ui-parity-audit.md — confirm the M26 slice with the user FIRST
-(Tier-2 incident banner needs reconfirmation after the user deprioritized
-it; Tier-3 dark mode is large; the game-tab builder extraction is the
-engineering remainder). For visual work render a sample/screenshot
-checkpoint before polishing everything. Implement that slice only, prove
-pure parts with tests, update the audit doc, run the manual checklist, and
-verify with dotnet test PokeTokenBar.Windows.slnx. Do not bundle other work
-into the slice. If other threads are working this same checkout, coordinate
-landings — this repo pushes straight to main.
+The UI-parity series is complete (user rejected the last candidates — incident
+banner, dark mode — on 2026-09-30); 0.25.0 shipped the update-check fix plus
+the M25 shop/usage extraction. M26 is the agreed FINAL slice: extract the
+game-tab render builders from DashboardWindow.xaml.cs (companion
+header/progress + combat text, dex tiles + rarity tally, catch cards,
+evolution line) following the M25 pattern — pure decisions to
+Application/Core with unit tests, WPF builders to Ui-internal renderer
+classes; no planned visual changes (fix + user-checkpoint any real bug found
+in moved code). Add the v0.26.0 section to BOTH changelogs, publish via
+scripts\publish-windows.ps1, relaunch, and verify with dotnet test
+PokeTokenBar.Windows.slnx. Do not bundle other work into the slice. If other
+threads are working this same checkout, coordinate landings — this repo
+pushes straight to main.
 ```
