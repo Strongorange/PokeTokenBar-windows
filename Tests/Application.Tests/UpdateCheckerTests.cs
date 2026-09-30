@@ -6,6 +6,17 @@ public class UpdateCheckerTests
 {
     private const string ReleaseUrl = "https://github.com/Strongorange/PokeTokenBar-windows/releases/tag/v1.2.0";
 
+    [Fact]
+    public void BuildRequestCarriesUserAgentAndJsonAccept()
+    {
+        var request = UpdateChecker.BuildRequest(
+            new Uri("https://api.github.com/repos/Strongorange/PokeTokenBar-windows/releases/latest"));
+
+        Assert.False(string.IsNullOrEmpty(request.Headers.UserAgent.ToString()),
+            "the GitHub API answers UA-less requests with 403, which the checker silently reports as up to date");
+        Assert.Contains("application/vnd.github+json", request.Headers.Accept.ToString());
+    }
+
     private static string ReleaseJson(string tag, string html) =>
         $$"""{"tag_name": "{{tag}}", "html_url": "{{html}}"}""";
 

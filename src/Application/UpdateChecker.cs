@@ -225,12 +225,25 @@ public sealed class UpdateChecker
         }
     }
 
+    /// <summary>
+    /// The request for the releases/latest endpoint. GitHub's API rejects
+    /// requests without a User-Agent with 403 — which the silent-failure
+    /// policy then masqueraded as "up to date" for every real client since
+    /// M17 (tests injected a fake fetch, so the real path was never live).
+    /// </summary>
+    public static HttpRequestMessage BuildRequest(Uri url)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Accept.ParseAdd("application/vnd.github+json");
+        request.Headers.UserAgent.ParseAdd("PokeTokenBar-Windows");
+        return request;
+    }
+
     private static string? HttpFetch(Uri url)
     {
         try
         {
-            using var request = new HttpRequestMessage(HttpMethod.Get, url);
-            request.Headers.Accept.ParseAdd("application/vnd.github+json");
+            using var request = BuildRequest(url);
             using var response = Http.Send(request);
             if (!response.IsSuccessStatusCode) return null;
             return response.Content.ReadAsStringAsync().GetAwaiter().GetResult();

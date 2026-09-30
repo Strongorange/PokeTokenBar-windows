@@ -224,13 +224,20 @@ Pick from `docs/ui-parity-audit.md`. Remaining:
   NOT use CurrentCulture there.
 - Codex fixture vectors are (Input, Cached, Output, Total); per-entry usage
   comes from `last_token_usage`.
-- GitHub API from this machine without a token is 403 rate-limited; manual
-  update checks masquerade as "up to date". `gh` CLI NOT authenticated.
-  Releases by hand in the browser: tags v0.10.0/v0.16.0/v0.21.0/v0.22.0/
-  v0.23.0 all exist on the remote (v0.23.0 uploaded — confirmed via
-  `git ls-remote --tags` at M25 close). v0.24.0 zip + notes are READY in
-  `artifacts\release\` (script-generated) — the user still uploads release +
-  asset by hand; until then installed 0.10.0–0.23.0 clients see no update.
+- GitHub API from this machine without a token is rate-limited (60/h per
+  IP); manual update checks masquerade as "up to date" on ANY fetch failure
+  (macOS-faithful by design). M25-close find: the checker's real HTTP path
+  sent no User-Agent, so GitHub answered 403 for EVERY real client since
+  M17 — banners/balloons never fired in the wild, and the M17 "live chain
+  confirmed" was actually a curl test, not the app (smoke tests inject a
+  fake fetch). Fixed in `UpdateChecker.BuildRequest` (UA +
+  vnd.github+json, regression-tested) — **ships in 0.25.0**; clients on
+  ≤0.24.0 never see update banners and must watch releases manually.
+  Lesson: verify network-facing fixes with a live version-bumped test
+  build (`dotnet publish … -p:Version=0.23.1` run sandboxed against the
+  real API), not with injected fakes. v0.24.0 upload DONE (tag v0.24.0 on
+  the remote, zip + ko/en notes; update flow re-verified live on a 0.23.1
+  test build).
 - Normal and unrelated: git CRLF warnings; `docker-desktop` in `wsl -l -v`;
   SSH trap if push denied (`ssh-add -d <key>; ssh-add <key>`, verify
   `ssh -T git@github-personal` greets `Strongorange`).
