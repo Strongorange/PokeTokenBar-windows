@@ -448,7 +448,7 @@ removed). 16 new tests (ShopFlow confirm flows incl. shiny escalation,
 UsagePresentation, trend metrics). Smoke harness evidence in
 `%TEMP%\opencode\ptb-m25-smoke\` (5 PNGs + numeric probes).
 
-Fifteenth slice (M26, version 0.26.0, final of the series): the
+Fifteenth slice (M26, version 0.25.1, final of the series): the
 engineering-quality finish — the game-tab render builders left in the
 code-behind after M25. Pure decisions moved to Application
 `GameTabPresentation` (unit-tested, 24 new tests: header name + shiny

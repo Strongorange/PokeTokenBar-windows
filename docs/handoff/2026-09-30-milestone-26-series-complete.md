@@ -17,7 +17,8 @@ rejected).
   `docs:`, `chore:`)
 
 ## Current State
-- M26 (user-confirmed final slice, shipped as 0.26.0):
+- M26 (user-confirmed final slice, shipped as 0.25.1 — a PATCH per
+  semver: internal-only refactor, no feature/behavior change):
   - Application `GameTabPresentation` (pure, unit-tested — 24 new tests):
     header name + shiny suffix/tooltip, rarity capsule label, stage·nature
     detail line, egg imminence, progress captions + value (clamped
@@ -49,7 +50,7 @@ rejected).
 - Official provider limits stay OUT (no-credentials rule). Pokemon base
   data stays the bundled schema-2 snapshot; sprites the online-cached
   `SpriteStore` concern.
-- Packaging: version = Ui csproj (0.26.0 current). Publish via
+- Packaging: version = Ui csproj (0.25.1 current). Publish via
   `scripts\publish-windows.ps1` (kills the installed app; relaunch the
   exe yourself). It produces `artifacts\release\PokeTokenBar-<v>-win-x64.zip`
   (exe only) + bilingual release notes generated from the committed root
@@ -159,7 +160,7 @@ rejected).
 ## Open Risks
 - 0.25.0+ clients see update banners correctly; ≤0.24.0 clients never
   do (UA fix shipped in 0.25.0) — watch releases manually for those.
-- v0.26.0 release upload is manual (user, browser) — zip + notes land
+- v0.25.1 release upload is manual (user, browser) — zip + notes land
   in `artifacts\release\` when published.
 - Celebrations drain in `UpdateGame` — dashboard CLOSED holds the queue
   (macOS-parity); MINIMIZED plays unseen (accepted edge case).
@@ -181,7 +182,7 @@ rejected).
 ```text
 Read docs/handoff/2026-09-30-milestone-26-series-complete.md end to end.
 The UI-parity + engineering-quality series is complete; M26 (game-tab
-extraction, no visual change) shipped as 0.26.0. There is no queued next
+extraction, no visual change) shipped as 0.25.1. There is no queued next
 slice — if the user asks for new work, confirm scope first and re-open
 docs/ui-parity-audit.md only with their say-so.
 ```

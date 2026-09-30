@@ -6,7 +6,7 @@ Release notes for a version are generated from its section here (see
 edition lives in `CHANGELOG.ko.md` — keep both in sync; the publish script
 refuses to release when either one is missing the current version.
 
-## v0.26.0 — Game tab modularization
+## v0.25.1 — Game tab modularization
 
 - Internal: the companion header, progress caption, combat text, dex
   tiles, rarity filter capsules, catch-log cards and evolution line moved

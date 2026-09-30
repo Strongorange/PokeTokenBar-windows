@@ -4,7 +4,7 @@ PokeTokenBar for Windows. 버전마다 하나의 섹션이고, 새 버전이 위
 릴리스 노트는 이 파일에서 만듭니다(`scripts/publish-windows.ps1`,
 출력 위치 `artifacts\release\`). 영어판은 `CHANGELOG.md`입니다.
 
-## v0.26.0 — 게임 탭 모듈화
+## v0.25.1 — 게임 탭 모듈화
 
 - 내부: 동행 헤더, 진행률 문구, 전투 정보, 도감 타일, 등급 필터 캡슐,
   포획 기록 카드, 진화 라인을 대시보드 코드 비하인드에서 개별 테스트가
