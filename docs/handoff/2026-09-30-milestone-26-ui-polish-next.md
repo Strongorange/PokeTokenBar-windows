@@ -77,8 +77,7 @@ this same checkout in parallel, they will conflict (repo pushes straight to
   no-credentials rule) unless the user explicitly designs an opt-in.
 - Pokemon base data stays the bundled schema-2 snapshot (offline-first);
   sprites remain the separate online-cached concern (`SpriteStore`).
-- Packaging: version = Ui csproj, bumped with the shipping slice (0.24.0 =
-  M25; M26 ships 0.25.0). Publish via `scripts\publish-windows.ps1` (kills
+- Packaging: version = Ui csproj, bumped with the shipping slice (0.25.0 = post-M25 hotfix (update-check UA fix); M26 ships 0.26.0). Publish via `scripts\publish-windows.ps1` (kills
   the installed app; relaunch the exe yourself). THE SCRIPT NOW ALSO
   PRODUCES, in `artifacts\release\` (the single canonical artifact
   location): `PokeTokenBar-<version>-win-x64.zip` (exe only, pdbs excluded —
@@ -231,8 +230,7 @@ Pick from `docs/ui-parity-audit.md`. Remaining:
   M17 — banners/balloons never fired in the wild, and the M17 "live chain
   confirmed" was actually a curl test, not the app (smoke tests inject a
   fake fetch). Fixed in `UpdateChecker.BuildRequest` (UA +
-  vnd.github+json, regression-tested) — **ships in 0.25.0**; clients on
-  ≤0.24.0 never see update banners and must watch releases manually.
+  vnd.github+json, regression-tested) — **SHIPPED in 0.25.0 (hotfix release, 2026-09-30: csproj bump + v0.25.0 sections in both changelogs + publish)**; clients on ≤0.24.0 never see update banners and must watch releases manually (0.25.0+ clients detect future releases correctly).
   Lesson: verify network-facing fixes with a live version-bumped test
   build (`dotnet publish … -p:Version=0.23.1` run sandboxed against the
   real API), not with injected fakes. v0.24.0 upload DONE (tag v0.24.0 on
@@ -284,7 +282,7 @@ Pick from `docs/ui-parity-audit.md`. Remaining:
 - [ ] `dotnet test PokeTokenBar.Windows.slnx` fully green (515 + new)
 - [ ] `docs/ui-parity-audit.md` updated for the shipped items
 - [ ] Manual smoke on this machine incl. app restart; user confirms
-      (add the v0.25.0 section to BOTH `CHANGELOG.md` and `CHANGELOG.ko.md`,
+      (add the v0.26.0 section to BOTH `CHANGELOG.md` and `CHANGELOG.ko.md`,
       publish via `scripts\publish-windows.ps1` — it fails without the
       matching changelog sections — bump `<Version>` to 0.25.0; relaunch the
       exe after publishing)

@@ -6,6 +6,14 @@ Release notes for a version are generated from its section here (see
 edition lives in `CHANGELOG.ko.md` — keep both in sync; the publish script
 refuses to release when either one is missing the current version.
 
+## v0.25.0 — Update checks fixed
+
+- Fixed the update checker: its requests to the GitHub API carried no
+  User-Agent header, so GitHub rejected them (403) and the checker's
+  silent-failure policy made every client since the first release report
+  "up to date". New-version banners and tray balloons now actually fire
+  when a release newer than the installed version is published.
+
 ## v0.24.0 — Shop confirm parity + dashboard modularization
 
 - Shop item cards now use the macOS-style inline two-step confirm: a price
