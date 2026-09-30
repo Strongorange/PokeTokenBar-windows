@@ -70,4 +70,55 @@ public class DailyTrendMetricsTests
     {
         Assert.Equal("", DailyTrendMetrics.DayStamp("garbage", AppLanguage.En));
     }
+
+    [Fact]
+    public void PeakFindsHighestTotalAndHandlesNullSeries()
+    {
+        var series = new List<DailyUsage>
+        {
+            new("2026-09-21", 0, 0, 0, 0, 120, 0),
+            new("2026-09-22", 0, 0, 0, 0, 480, 0),
+            new("2026-09-23", 0, 0, 0, 0, 90, 0),
+        };
+
+        Assert.Equal(480, DailyTrendMetrics.Peak(series));
+        Assert.Equal(0, DailyTrendMetrics.Peak(null));
+        Assert.Equal(0, DailyTrendMetrics.Peak([]));
+        Assert.Equal(0, DailyTrendMetrics.Peak(
+            new List<DailyUsage> { new("2026-09-21", 0, 0, 0, 0, 0, 0) }));
+    }
+
+    [Fact]
+    public void ShowsCostRequiresAtLeastOneKnownCoverage()
+    {
+        var unknown = new List<DailyUsage>
+        {
+            new("2026-09-21", 0, 0, 0, 0, 120, 0, costCoverage: CostCoverage.Unavailable),
+        };
+        var known = new List<DailyUsage>
+        {
+            new("2026-09-21", 0, 0, 0, 0, 120, 0, costCoverage: CostCoverage.Unavailable),
+            new("2026-09-22", 0, 0, 0, 0, 120, 1.5, costCoverage: CostCoverage.Source),
+        };
+
+        Assert.False(DailyTrendMetrics.ShowsCost(null));
+        Assert.False(DailyTrendMetrics.ShowsCost(unknown));
+        Assert.True(DailyTrendMetrics.ShowsCost(known));
+    }
+
+    [Fact]
+    public void TodayUsageMatchesDateKeyAndFallsBackToNull()
+    {
+        var series = new List<DailyUsage>
+        {
+            new("2026-09-22", 0, 0, 0, 0, 480, 0),
+            new("2026-09-23", 0, 0, 0, 0, 90, 0),
+        };
+
+        var today = DailyTrendMetrics.TodayUsage(series, "2026-09-23");
+        Assert.NotNull(today);
+        Assert.Equal(90, today!.TotalTokens);
+        Assert.Null(DailyTrendMetrics.TodayUsage(series, "2026-09-24"));
+        Assert.Null(DailyTrendMetrics.TodayUsage(null, "2026-09-23"));
+    }
 }

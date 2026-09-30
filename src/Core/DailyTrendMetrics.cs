@@ -34,6 +34,31 @@ public static class DailyTrendMetrics
         return day.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday;
     }
 
+    public static long Peak(IReadOnlyList<DailyUsage>? series)
+    {
+        long peak = 0;
+        if (series is not null)
+            foreach (var day in series)
+                if (day.TotalTokens > peak) peak = day.TotalTokens;
+        return peak;
+    }
+
+    public static bool ShowsCost(IReadOnlyList<DailyUsage>? series)
+    {
+        if (series is null) return false;
+        foreach (var day in series)
+            if (day.UsageCost.Coverage.HasKnown) return true;
+        return false;
+    }
+
+    public static DailyUsage? TodayUsage(IReadOnlyList<DailyUsage>? series, string todayKey)
+    {
+        if (series is null) return null;
+        foreach (var day in series)
+            if (day.Date == todayKey) return day;
+        return null;
+    }
+
     public static string DayStamp(string date, AppLanguage language)
     {
         if (!TryParseDay(date, out var day)) return "";
