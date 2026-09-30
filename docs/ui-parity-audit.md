@@ -47,7 +47,7 @@ Legend: ☐ todo · ◐ in progress · ☑ done (milestone) · ✗ rejected (rea
 
 | Item | Status |
 |--------|--------|
-| ◑ Extract pure UI-adjacent logic from `DashboardWindow.xaml.cs` into testable helpers in Core/Application so it gets unit coverage instead of headless-manual-only | M23: `CompanionPresentation` (rarity display order + hex colors, dex/catch-log visible-row filters, provider-chip selection fallback) + `RelativeTimes` (caught-at buckets) extracted and unit-tested; also fixed a pre-existing bug (dex double-click used the filtered index against the unfiltered list). M25: bag/shop confirm-state machinery → Application `ShopFlow` (unit-tested, incl. the macOS three-stage egg confirm), usage-home decisions → `UsagePresentation` + `DailyTrendMetrics.Peak/ShowsCost/TodayUsage`, WPF builders → Ui-internal `UsageHomeRenderer`/`ShopCards`/`Paint`; code-behind 1,629→799 lines; two shop bugs fixed (item-card cancel no-op, basic-egg card rendered as rare-candy card). Remaining in the code-behind: game-tab builders (companion header, dex tiles, catch cards, evolution line) |
+| ☑ Extract pure UI-adjacent logic from `DashboardWindow.xaml.cs` into testable helpers in Core/Application so it gets unit coverage instead of headless-manual-only | M23: `CompanionPresentation` (rarity display order + hex colors, dex/catch-log visible-row filters, provider-chip selection fallback) + `RelativeTimes` (caught-at buckets) extracted and unit-tested; also fixed a pre-existing bug (dex double-click used the filtered index against the unfiltered list). M25: bag/shop confirm-state machinery → Application `ShopFlow` (unit-tested, incl. the macOS three-stage egg confirm), usage-home decisions → `UsagePresentation` + `DailyTrendMetrics.Peak/ShowsCost/TodayUsage`, WPF builders → Ui-internal `UsageHomeRenderer`/`ShopCards`/`Paint`; code-behind 1,629→799 lines; two shop bugs fixed (item-card cancel no-op, basic-egg card rendered as rare-candy card). M26 (final): game-tab decisions → Application `GameTabPresentation` (header name/shiny, stage·nature detail line, egg imminence, progress captions/values, growth-boost/egg-guarantee badges, combat line, dex/catch headers, tile tooltip/name, caught-ago), WPF builders → Ui-internal `CompanionHeader` + `DexTab` (owns rarity-filter + mode state); code-behind 799→233 lines; 24 new tests; no visual change (pixel-identical before/after captures, see `%TEMP%\opencode\ptb-m26-smoke\`) — series complete |
 
 ## Done history (UI parity)
 
@@ -62,4 +62,7 @@ Legend: ☐ todo · ◐ in progress · ☑ done (milestone) · ✗ rejected (rea
   companion status line + shop item sprites + launch at login ·
   M24 celebration package (hatch/evolve/ditto flash+pop+bursts, candy "+XP"
   capsule, mint sparkle, egg wiggle) · M25 shop/usage extraction + shop
-  confirm parity (item two-step, egg shiny re-confirm, basic-egg card fix).
+  confirm parity (item two-step, egg shiny re-confirm, basic-egg card fix) ·
+  M26 game-tab extraction (companion header, dex tiles, catch cards,
+  evolution line → `GameTabPresentation`/`CompanionHeader`/`DexTab`) —
+  engineering-quality series complete, audit closed 2026-09-30.

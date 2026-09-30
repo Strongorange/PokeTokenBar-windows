@@ -448,11 +448,31 @@ removed). 16 new tests (ShopFlow confirm flows incl. shiny escalation,
 UsagePresentation, trend metrics). Smoke harness evidence in
 `%TEMP%\opencode\ptb-m25-smoke\` (5 PNGs + numeric probes).
 
-Remaining UI-parity candidates live in `docs/ui-parity-audit.md` (Tier 2:
-incident banner, deprioritized by the user; Tier 3: dark mode, constrained
-items incl. official limits, rejected by the no-credentials rule;
-engineering quality: trend/provider/shop builders and confirm-state
-machinery done in M25 — game-tab render builders remain in the code-behind
-as candidates). Confirm the next slice with the user first. Windows
-keeps the tray + dashboard model — inline menu-bar text stays out of scope
-by design.
+Fifteenth slice (M26, version 0.26.0, final of the series): the
+engineering-quality finish — the game-tab render builders left in the
+code-behind after M25. Pure decisions moved to Application
+`GameTabPresentation` (unit-tested, 24 new tests: header name + shiny
+suffix/tooltip, rarity capsule label, stage·nature detail line, egg
+imminence wording, progress captions (next-evolution/graduation/hatch,
+clamped remainders) + stage/egg progress value, growth-boost and
+egg-guarantee badge decisions, combat line assembly, dex/catch headers,
+dex tile tooltip/name, caught-ago bucket text) and the WPF builders to
+Ui-internal `CompanionHeader` (header card + progress card + evolution
+line + companion sprite slot) and `DexTab` (dex/catch modes, headers,
+rarity tally capsules + filter state, tiles, catch cards, chain nodes,
+empty state — owns the mode/filter state, re-renders via a request
+callback like `ShopCards`). `DashboardWindow.xaml.cs` shrank 799→233
+lines (orchestration, dialogs and event handlers remain). No visual or
+behavior changes: verified with a before/after smoke harness
+(`%TEMP%\opencode\ptb-m26-smoke\`) — 24 logical-tree assertions pass on
+both builds with identical values, and the captured PNGs (game tab
+active/egg/egg-imminent, dex tiles/filtered, catch log) are
+pixel-identical between builds (the imminent-egg pulse animation is the
+only run-to-run variance and reproduces within a single build).
+
+Remaining UI-parity candidates live in `docs/ui-parity-audit.md` — the
+series is now complete: every Tier-1/Tier-2/Tier-3 parity item is done
+or explicitly rejected by the user (incident banner, dark mode) or by
+the no-credentials rule (official limits), and the engineering-quality
+extraction is finished. Windows keeps the tray + dashboard model —
+inline menu-bar text stays out of scope by design.
