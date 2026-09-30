@@ -3,11 +3,12 @@
 ## Goal
 The UI-parity + engineering-quality series is COMPLETE (2026-09-30). M26
 shipped the final slice: the game-tab render builders were extracted from
-`DashboardWindow.xaml.cs` with no visual or behavior changes. This handoff
-is a close-out note for any future session; there is no next slice queued.
-If the user reopens work, re-confirm scope before scaffolding anything
-(see `docs/ui-parity-audit.md` — everything is done or explicitly
-rejected).
+`DashboardWindow.xaml.cs` with no visual or behavior changes. The user
+returned the project to MAINTENANCE MODE the same day (no scheduled
+slices; fix defects found in daily use). This handoff is a close-out note
+for any future session; there is no next slice queued. If the user
+reopens work, re-confirm scope before scaffolding anything (see
+`docs/ui-parity-audit.md` — everything is done or explicitly rejected).
 
 ## Workspace
 - Checkout: `C:\Users\USER\my-pjts\poketoken-bars-windows` (Windows 11

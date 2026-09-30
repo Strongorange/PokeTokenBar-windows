@@ -474,5 +474,8 @@ Remaining UI-parity candidates live in `docs/ui-parity-audit.md` — the
 series is now complete: every Tier-1/Tier-2/Tier-3 parity item is done
 or explicitly rejected by the user (incident banner, dark mode) or by
 the no-credentials rule (official limits), and the engineering-quality
-extraction is finished. Windows keeps the tray + dashboard model —
-inline menu-bar text stays out of scope by design.
+extraction is finished. The user returned the project to MAINTENANCE
+MODE on 2026-09-30 (as after M11): no scheduled slices; fix defects
+found in daily use, re-confirm scope before any new feature. Windows
+keeps the tray + dashboard model — inline menu-bar text stays out of
+scope by design.
