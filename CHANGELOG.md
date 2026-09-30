@@ -6,6 +6,16 @@ Release notes for a version are generated from its section here (see
 edition lives in `CHANGELOG.ko.md` — keep both in sync; the publish script
 refuses to release when either one is missing the current version.
 
+## v0.25.3 — Usage refresh lock fix
+
+- Fixed: usage numbers stopped updating for every provider while a Codex
+  session was running. Usage log files are now opened with read/write
+  sharing, so files the CLI tools keep open (Codex holds its active
+  session file) are read live instead of failing the refresh.
+- Fixed: a single unreadable log file (exclusively locked by an editor,
+  backup or antivirus) no longer kills the whole refresh round — the
+  previous data is kept and the file is retried next round.
+
 ## v0.25.2 — Floating pet animation self-heal
 
 - Fixed: one failed download of an animated sprite permanently froze the
