@@ -2,7 +2,9 @@
 
 PokeTokenBar for Windows. One section per released version, newest first.
 Release notes for a version are generated from its section here (see
-`scripts/publish-windows.ps1`, output in `artifacts\release\`).
+`scripts/publish-windows.ps1`, output in `artifacts\release\`). The Korean
+edition lives in `CHANGELOG.ko.md` — keep both in sync; the publish script
+refuses to release when either one is missing the current version.
 
 ## v0.24.0 — Shop confirm parity + dashboard modularization
 

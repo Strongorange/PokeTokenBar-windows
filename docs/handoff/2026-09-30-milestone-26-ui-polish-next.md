@@ -82,15 +82,18 @@ this same checkout in parallel, they will conflict (repo pushes straight to
   the installed app; relaunch the exe yourself). THE SCRIPT NOW ALSO
   PRODUCES, in `artifacts\release\` (the single canonical artifact
   location): `PokeTokenBar-<version>-win-x64.zip` (exe only, pdbs excluded —
-  README's install section names this exact zip) and
-  `release-notes-v<version>.md` generated from the committed root
-  `CHANGELOG.md` — it REFUSES to publish if the newest CHANGELOG section
-  doesn't match the csproj version, so add the version's section to
-  CHANGELOG.md as part of every shipping slice. Releases by hand,
-  `v<Version>` tags; update checker wired to `Strongorange/PokeTokenBar-windows`;
-  notes = the generated cumulative file. `gh` CLI NOT authenticated and the
-  GitHub API is 403 rate-limited without a token, so the user uploads the
-  release + asset by hand in the browser.
+  README's install section names this exact zip), `release-notes-v<version>.md`
+  (English) and `release-notes-v<version>.ko.md` (Korean), both generated
+  from the committed root `CHANGELOG.md` + `CHANGELOG.ko.md` — it REFUSES to
+  publish if the newest section of EITHER changelog doesn't match the csproj
+  version, so add the version's section to BOTH files as part of every
+  shipping slice. NOTE: `publish-windows.ps1` must stay UTF-8 WITH BOM (it
+  contains Korean string literals; PS 5.1 parses BOM-less scripts as ANSI
+  and fails). Releases by hand, `v<Version>` tags; update checker wired to
+  `Strongorange/PokeTokenBar-windows`; notes = the generated cumulative
+  files. `gh` CLI NOT authenticated and the GitHub API is 403 rate-limited
+  without a token, so the user uploads the release + asset by hand in the
+  browser.
 - State under `%LOCALAPPDATA%\PokeTokenBar` (`PTB_STATE_DIR` overrides).
   Language is saved-game state via `SetLanguage`. README en+ko only.
 - Never read/copy credentials. Comments: none unless asked. English commits.
@@ -274,10 +277,10 @@ Pick from `docs/ui-parity-audit.md`. Remaining:
 - [ ] `dotnet test PokeTokenBar.Windows.slnx` fully green (515 + new)
 - [ ] `docs/ui-parity-audit.md` updated for the shipped items
 - [ ] Manual smoke on this machine incl. app restart; user confirms
-      (add the v0.25.0 section to `CHANGELOG.md`, publish via
-      `scripts\publish-windows.ps1` — it fails without the matching
-      changelog section — bump `<Version>` to 0.25.0; relaunch the exe
-      after publishing)
+      (add the v0.25.0 section to BOTH `CHANGELOG.md` and `CHANGELOG.ko.md`,
+      publish via `scripts\publish-windows.ps1` — it fails without the
+      matching changelog sections — bump `<Version>` to 0.25.0; relaunch the
+      exe after publishing)
 - [ ] Handoff for the next slice written and committed (if the series
       continues)
 

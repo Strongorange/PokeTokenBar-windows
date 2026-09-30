@@ -1,4 +1,4 @@
-param([switch]$Launch)
+﻿param([switch]$Launch)
 
 $ErrorActionPreference = 'Stop'
 
@@ -46,30 +46,36 @@ $shortcut.Save()
 $releaseDir = Join-Path $repo 'artifacts\release'
 New-Item -ItemType Directory -Path $releaseDir -Force | Out-Null
 
-$changelogPath = Join-Path $repo 'CHANGELOG.md'
-if (-not (Test-Path -LiteralPath $changelogPath)) { throw "CHANGELOG.md not found — release notes are generated from it" }
-$changelogLines = Get-Content -LiteralPath $changelogPath -Encoding UTF8
-$bodyStart = -1
-for ($i = 0; $i -lt $changelogLines.Count; $i++)
+function Get-ChangelogBody($path, $version)
 {
-    if ($changelogLines[$i] -match '^## v') { $bodyStart = $i; break }
+    if (-not (Test-Path -LiteralPath $path)) { throw "$path not found — release notes are generated from the changelogs" }
+    $lines = Get-Content -LiteralPath $path -Encoding UTF8
+    $bodyStart = -1
+    for ($i = 0; $i -lt $lines.Count; $i++)
+    {
+        if ($lines[$i] -match '^## v') { $bodyStart = $i; break }
+    }
+    if ($bodyStart -lt 0 -or $lines[$bodyStart] -notmatch "^## v$([regex]::Escape($version))(\s|$)")
+    {
+        throw "$(Split-Path $path -Leaf)'s newest section is '$($lines[$bodyStart])' but the csproj version is $version — add the v$version section before releasing"
+    }
+    return ,$lines[$bodyStart..($lines.Count - 1)]
 }
-if ($bodyStart -lt 0 -or $changelogLines[$bodyStart] -notmatch "^## v$([regex]::Escape($version))(\s|$)")
-{
-    throw "CHANGELOG.md's newest section is '$($changelogLines[$bodyStart])' but the csproj version is $version — add the v$version section before releasing"
-}
+
+$enBody = Get-ChangelogBody (Join-Path $repo 'CHANGELOG.md') $version
+$koBody = Get-ChangelogBody (Join-Path $repo 'CHANGELOG.ko.md') $version
 
 $zipPath = Join-Path $releaseDir "PokeTokenBar-$version-win-x64.zip"
 if (Test-Path -LiteralPath $zipPath) { Remove-Item -LiteralPath $zipPath -Force }
 Compress-Archive -Path $stagedExe -DestinationPath $zipPath
 
-$notes = @(
+$enNotes = @(
     "# PokeTokenBar for Windows v$version",
     "",
     "Cumulative release: everything since v0.10.0, the full macOS-parity",
     "polish series. Newest changes first.",
     ""
-) + $changelogLines[$bodyStart..($changelogLines.Count - 1)] + @(
+) + $enBody + @(
     "",
     "## Install",
     "",
@@ -81,13 +87,37 @@ $notes = @(
     "folder) and launch — the save, settings and sprite cache are picked up",
     "automatically."
 )
-$notesPath = Join-Path $releaseDir "release-notes-v$version.md"
-Set-Content -LiteralPath $notesPath -Value $notes -Encoding utf8
+$enNotesPath = Join-Path $releaseDir "release-notes-v$version.md"
+Set-Content -LiteralPath $enNotesPath -Value $enNotes -Encoding utf8
+
+$koNotes = @(
+    "# PokeTokenBar for Windows v$version",
+    "",
+    "v0.10.0 이후의 모든 변화를 담은 누적 릴리스입니다. 새 변화가 위에",
+    "옵니다.",
+    ""
+) + $koBody + @(
+    "",
+    "## 설치",
+    "",
+    "1. 아래 ``PokeTokenBar-$version-win-x64.zip``를 내려받아 아무 곳에나",
+    "   압축을 풉니다.",
+    "2. ``PokeTokenBar.exe``를 실행합니다. 상태는",
+    "   ``%LOCALAPPDATA%\PokeTokenBar``에 저장됩니다. exe를 압축 해제하거나",
+    "   지워도 저장 데이터에는 영향이 없습니다.",
+    "",
+    "이전 버전에서 업그레이드: 기존 파일을 교체하거나(또는 새 폴더에 압축을",
+    "풀어) 실행하면 저장 데이터, 설정, 스프라이트 캐시를 자동으로 이어",
+    "받습니다."
+)
+$koNotesPath = Join-Path $releaseDir "release-notes-v$version.ko.md"
+Set-Content -LiteralPath $koNotesPath -Value $koNotes -Encoding utf8
 
 Write-Host "PokeTokenBar $version installed:"
 Write-Host "  exe      = $installedExe"
 Write-Host "  shortcut = $shortcutPath"
 Write-Host "  zip      = $zipPath"
-Write-Host "  notes    = $notesPath"
+Write-Host "  notes    = $enNotesPath"
+Write-Host "  notes ko = $koNotesPath"
 
 if ($Launch) { Start-Process -FilePath $installedExe -WorkingDirectory $installDir }
