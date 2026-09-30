@@ -134,7 +134,7 @@ public partial class DashboardWindow : Window
     public void UpdateGame(CompanionGameView view)
     {
         _celebrations.Play(_engine.DrainCelebrations());
-        _celebrations.SetEggImminent(!view.HasActive && view.EggProgress >= 0.9);
+        _celebrations.SetEggImminent(!view.HasActive && GameTabPresentation.EggImminent(view));
         _companionHeader.Render(view,
             view.HasActive ? _engine.Detail(view.ActiveSpeciesID) : null);
         _dexTab.Render(view);

@@ -7,9 +7,9 @@ using PokeTokenBar.Core;
 namespace PokeTokenBar.Ui;
 
 /// <summary>
-/// Companion header + progress renderer extracted from DashboardWindow
-/// code-behind (M26). Visual builders only — the name/stage/progress/
-/// badge/combat-text decisions live in GameTabPresentation (unit-tested).
+/// Companion header + progress renderer. Visual builders only — the
+/// name/stage/progress/badge/combat-text decisions live in
+/// GameTabPresentation (unit-tested).
 /// </summary>
 internal sealed class CompanionHeader
 {
@@ -85,10 +85,10 @@ internal sealed class CompanionHeader
             _statusCapsuleText.Text = badge.Text;
             _statusCapsuleText.Foreground = Token("RarityLegendaryBrush");
         }
-        else
+        else if (badge.Kind == GameBadgeKind.EggGuarantee && badge.Rarity is { } badgeRarity)
         {
             _statusCapsule.Visibility = Visibility.Visible;
-            _statusCapsule.Background = Paint.RarityBrush(_theme, badge.Rarity!.Value);
+            _statusCapsule.Background = Paint.RarityBrush(_theme, badgeRarity);
             _statusCapsuleText.Text = badge.Text;
             _statusCapsuleText.Foreground = Brushes.White;
         }

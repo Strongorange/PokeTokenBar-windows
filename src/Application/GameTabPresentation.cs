@@ -12,9 +12,8 @@ public sealed record GameBadge(string Text, GameBadgeKind Kind, Rarity? Rarity =
 
 /// <summary>
 /// Pure presentation decisions for the game tab companion header and the
-/// dex grid / catch log, extracted from DashboardWindow code-behind (M26)
-/// so they get unit coverage (user principle: every unit modular and
-/// individually testable).
+/// dex grid / catch log, kept free of UI dependencies so they get unit
+/// coverage (user principle: every unit modular and individually testable).
 /// </summary>
 public static class GameTabPresentation
 {

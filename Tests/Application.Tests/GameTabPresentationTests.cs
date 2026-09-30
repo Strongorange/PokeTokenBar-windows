@@ -123,8 +123,7 @@ public class GameTabPresentationTests
         Assert.Equal(GameBadgeKind.GrowthBoost, badge.Kind);
         Assert.Null(badge.Rarity);
         Assert.Equal(
-            DashboardText.GrowthBoost(AppLanguage.En,
-                (int) Math.Round((double) PokemonBalance.RepeatGrowthMultiplier)),
+            DashboardText.GrowthBoost(AppLanguage.En, 2),
             badge.Text);
     }
 
@@ -227,7 +226,7 @@ public class GameTabPresentationTests
     }
 
     [Fact]
-    public void TileTooltipListsBadgesInOrder()
+    public void TileTooltipListsAllBadges()
     {
         var plain = GameTabPresentation.TileTooltip(
             new CompanionDexRow(1, "Speciemon", Rarity.Rare, false, false),
@@ -263,8 +262,7 @@ public class GameTabPresentationTests
         Assert.Equal("", GameTabPresentation.CaughtAgo(null, now, AppLanguage.En));
         var caught = now - TimeSpan.FromDays(3);
         Assert.Equal(
-            DashboardText.CaughtAgo(AppLanguage.En,
-                RelativeTimes.Bucket(caught, now), RelativeTimes.BucketValue(caught, now)),
+            DashboardText.CaughtAgo(AppLanguage.En, RelativeTimeBucket.Days, 3),
             GameTabPresentation.CaughtAgo(caught, now, AppLanguage.En));
     }
 

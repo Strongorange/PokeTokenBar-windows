@@ -7,10 +7,9 @@ using PokeTokenBar.Core;
 namespace PokeTokenBar.Ui;
 
 /// <summary>
-/// Dex grid + catch log renderer extracted from DashboardWindow code-behind
-/// (M26). Owns the rarity-filter and mode state; tally clicks re-render via
-/// the request callback. Pure decisions live in GameTabPresentation and
-/// CompanionPresentation (unit-tested).
+/// Dex grid + catch log renderer. Owns the rarity-filter and mode state;
+/// pure decisions live in GameTabPresentation and CompanionPresentation
+/// (unit-tested).
 /// </summary>
 internal sealed class DexTab
 {
@@ -257,9 +256,7 @@ internal sealed class DexTab
     }
 
     /// <summary>
-    /// Catch log card — port of the macOS DexEntryRow: rarity capsule +
-    /// raising/released badge + ✨ header with the nature on the right, the
-    /// reached evolution chain as sprites with names, caught-at relative line.
+    /// Catch log card — port of the macOS DexEntryRow.
     /// </summary>
     private Border CreateCatchCard(CompanionCatchRow row, AppLanguage lang)
     {
