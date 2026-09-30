@@ -6,6 +6,15 @@ Release notes for a version are generated from its section here (see
 edition lives in `CHANGELOG.ko.md` — keep both in sync; the publish script
 refuses to release when either one is missing the current version.
 
+## v0.25.2 — Floating pet animation self-heal
+
+- Fixed: one failed download of an animated sprite permanently froze the
+  floating pet on the static fallback — the disk-cached static sprite
+  blocked every retry, even across restarts. The pet, the dashboard
+  companion header and the species-detail header now re-fetch the
+  animated GIF in the background after showing the static fallback and
+  swap it in when it arrives.
+
 ## v0.25.1 — Game tab modularization
 
 - Internal: the companion header, progress caption, combat text, dex
