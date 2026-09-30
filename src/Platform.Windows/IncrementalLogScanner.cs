@@ -155,7 +155,7 @@ public sealed class IncrementalLogScanner<TPayload>
 
     private static List<string> ReadAllLines(string path)
     {
-        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
         using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
         var text = reader.ReadToEnd();
         var lines = SplitLines(text, out var droppedPartialFinalLine);

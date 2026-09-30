@@ -124,14 +124,26 @@ public static class ProviderCatalog
         var fingerprint = new FileFingerprint(file.MtimeUtc, file.Size);
         if (cache.TryGet(file.Path, fingerprint, out var cached) && cached is not null)
             return cached;
-        var rollout = CodexLogParser.Parse(file.Path, ReadLogLines(file.Path), timeZone);
+        List<string> lines;
+        try
+        {
+            lines = ReadLogLines(file.Path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            AppLog.Write($"log read failed, keeping previous data: {file.Path}: {ex.Message}");
+            if (cache.TryGetAny(file.Path, out var stale) && stale is not null)
+                return stale;
+            return CodexLogParser.Parse(file.Path, [], timeZone);
+        }
+        var rollout = CodexLogParser.Parse(file.Path, lines, timeZone);
         cache.Put(file.Path, fingerprint, rollout);
         return rollout;
     }
 
     private static List<string> ReadLogLines(string path)
     {
-        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
         using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
         var text = reader.ReadToEnd();
         return IncrementalLogScanner<CodexParsedRollout>.SplitLines(text, out _);

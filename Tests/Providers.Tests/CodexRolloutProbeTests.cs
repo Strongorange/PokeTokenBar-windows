@@ -1,8 +1,10 @@
 using System.Text;
+using PokeTokenBar.Core;
 using PokeTokenBar.Providers;
 
 namespace PokeTokenBar.Providers.Tests;
 
+[Collection("Providers diagnostics")]
 public class CodexRolloutProbeTests : IDisposable
 {
     private readonly string _dir;
@@ -11,10 +13,12 @@ public class CodexRolloutProbeTests : IDisposable
     {
         _dir = Path.Combine(Path.GetTempPath(), "ptb-providers-tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_dir);
+        Diagnostics.Configure(_dir);
     }
 
     public void Dispose()
     {
+        AppLog.ResetToDefault();
         try { Directory.Delete(_dir, true); } catch { }
     }
 
@@ -130,10 +134,36 @@ public class CodexRolloutProbeTests : IDisposable
     }
 
     [Fact]
-    public void MissingFileThrowsInsteadOfReturningNull()
+    public void ProbesSessionIdWhileAConcurrentWriterHoldsTheFileOpen()
     {
-        Assert.ThrowsAny<IOException>(() =>
-            CodexRolloutProbe.ProbeFile(Path.Combine(_dir, "does-not-exist.jsonl")));
+        var path = WriteProbeFile(
+            CodexLogParserTests.SessionMetaLine("parent-live", "2026-07-29T01:00:00.000Z"),
+            CodexLogParserTests.TokenLine("2026-07-29T01:00:01.000Z"));
+        using (new FileStream(
+            path, FileMode.Open, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete))
+        {
+            Assert.Equal("parent-live", CodexRolloutProbe.ProbeFile(path));
+        }
+    }
+
+    [Fact]
+    public void MissingFileProbesAsUnknownSessionInsteadOfThrowing()
+    {
+        Assert.Null(CodexRolloutProbe.ProbeFile(Path.Combine(_dir, "does-not-exist.jsonl")));
+        Assert.Contains("rollout probe failed", Diagnostics.Read(_dir));
+    }
+
+    [Fact]
+    public void ExclusivelyLockedFileProbesAsUnknownSession()
+    {
+        var path = WriteProbeFile(
+            CodexLogParserTests.SessionMetaLine("parent-locked", "2026-07-29T01:00:00.000Z"),
+            CodexLogParserTests.TokenLine("2026-07-29T01:00:01.000Z"));
+        using (new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            Assert.Null(CodexRolloutProbe.ProbeFile(path));
+        }
+        Assert.Equal("parent-locked", CodexRolloutProbe.ProbeFile(path));
     }
 
     [Fact]

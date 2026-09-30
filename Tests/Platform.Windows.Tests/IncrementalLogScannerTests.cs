@@ -118,6 +118,23 @@ public class IncrementalLogScannerTests : IDisposable
     }
 
     [Fact]
+    public void ConcurrentlyWrittenFileIsParsedWhileTheWriterKeepsItOpen()
+    {
+        var path = WriteLog(@"logs\a.jsonl", "l1\nl2\n");
+        var root = Path.Combine(_dir, "logs");
+        using (var writer = new FileStream(
+            path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete))
+        {
+            writer.Write("l3\n"u8);
+            writer.Flush();
+            var results = NewScanner().Scan([root], ScanFloor, LineCount);
+            var file = Assert.Single(results);
+            Assert.Equal(ScannedFileStatus.Parsed, file.Status);
+            Assert.Equal(3, file.Payload);
+        }
+    }
+
+    [Fact]
     public void FilesOlderThanScanFloorAreSkipped()
     {
         var path = WriteLog(@"logs\a.jsonl", "one\n");

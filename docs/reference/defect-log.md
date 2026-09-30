@@ -411,6 +411,38 @@ read_when:
   부류이긴 하다(실기기 Claude jsonl 863개, 최대 90MB). 회귀 가드: `CodexLargeRolloutPerformanceTests` —
   **opt-in(`POKETOKENBAR_RUN_LARGE_PERF=1` / `scripts/perf-codex-large-rollout.sh`)이라 CI 는 돌리지 않는다.**
   자동으로 막히지 않으므로 이 부류를 건드리면 직접 돌린다. (#184)
+- **Windows 에서 남이 쓰고 있는 로그를 `FileShare.Read` 로 열면 안 된다 — 생산 코드의 외부 로그 open 은 `FileShare.ReadWrite | FileShare.Delete` 로 통일한다.** (Windows 포트,
+  2026-10-01 리포트 "모든 프로바이더에서 사용량이 갱신되지 않음".) Codex CLI 는 활성 세션 `.jsonl` 을
+  쓰기 핸들로 계속 쥐고 있는데, `FileShare.Read` 는 "내가 연 동안 다른 프로세스는 읽기만 된다"는 선언이라
+  이미 쓰기 핸들을 쥔 상대와 sharing violation 한다. 스캐너(`IncrementalLogScanner`)는 catch 로
+  stale 처리했지만 `ProviderCatalog.ReadLogLines`·`CodexRolloutProbe.ProbeFile` 은 catch 도 없어
+  IOException 이 refresh 라운드 전체를 죽였고, Codex 세션이 오래 돌아가는 동안 **매 라운드가** 실패해
+  다른 프로바이더까지 포함한 화면 전체가 멈춰 있었다. macOS(POSIX)엔 mandatory lock 이 없어 원본에서
+  보이지 않던 Windows 포트 고유 부류다. 부류 스윕(생산 코드의 외부 로그 직접 open 3곳):
+  `IncrementalLogScanner.ReadAllLines`·`ProviderCatalog.ReadLogLines`·`CodexRolloutProbe.ProbeFile`.
+  OpenCode 의 sqlite 는 ReadOnly 연결·복사 경로가 이미 예외를 접는다. 쓰기 중 파일의 잘린 마지막 줄은
+  `SplitLines` 의 partial-final-line 드롭이 이미 처리한다. **왜 못 걸렸나:** 픽스처는 전부 닫힌 파일이었고
+  유일한 락 테스트(`LockedFileYieldsReadFailedWithStalePayloadUntilReleased`)는 `FileShare.None`
+  전면 거부만 시뮬레이션했다 — 실제 트리거는 그 정반대 조건인 "공유를 허용하는 쓰기 핸들"이었다.
+  실기기 검증: 활성 rollout 에서 `FileShare.Read` 는 실패, `ReadWrite|Delete` 는 3.2MB 정상 읽기.
+  회귀 가드(세 층 모두): `ConcurrentlyWrittenFileIsParsedWhileTheWriterKeepsItOpen`(스캐너 —
+  writer 가 append 하는 중 파싱)·`ProbesSessionIdWhileAConcurrentWriterHoldsTheFileOpen`(프로브)·
+  `RefreshSucceedsWhileCodexHoldsTheActiveSessionFileOpen`(엔드투엔드 — 라운드가 죽지 않고
+  claude+codex 합계가 나온다). `FileShare.Read` 로 되돌리면 셋 다 실패한다(주입 확인 완료).
+- **파일 하나가 못 읽는다고 refresh 라운드 전체가 죽으면 안 된다 — Codex Expand 경로도 스캐너와 같은
+  per-file 감쇠를 쓴다.** (같은 리포트의 후속 강화.) share-mode 수정은 알려진 트리거를 없앴을 뿐,
+  `CodexParentClosure.Expand` 의 `load`(`ProviderCatalog.LoadThroughCache`)와 `probe`(`CodexRolloutProbe.ProbeFile`)
+  가 여전히 throw 하면 — 예컨대 `FileShare.None` 으로 잡은 배타적 홀더(에디터·백업·백신) — 라운드가 죽어
+  **모든 프로바이더** 화면이 다시 얼어붙는다. macOS 원판이 Aside 3라운드 리뷰로 축적한 규칙("캐시 위의
+  로컬 소스 리더는 throw 하지 않는다")을 이 경로에도 적용한다: 읽기 실패는 `IOException`·`UnauthorizedAccessException`
+  만 잡아 ① 로그 한 줄 ② 캐시의 옛 payload 를 **옛 signature 그대로** 이어받아 반환(일시적 실패를 현재
+  signature 로 캐시에 굽지 않는다 — 다음 스캔이 다시 읽는다) ③ 캐시도 없으면 빈 rollout. 프로브 실패는
+  null("모르는 세션")로 — `MissingFileThrowsInsteadOfReturningNull` 은 이 설계를 반대로 고정하던 테스트라
+  감쇠 방향으로 재작성했다. 주입된 커스텀 probe delegate 의 throw 는 여전히 라운드를 실패시킨다
+  (`TransientProbeFailureSkipsRoundWithoutPoisoningLaterRounds`) — 감쇠는 프로덕션 읽기 경로의 계약이지
+  임의 콜백의 버그까지 삼키겠다는 뜻이 아니다. 회귀 가드: `ExclusivelyLockedCodexFilesKeepPreviousDataWithoutFailingTheRound`
+  (배타 락 + 수정된 파일 → 이전 데이터 유지하며 라운드 생존)·`ExclusivelyLockedFileProbesAsUnknownSession`·
+  `MissingFileProbesAsUnknownSessionInsteadOfThrowing`. catch 를 떼면 셋 다 실패한다(주입 확인 완료).
 
 ## 빌드·도구체인
 

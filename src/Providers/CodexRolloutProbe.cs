@@ -1,4 +1,5 @@
 using System.Text;
+using PokeTokenBar.Core;
 
 namespace PokeTokenBar.Providers;
 
@@ -19,8 +20,16 @@ public static class CodexRolloutProbe
 
     public static string? ProbeFile(string path, int byteLimit = DefaultByteLimit)
     {
-        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-        return Probe(stream, byteLimit);
+        try
+        {
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            return Probe(stream, byteLimit);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            AppLog.Write($"rollout probe failed, treating as unknown session: {path}: {ex.Message}");
+            return null;
+        }
     }
 
     public static string? Probe(Stream stream, int byteLimit = DefaultByteLimit)
