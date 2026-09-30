@@ -411,10 +411,29 @@ so encoding/matching stay unit-tested). Engineering quality rode along:
 code-behind with tests, and a pre-existing dex-filter double-click misindex
 was fixed. ~20 macOS-verbatim strings added.
 
+Thirteenth slice (M24, version 0.23.0, user-verified): the celebration
+animation package (the last unclaimed Tier-2 item besides the deprioritized
+incident banner). Hatch/evolve/ditto-reveal play a white flash fade + spring
+pop (ElasticEase) over the companion sprite with delayed bursts — a gold
+sparkle for shiny hatches, a comedy/tragedy mask pair for ditto reveals —
+candy use pops an orange "+XP" capsule above the sprite, mint re-rolls
+shimmer three gold sparkles, and an imminent egg (≥90%) wiggles back and
+forth. Engine-side: Core `CelebrationQueue` (drain-based, capacity 8) +
+`DrainCelebrations()` with enqueues at hatch (after carry-over growth,
+disguise hides shiny — macOS ordering), evolve, ditto reveal, candy XP
+amount, and mint; import clears pending celebrations. UI-side:
+`CompanionCelebrationPlayer` (code-behind playback, sequential for
+flash+pop kinds, concurrent candy/mint overlays) — and because WPF renders
+emoji monochrome (verified: even explicit Segoe UI Emoji yields no color
+glyphs), the ✨/🎭 cues are vector-drawn `CelebrationGlyphs` (curved
+four-point star in the new Theme `SparkleBrush`, mask pair reusing rarity
+brushes) instead of emoji text. No new localized strings (macOS celebration
+uses none). 15 new tests (queue semantics + engine enqueue/ordering/import).
+
 Remaining UI-parity candidates live in `docs/ui-parity-audit.md` (Tier 2:
-celebration animation package — deliberately its own slice; incident banner,
-deprioritized by the user; Tier 3: dark mode, constrained items incl.
-official limits, rejected by the no-credentials rule; engineering quality:
-partially done in M23, render/confirm-state builders still in code-behind).
-Confirm the next slice with the user first. Windows keeps the tray +
-dashboard model — inline menu-bar text stays out of scope by design.
+incident banner, deprioritized by the user; Tier 3: dark mode, constrained
+items incl. official limits, rejected by the no-credentials rule;
+engineering quality: partially done in M23, render/confirm-state builders
+still in code-behind). Confirm the next slice with the user first. Windows
+keeps the tray + dashboard model — inline menu-bar text stays out of scope
+by design.

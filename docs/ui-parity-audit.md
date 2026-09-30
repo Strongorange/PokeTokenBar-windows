@@ -27,7 +27,7 @@ Legend: ☐ todo · ◐ in progress · ☑ done (milestone) · ✗ rejected (rea
 |------|-----------------|----------------|--------|
 | ☑ Usage home redesign: big today number + grouped + cost, week/month labels | PopoverView.swift `header` 150-224 | M21 | week totals via `UsageAggregation.Period` (Sunday start, invariant) in refresh service |
 | ☑ Provider chip tab + per-provider detail (input/output/cache-write/cache-read, model rows) | `ProviderTabBar`, `providerRow` 203-281 | M21 | `ProviderUsageSummary` extended (today breakdown, week totals, models, cost coverages) |
-| ☐ Hatch/evolve celebration package: white flash + spring pop + ✨/🎭 burst, candy "+XP" capsule, mint sparkle, egg wiggle | CompanionView.swift 642-703 | todo | largest remaining Tier-2 item (celebration queue in engine + WPF storyboards) — deliberately kept as its own slice, not bundled into M23 |
+| ☑ Hatch/evolve celebration package: white flash + spring pop + ✨/🎭 burst, candy "+XP" capsule, mint sparkle, egg wiggle | CompanionView.swift 642-703 | M24 | Core `CelebrationQueue` (drain-based, cap 8) + engine `DrainCelebrations()` enqueue at hatch (after carry-over growth, disguise hides shiny)/evolve/ditto-reveal/candy-XP/mint; UI `CompanionCelebrationPlayer` (flash+pop ElasticEase, delayed bursts, orange "+XP" capsule, mint cluster, repeating egg wiggle ≥90%). WPF renders emoji monochrome → ✨/🎭 are vector glyphs (`CelebrationGlyphs`: gold 4-point star, comedy/tragedy masks) |
 | ☑ Catch log view: per-individual rows (rarity capsule, evolution-chain sprites, nature, caught-at, released badge) + rarity filter | `CollectionView.catchLog`, `DexEntryRow` 1460 | M23 | engine `BuildCatchRows` (active pinned first, caught-at desc, nulls last) + `CompanionCatchRow` view rows; dex-tab segment toggle (Pokédex / catch log), per-individual cards w/ chain sprites + relative caught-at (`RelativeTimes` buckets) |
 | ☑ Companion status line (egg/idle/working/focus/tired/sleep/level-up) | CompanionView.swift `statusLine` 705 | M23 | Core `CompanionStatus.Compute` (pure port of `computeState`; burn tiers = macOS thresholds); engine approximates burn from refresh deltas; 4s level-up window on hatch/evolve/reveal/graduate; `tired` reachable but unused (no limits feature on Windows) |
 | ☑ Detail window polish: type color capsules, individual picker (multi-catch), actual-stats section w/ IV | `PokemonDetailView` 1047 | M22 | no engine change; species-data section (capsules + value pairs + abilities), picker, XOR base/actual stats, `DisplayScaleMaximum` bars |
@@ -58,4 +58,6 @@ Legend: ☐ todo · ◐ in progress · ☑ done (milestone) · ✗ rejected (rea
   usage home redesign (today/week/month header, provider chips, token
   breakdown) · M22 detail-window polish (type capsules, individual picker,
   actual stats w/ IV, species-data section) · M23 catch-log view +
-  companion status line + shop item sprites + launch at login.
+  companion status line + shop item sprites + launch at login ·
+  M24 celebration package (hatch/evolve/ditto flash+pop+bursts, candy "+XP"
+  capsule, mint sparkle, egg wiggle).
