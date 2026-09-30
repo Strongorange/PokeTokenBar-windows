@@ -430,10 +430,29 @@ four-point star in the new Theme `SparkleBrush`, mask pair reusing rarity
 brushes) instead of emoji text. No new localized strings (macOS celebration
 uses none). 15 new tests (queue semantics + engine enqueue/ordering/import).
 
+Fourteenth slice (M25, version 0.24.0, user-verified): engineering-quality
+extraction with ride-along shop parity fixes. `DashboardWindow.xaml.cs`
+shrank 1,629→799 lines: the bag/shop confirm-state machinery, candy stepper,
+and use/purchase feedback moved to Application `ShopFlow` (egg confirm is now
+the macOS three-stage flow: confirm → shiny-discard warning), the
+today/provider/trend render decisions moved to `UsagePresentation` +
+`DailyTrendMetrics` (Peak/ShowsCost/TodayUsage), and the WPF builders moved
+to Ui-internal `UsageHomeRenderer` / `ShopCards` / `Paint` (brush helper).
+Two pre-existing bugs fixed while moving the shop code: item cards rendered
+their confirm row unconditionally (cancel was a visual no-op; macOS uses an
+inline two-step idle price → confirm), and the BASIC egg row (Item=null,
+EggTier=null) fell through to the item-card builder and rendered with the
+rare-candy icon/description/owned count. Bag card background switched from
+opaque #F8F8F8 to the macOS-verbatim #0F000000 alpha tint (theme-blind hex
+removed). 16 new tests (ShopFlow confirm flows incl. shiny escalation,
+UsagePresentation, trend metrics). Smoke harness evidence in
+`%TEMP%\opencode\ptb-m25-smoke\` (5 PNGs + numeric probes).
+
 Remaining UI-parity candidates live in `docs/ui-parity-audit.md` (Tier 2:
 incident banner, deprioritized by the user; Tier 3: dark mode, constrained
 items incl. official limits, rejected by the no-credentials rule;
-engineering quality: partially done in M23, render/confirm-state builders
-still in code-behind). Confirm the next slice with the user first. Windows
+engineering quality: trend/provider/shop builders and confirm-state
+machinery done in M25 — game-tab render builders remain in the code-behind
+as candidates). Confirm the next slice with the user first. Windows
 keeps the tray + dashboard model — inline menu-bar text stays out of scope
 by design.

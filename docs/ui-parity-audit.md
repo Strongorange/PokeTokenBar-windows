@@ -31,7 +31,8 @@ Legend: ☐ todo · ◐ in progress · ☑ done (milestone) · ✗ rejected (rea
 | ☑ Catch log view: per-individual rows (rarity capsule, evolution-chain sprites, nature, caught-at, released badge) + rarity filter | `CollectionView.catchLog`, `DexEntryRow` 1460 | M23 | engine `BuildCatchRows` (active pinned first, caught-at desc, nulls last) + `CompanionCatchRow` view rows; dex-tab segment toggle (Pokédex / catch log), per-individual cards w/ chain sprites + relative caught-at (`RelativeTimes` buckets) |
 | ☑ Companion status line (egg/idle/working/focus/tired/sleep/level-up) | CompanionView.swift `statusLine` 705 | M23 | Core `CompanionStatus.Compute` (pure port of `computeState`; burn tiers = macOS thresholds); engine approximates burn from refresh deltas; 4s level-up window on hatch/evolve/reveal/graduate; `tired` reachable but unused (no limits feature on Windows) |
 | ☑ Detail window polish: type color capsules, individual picker (multi-catch), actual-stats section w/ IV | `PokemonDetailView` 1047 | M22 | no engine change; species-data section (capsules + value pairs + abilities), picker, XOR base/actual stats, `DisplayScaleMaximum` bars |
-| ☐ Provider incident banner (statuspage.io, no auth) | `providerStatusBanner` 303 | todo | network fetch + privacy doc update; user deprioritized at M23 kickoff ("장애 배너까지는 굳이") |
+| ☐ Provider incident banner (statuspage.io, no auth) | `providerStatusBanner` 303 | todo (deprioritized) | network fetch + privacy doc update; user deprioritized at M23 kickoff ("장애 배너까지는 굳이") |
+| ☑ Shop card inline-confirm parity: item two-step (idle price → confirm), egg shiny re-confirm, basic-egg card as egg | ShopView.swift `ShopItemCard.buyControls`/`EggCard.controls` | M25 | fixed two pre-existing bugs while extracting the shop builders to `ShopCards` (Ui): item cards rendered the confirm row unconditionally (cancel was a no-op), and the basic egg row (Item=null, EggTier=null) fell through to the item-card builder showing the rare-candy icon/description/owned count; egg confirm now follows the macOS three-stage flow (idle → confirm → shiny-discard warning) via Application `ShopFlow` |
 
 ## Tier 3 — constrained / large
 
@@ -46,7 +47,7 @@ Legend: ☐ todo · ◐ in progress · ☑ done (milestone) · ✗ rejected (rea
 
 | Item | Status |
 |--------|--------|
-| ☐ Extract pure UI-adjacent logic from `DashboardWindow.xaml.cs` into testable helpers in Core/Application so it gets unit coverage instead of headless-manual-only | ◐ M23: `CompanionPresentation` (rarity display order + hex colors, dex/catch-log visible-row filters, provider-chip selection fallback) + `RelativeTimes` (caught-at buckets) extracted and unit-tested; also fixed a pre-existing bug (dex double-click used the filtered index against the unfiltered list). Still in the code-behind: trend/provider/shop render builders, bag/shop confirm-state machinery |
+| ◑ Extract pure UI-adjacent logic from `DashboardWindow.xaml.cs` into testable helpers in Core/Application so it gets unit coverage instead of headless-manual-only | M23: `CompanionPresentation` (rarity display order + hex colors, dex/catch-log visible-row filters, provider-chip selection fallback) + `RelativeTimes` (caught-at buckets) extracted and unit-tested; also fixed a pre-existing bug (dex double-click used the filtered index against the unfiltered list). M25: bag/shop confirm-state machinery → Application `ShopFlow` (unit-tested, incl. the macOS three-stage egg confirm), usage-home decisions → `UsagePresentation` + `DailyTrendMetrics.Peak/ShowsCost/TodayUsage`, WPF builders → Ui-internal `UsageHomeRenderer`/`ShopCards`/`Paint`; code-behind 1,629→799 lines; two shop bugs fixed (item-card cancel no-op, basic-egg card rendered as rare-candy card). Remaining in the code-behind: game-tab builders (companion header, dex tiles, catch cards, evolution line) |
 
 ## Done history (UI parity)
 
@@ -60,4 +61,5 @@ Legend: ☐ todo · ◐ in progress · ☑ done (milestone) · ✗ rejected (rea
   actual stats w/ IV, species-data section) · M23 catch-log view +
   companion status line + shop item sprites + launch at login ·
   M24 celebration package (hatch/evolve/ditto flash+pop+bursts, candy "+XP"
-  capsule, mint sparkle, egg wiggle).
+  capsule, mint sparkle, egg wiggle) · M25 shop/usage extraction + shop
+  confirm parity (item two-step, egg shiny re-confirm, basic-egg card fix).
