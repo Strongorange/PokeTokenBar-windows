@@ -6,6 +6,16 @@ Release notes for a version are generated from its section here (see
 edition lives in `CHANGELOG.ko.md` — keep both in sync; the publish script
 refuses to release when either one is missing the current version.
 
+## v0.26.0 — Game tab modularization
+
+- Internal: the companion header, progress caption, combat text, dex
+  tiles, rarity filter capsules, catch-log cards and evolution line moved
+  out of the dashboard code-behind into individually tested units (pure
+  decisions in `GameTabPresentation`, WPF builders in renderer classes).
+  The code-behind shrank to a quarter of its size. No visual or behavior
+  changes — verified by pixel-identical before/after captures of the
+  affected views.
+
 ## v0.25.0 — Update checks fixed
 
 - Fixed the update checker: its requests to the GitHub API carried no
