@@ -54,6 +54,25 @@ public class SpriteStoreTests : IDisposable
     }
 
     [Fact]
+    public void SubjectUpgradesCachedStaticFallbackToAnimatedOnRetry()
+    {
+        var offline = new SpriteStore(_dir, url =>
+            url.AbsoluteUri.EndsWith(".gif") ? null : Png);
+        Assert.False(offline.Subject(25, animated: true, shiny: false)!.Animated);
+
+        var fetched = new List<Uri>();
+        var healed = new SpriteStore(_dir, url => FetchRecorder(fetched, url, Gif));
+        var subject = healed.Subject(25, animated: true, shiny: false);
+
+        Assert.NotNull(subject);
+        Assert.True(subject!.Animated);
+        Assert.Equal(Gif, subject.Data);
+        Assert.EndsWith("/versions/generation-v/black-white/animated/25.gif",
+            fetched.Single().AbsoluteUri);
+        Assert.True(healed.CachedSubject(25, animated: true, shiny: false)!.Animated);
+    }
+
+    [Fact]
     public void ShinyFallsBackToNormalWhenUnavailable()
     {
         var fetched = new List<Uri>();

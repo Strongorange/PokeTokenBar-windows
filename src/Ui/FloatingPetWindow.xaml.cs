@@ -69,12 +69,14 @@ public partial class FloatingPetWindow : Window
         _lastSubject = subject;
         var version = ++_renderVersion;
 
+        var animated = !egg && PokemonAssets.HasAnimatedSprite(speciesID);
         var cached = egg
             ? WrapEgg(_store.CachedEgg())
-            : _store.CachedSubject(speciesID, PokemonAssets.HasAnimatedSprite(speciesID), shiny, form);
+            : _store.CachedSubject(speciesID, animated, shiny, form);
         if (cached is not null)
         {
             Render(cached);
+            if (animated && !cached.Animated) UpgradeToAnimated(version, speciesID, shiny, form);
             return;
         }
         ShowPlaceholder(egg ? "🥚" : "❔");
@@ -82,8 +84,21 @@ public partial class FloatingPetWindow : Window
         {
             var fetched = egg
                 ? WrapEgg(_store.Egg())
-                : _store.Subject(speciesID, PokemonAssets.HasAnimatedSprite(speciesID), shiny, form);
+                : _store.Subject(speciesID, animated, shiny, form);
             if (fetched is null) return;
+            Dispatcher.BeginInvoke(() =>
+            {
+                if (version == _renderVersion) Render(fetched);
+            });
+        });
+    }
+
+    private void UpgradeToAnimated(int version, int speciesID, bool shiny, UnownForm? form)
+    {
+        Task.Run(() =>
+        {
+            var fetched = _store.Subject(speciesID, animated: true, shiny, form);
+            if (fetched is not { Animated: true }) return;
             Dispatcher.BeginInvoke(() =>
             {
                 if (version == _renderVersion) Render(fetched);

@@ -40,6 +40,8 @@ internal sealed class SpriteSlot
         if (cached is not null)
         {
             Render(cached);
+            if (animated && !cached.Animated && PokemonAssets.HasAnimatedSprite(speciesID))
+                UpgradeToAnimated(store, version, speciesID, shiny, form);
             return;
         }
         ShowPlaceholder(glyph);
@@ -74,6 +76,20 @@ internal sealed class SpriteSlot
             _image.Dispatcher.BeginInvoke(() =>
             {
                 if (version == _version) Render(new SpriteBytes(fetched, Animated: false));
+            });
+        });
+    }
+
+    private void UpgradeToAnimated(SpriteStore store, int version, int speciesID,
+        bool shiny, UnownForm? form)
+    {
+        Task.Run(() =>
+        {
+            var fetched = store.Subject(speciesID, animated: true, shiny, form);
+            if (fetched is not { Animated: true }) return;
+            _image.Dispatcher.BeginInvoke(() =>
+            {
+                if (version == _version) Render(fetched);
             });
         });
     }
