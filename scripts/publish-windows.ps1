@@ -59,7 +59,15 @@ function Get-ChangelogBody($path, $version)
     {
         throw "$(Split-Path $path -Leaf)'s newest section is '$($lines[$bodyStart])' but the csproj version is $version — add the v$version section before releasing"
     }
-    return ,$lines[$bodyStart..($lines.Count - 1)]
+    # Only the released version's own section — older sections stay in the
+    # changelog files, they don't belong in per-release notes.
+    $bodyEnd = $lines.Count
+    for ($i = $bodyStart + 1; $i -lt $lines.Count; $i++)
+    {
+        if ($lines[$i] -match '^## v') { $bodyEnd = $i; break }
+    }
+    while ($bodyEnd - $bodyStart -gt 1 -and $lines[$bodyEnd - 1] -match '^\s*$') { $bodyEnd-- }
+    return ,$lines[$bodyStart..($bodyEnd - 1)]
 }
 
 $enBody = Get-ChangelogBody (Join-Path $repo 'CHANGELOG.md') $version
@@ -71,9 +79,6 @@ Compress-Archive -Path $stagedExe -DestinationPath $zipPath
 
 $enNotes = @(
     "# PokeTokenBar for Windows v$version",
-    "",
-    "Cumulative release: everything since v0.10.0, the full macOS-parity",
-    "polish series. Newest changes first.",
     ""
 ) + $enBody + @(
     "",
@@ -92,9 +97,6 @@ Set-Content -LiteralPath $enNotesPath -Value $enNotes -Encoding utf8
 
 $koNotes = @(
     "# PokeTokenBar for Windows v$version",
-    "",
-    "v0.10.0 이후의 모든 변화를 담은 누적 릴리스입니다. 새 변화가 위에",
-    "옵니다.",
     ""
 ) + $koBody + @(
     "",
