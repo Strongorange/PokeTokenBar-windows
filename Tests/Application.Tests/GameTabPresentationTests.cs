@@ -256,6 +256,24 @@ public class GameTabPresentationTests
     }
 
     [Fact]
+    public void DexFooterInfoJoinsNumberNameAndRarity()
+    {
+        Assert.Equal(
+            "#1 Speciemon · " + DashboardText.RarityLabel(AppLanguage.En, Rarity.Rare),
+            GameTabPresentation.DexFooterInfo(
+                new CompanionDexRow(1, "Speciemon", Rarity.Rare, false, false), AppLanguage.En));
+    }
+
+    [Fact]
+    public void DexFooterStarHiddenForUnownOnly()
+    {
+        Assert.True(GameTabPresentation.DexFooterCanSetRepresentative(
+            new CompanionDexRow(1, "Speciemon", Rarity.Rare, false, false)));
+        Assert.False(GameTabPresentation.DexFooterCanSetRepresentative(
+            new CompanionDexRow(UnownForms.SpeciesID, "Unown", Rarity.Common, false, false)));
+    }
+
+    [Fact]
     public void CaughtAgoFormatsBucketOrEmpty()
     {
         var now = new DateTimeOffset(2026, 9, 30, 12, 0, 0, TimeSpan.Zero);

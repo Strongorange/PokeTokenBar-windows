@@ -125,6 +125,10 @@ public static class DashboardText
         T(lang, "미수집", "Not collected", "未収集", "Sin conseguir", "Non collectionnée",
             "Não coletada", "Noch nicht gesammelt");
 
+    public static string UnownChooseForm(AppLanguage lang) =>
+        T(lang, "글자 선택", "Choose form", "フォルムを選択", "Elegir forma", "Choisir une forme",
+            "Escolher forma", "Form auswählen");
+
     public static string ShopTitle(AppLanguage lang) =>
         T(lang, "상점", "Shop", "ショップ", "Tienda", "Boutique", "Loja", "Laden");
 

@@ -32,17 +32,29 @@ internal sealed class DexTab
     private Rarity? _catchRarityFilter;
     private bool _showLog;
     private IReadOnlyList<CompanionDexRow> _visibleRows = [];
+    private readonly CompanionEngine _engine;
+    private readonly Action<int> _openDetail;
+    private readonly FrameworkElement _footer;
+    private readonly Button _footerStar;
+    private readonly TextBlock _footerInfo;
+    private CompanionGameView? _lastView;
+    private int? _selectedSpeciesID;
+    private bool _rebuilding;
 
     public DexTab(
-        FrameworkElement theme, SpriteStore sprites, Action requestRender,
+        FrameworkElement theme, SpriteStore sprites, CompanionEngine engine,
+        Action<int> openDetail, Action requestRender,
         FrameworkElement modeToggle, TextBlock header, StackPanel rarityFilter,
         ListBox list, FrameworkElement catchLogPanel, TextBlock catchHeader,
         StackPanel catchRarityFilter, ListBox catchList,
         FrameworkElement empty, TextBlock emptyTitle, TextBlock emptyHint,
-        Image emptySprite, TextBlock emptySpritePlaceholder)
+        Image emptySprite, TextBlock emptySpritePlaceholder,
+        FrameworkElement footer, Button footerStar, TextBlock footerInfo)
     {
         _theme = theme;
         _sprites = sprites;
+        _engine = engine;
+        _openDetail = openDetail;
         _requestRender = requestRender;
         _modeToggle = modeToggle;
         _header = header;
@@ -55,7 +67,12 @@ internal sealed class DexTab
         _empty = empty;
         _emptyTitle = emptyTitle;
         _emptyHint = emptyHint;
+        _footer = footer;
+        _footerStar = footerStar;
+        _footerInfo = footerInfo;
         _emptySprite = new SpriteSlot(emptySprite, emptySpritePlaceholder);
+        _list.SelectionChanged += OnListSelectionChanged;
+        _footerStar.Click += OnFooterStarClick;
     }
 
     public void ShowLog(bool showLog) => _showLog = showLog;
@@ -65,54 +82,142 @@ internal sealed class DexTab
 
     public void Render(CompanionGameView view)
     {
+        _lastView = view;
         var lang = view.Language;
         _modeToggle.Visibility = view.DexRows.Count == 0
             ? Visibility.Collapsed
             : Visibility.Visible;
         _catchLogPanel.Visibility = Visibility.Collapsed;
-        _list.Items.Clear();
-        _catchList.Items.Clear();
-        if (view.DexRows.Count == 0)
+        _rebuilding = true;
+        try
         {
-            _header.Text = "";
-            _list.Visibility = Visibility.Collapsed;
-            _rarityFilter.Visibility = Visibility.Collapsed;
-            _empty.Visibility = Visibility.Visible;
-            _emptyTitle.Text = DashboardText.DexEmptyTitle(lang);
-            _emptyHint.Text = DashboardText.DexEmptyHint(lang);
-            _emptySprite.Update(_sprites, 25, true, false, null, "❔");
+            _list.Items.Clear();
+            _catchList.Items.Clear();
+            if (view.DexRows.Count == 0)
+            {
+                _header.Text = "";
+                _list.Visibility = Visibility.Collapsed;
+                _rarityFilter.Visibility = Visibility.Collapsed;
+                _empty.Visibility = Visibility.Visible;
+                _emptyTitle.Text = DashboardText.DexEmptyTitle(lang);
+                _emptyHint.Text = DashboardText.DexEmptyHint(lang);
+                _emptySprite.Update(_sprites, 25, true, false, null, "❔");
+                _selectedSpeciesID = null;
+                _footer.Visibility = Visibility.Collapsed;
+                return;
+            }
+            _empty.Visibility = Visibility.Collapsed;
+            if (_showLog)
+            {
+                _header.Text = "";
+                _list.Visibility = Visibility.Collapsed;
+                _rarityFilter.Visibility = Visibility.Collapsed;
+                _catchLogPanel.Visibility = Visibility.Visible;
+                _catchHeader.Text = GameTabPresentation.CatchHeader(view);
+                RenderRarityTally(_catchRarityFilterHost,
+                    rarity => CompanionPresentation.RarityTally(view.CatchRows, rarity, row => row.Rarity),
+                    _catchRarityFilter, lang,
+                    rarity => _catchRarityFilter = _catchRarityFilter == rarity ? null : rarity);
+                foreach (var row in CompanionPresentation.VisibleCatchRows(view.CatchRows, _catchRarityFilter))
+                    _catchList.Items.Add(CreateCatchCard(row, lang));
+                _footer.Visibility = Visibility.Collapsed;
+                return;
+            }
+            _header.Text = GameTabPresentation.DexHeader(view);
+            RenderRarityTally(_rarityFilter,
+                rarity => CompanionPresentation.RarityTally(view.DexRows, rarity, row => row.Rarity),
+                _dexRarityFilter, lang,
+                rarity =>
+                {
+                    _dexRarityFilter = _dexRarityFilter == rarity ? null : rarity;
+                    // macOS parity: a tile moved out of the filter must not leave ghost
+                    // info in the footer line (DexGridView.header selection reset).
+                    _selectedSpeciesID = null;
+                });
+            _list.Visibility = Visibility.Visible;
+            _rarityFilter.Visibility = _rarityFilter.Children.Count > 0
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+            _visibleRows = CompanionPresentation.VisibleDexRows(view.DexRows, _dexRarityFilter);
+            foreach (var row in _visibleRows)
+                _list.Items.Add(CreateDexTile(row, lang,
+                    row.SpeciesID == UnownForms.SpeciesID ? view.UnownForms.Count : 0,
+                    row.SpeciesID == view.RepresentativeSpeciesID));
+            RestoreSelection();
+            _footer.Visibility = Visibility.Visible;
+        }
+        finally
+        {
+            _rebuilding = false;
+        }
+        UpdateFooter();
+    }
+
+    private void RestoreSelection()
+    {
+        if (_selectedSpeciesID is not { } id) return;
+        var index = 0;
+        while (index < _visibleRows.Count && _visibleRows[index].SpeciesID != id) index++;
+        if (index < _visibleRows.Count)
+        {
+            _list.SelectedIndex = index;
             return;
         }
-        _empty.Visibility = Visibility.Collapsed;
-        if (_showLog)
+        // Species left the dex (released lines reconcile the representative) — drop it.
+        _selectedSpeciesID = null;
+        _list.SelectedIndex = -1;
+    }
+
+    private void OnListSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_rebuilding) return;
+        _selectedSpeciesID = _list.SelectedIndex >= 0
+            ? RowAt(_list.SelectedIndex)?.SpeciesID
+            : null;
+        UpdateFooter();
+    }
+
+    private void UpdateFooter()
+    {
+        if (_lastView is not { } view) return;
+        var lang = view.Language;
+        var row = _selectedSpeciesID is { } id
+            ? _visibleRows.FirstOrDefault(candidate => candidate.SpeciesID == id)
+            : null;
+        _footerInfo.Text = row is not null ? GameTabPresentation.DexFooterInfo(row, lang) : "";
+        if (row is null || !GameTabPresentation.DexFooterCanSetRepresentative(row))
         {
-            _header.Text = "";
-            _list.Visibility = Visibility.Collapsed;
-            _rarityFilter.Visibility = Visibility.Collapsed;
-            _catchLogPanel.Visibility = Visibility.Visible;
-            _catchHeader.Text = GameTabPresentation.CatchHeader(view);
-            RenderRarityTally(_catchRarityFilterHost,
-                rarity => CompanionPresentation.RarityTally(view.CatchRows, rarity, row => row.Rarity),
-                _catchRarityFilter, lang,
-                rarity => _catchRarityFilter = _catchRarityFilter == rarity ? null : rarity);
-            foreach (var row in CompanionPresentation.VisibleCatchRows(view.CatchRows, _catchRarityFilter))
-                _catchList.Items.Add(CreateCatchCard(row, lang));
+            _footerStar.Visibility = Visibility.Collapsed;
             return;
         }
-        _header.Text = GameTabPresentation.DexHeader(view);
-        RenderRarityTally(_rarityFilter,
-            rarity => CompanionPresentation.RarityTally(view.DexRows, rarity, row => row.Rarity),
-            _dexRarityFilter, lang,
-            rarity => _dexRarityFilter = _dexRarityFilter == rarity ? null : rarity);
-        _list.Visibility = Visibility.Visible;
-        _rarityFilter.Visibility = _rarityFilter.Children.Count > 0
-            ? Visibility.Visible
-            : Visibility.Collapsed;
-        _visibleRows = CompanionPresentation.VisibleDexRows(view.DexRows, _dexRarityFilter);
-        foreach (var row in _visibleRows)
-            _list.Items.Add(CreateDexTile(row, lang,
-                row.SpeciesID == UnownForms.SpeciesID ? view.UnownForms.Count : 0,
-                row.SpeciesID == view.RepresentativeSpeciesID));
+        var isRepresentative = row.SpeciesID == view.RepresentativeSpeciesID;
+        _footerStar.Visibility = Visibility.Visible;
+        _footerStar.Content = isRepresentative
+            ? "★ " + DashboardText.RepresentativeFollowCurrent(lang)
+            : "☆ " + DashboardText.RepresentativeSet(lang);
+        _footerStar.ToolTip = _footerStar.Content;
+        if (isRepresentative)
+        {
+            _footerStar.ClearValue(Button.StyleProperty);
+            _footerStar.Foreground = Paint.Token(_theme, "AccentBrush");
+        }
+        else
+        {
+            // The set action is the discoverable path — give it the accent CTA
+            // treatment instead of the macOS mini icon (there, tap-to-detail
+            // carries discovery; here double-click does, so the footer must).
+            // Reverting state must ClearValue: a local null would shadow the
+            // style's Foreground=White and render invisible text on accent.
+            _footerStar.Style = (Style) _theme.FindResource("AccentButton");
+            _footerStar.ClearValue(Button.ForegroundProperty);
+        }
+    }
+
+    private void OnFooterStarClick(object sender, RoutedEventArgs e)
+    {
+        if (_lastView is not { } view) return;
+        if (_selectedSpeciesID is not { } id) return;
+        _engine.SetRepresentative(view.RepresentativeSpeciesID == id ? null : id);
     }
 
     private void RenderRarityTally(StackPanel host, Func<Rarity, int> countOf, Rarity? selected,
@@ -245,6 +350,7 @@ internal sealed class DexTab
         };
         Grid.SetRow(name, 2);
         tile.Children.Add(name);
+        tile.ContextMenu = BuildTileMenu(row, lang, isRepresentative);
         if (!isRepresentative) return tile;
         return new Border
         {
@@ -253,6 +359,31 @@ internal sealed class DexTab
             Padding = new Thickness(2, 0, 2, 2),
             Child = tile,
         };
+    }
+
+    /// Port of the macOS tile context menu: non-Unown tiles toggle the
+    /// representative directly; Unown needs a form choice, so it jumps to the
+    /// detail window (CompanionView.DexSpeciesCell.contextMenu).
+    private ContextMenu BuildTileMenu(CompanionDexRow row, AppLanguage lang, bool isRepresentative)
+    {
+        var menu = new ContextMenu();
+        if (row.SpeciesID == UnownForms.SpeciesID)
+        {
+            var chooseForm = new MenuItem { Header = "_" + DashboardText.UnownChooseForm(lang) };
+            chooseForm.Click += (_, _) => _openDetail(row.SpeciesID);
+            menu.Items.Add(chooseForm);
+            return menu;
+        }
+        var toggle = new MenuItem
+        {
+            Header = "_" + (isRepresentative
+                ? DashboardText.RepresentativeFollowCurrent(lang)
+                : DashboardText.RepresentativeSet(lang)),
+        };
+        toggle.Click += (_, _) =>
+            _engine.SetRepresentative(isRepresentative ? null : row.SpeciesID);
+        menu.Items.Add(toggle);
+        return menu;
     }
 
     /// <summary>

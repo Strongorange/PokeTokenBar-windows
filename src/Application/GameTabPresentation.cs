@@ -131,6 +131,16 @@ public static class GameTabPresentation
         (row.IsRaising ? "← " : "") + row.Name +
         (unownCollected > 0 ? $" {unownCollected}/{UnownForms.All.Length}" : "");
 
+    /// Port of the macOS dex footer line: the tile only shows number/sprite/name,
+    /// so rarity is the info gained by selecting (CompanionView.footer).
+    public static string DexFooterInfo(CompanionDexRow row, AppLanguage lang) =>
+        $"#{row.SpeciesID} {row.Name} · {DashboardText.RarityLabel(lang, row.Rarity)}";
+
+    /// Unown needs a form choice before it can represent, so the footer star
+    /// stays hidden and the form picker (detail window) handles it instead.
+    public static bool DexFooterCanSetRepresentative(CompanionDexRow row) =>
+        row.SpeciesID != UnownForms.SpeciesID;
+
     public static string CaughtAgo(DateTimeOffset? caughtAt, DateTimeOffset now, AppLanguage lang)
     {
         if (caughtAt is not { } at) return "";

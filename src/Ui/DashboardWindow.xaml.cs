@@ -49,10 +49,11 @@ public partial class DashboardWindow : Window
             CombatText, ProgressLabel, ProgressBar, CompanionStatusText,
             EvolutionScroll, EvolutionLine, CompanionSprite, CompanionSpritePlaceholder);
         _dexTab = new DexTab(
-            this, sprites, () => UpdateGame(_engine.View()),
+            this, sprites, engine, OpenSpeciesDetail, () => UpdateGame(_engine.View()),
             DexModeToggle, DexHeader, DexRarityFilter, DexList,
             CatchLogPanel, CatchHeader, CatchRarityFilter, CatchList,
-            DexEmpty, DexEmptyTitle, DexEmptyHint, DexEmptySprite, DexEmptyPlaceholder);
+            DexEmpty, DexEmptyTitle, DexEmptyHint, DexEmptySprite, DexEmptyPlaceholder,
+            DexFooter, DexFooterStar, DexFooterInfo);
         LocalizeStaticText(engine.State.Language);
     }
 
@@ -167,16 +168,20 @@ public partial class DashboardWindow : Window
         if (_lastView is not { } view) return;
         var row = _dexTab.RowAt(DexList.SelectedIndex);
         if (row is null) return;
+        OpenSpeciesDetail(row.SpeciesID);
+    }
+
+    private void OpenSpeciesDetail(int speciesID)
+    {
         try
         {
-            if (_engine.Detail(row.SpeciesID) is { } detail)
+            if (_engine.Detail(speciesID) is { } detail)
             {
                 var window = new SpeciesDetailWindow(detail, _sprites, _engine) { Owner = this };
                 window.Show();
             }
             else
             {
-                var speciesID = row.SpeciesID;
                 _flow.SetFeedback(
                     language => DashboardText.NoCombatDetails(language, speciesID));
                 UpdateGame(_engine.View());

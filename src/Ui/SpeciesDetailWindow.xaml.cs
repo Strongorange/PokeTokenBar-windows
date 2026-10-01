@@ -62,11 +62,20 @@ public partial class SpeciesDetailWindow : Window
         if (_representativeButton is not { } button) return;
         var lang = _detail.Language;
         var isRepresentative = IsRepresentative;
-        button.Content = isRepresentative ? "★" : "☆";
-        button.ToolTip = isRepresentative
-            ? DashboardText.RepresentativeFollowCurrent(lang)
-            : DashboardText.RepresentativeSet(lang);
-        button.Foreground = isRepresentative ? Token("AccentBrush") : Token("TextSecondaryBrush");
+        button.Content = isRepresentative
+            ? "★ " + DashboardText.RepresentativeFollowCurrent(lang)
+            : "☆ " + DashboardText.RepresentativeSet(lang);
+        button.ToolTip = button.Content;
+        if (isRepresentative)
+        {
+            button.ClearValue(Button.StyleProperty);
+            button.Foreground = Token("AccentBrush");
+        }
+        else
+        {
+            button.Style = (Style) FindResource("AccentButton");
+            button.ClearValue(Button.ForegroundProperty);
+        }
     }
 
     private List<CompanionDetailIndividual> FilteredIndividuals() =>
@@ -92,10 +101,8 @@ public partial class SpeciesDetailWindow : Window
 
         var representativeButton = new Button
         {
-            MinWidth = 28,
-            MinHeight = 24,
-            Padding = new Thickness(0),
-            FontSize = 13,
+            MinHeight = 26,
+            FontSize = 12,
             HorizontalAlignment = HorizontalAlignment.Left,
             Margin = new Thickness(0, 6, 0, 0),
         };

@@ -162,6 +162,8 @@ public class DashboardTextTests
         Assert.Equal("Set as representative", DashboardText.RepresentativeSet(AppLanguage.En));
         Assert.Equal("대표", DashboardText.RepresentativeBadge(AppLanguage.Ko));
         Assert.Equal("Representative", DashboardText.RepresentativeBadge(AppLanguage.En));
+        Assert.Equal("글자 선택", DashboardText.UnownChooseForm(AppLanguage.Ko));
+        Assert.Equal("Choose form", DashboardText.UnownChooseForm(AppLanguage.En));
         Assert.Equal("오늘 사용한 토큰", DashboardText.TodayTokensHeader(AppLanguage.Ko));
         Assert.Equal("Today's tokens", DashboardText.TodayTokensHeader(AppLanguage.En));
         Assert.Equal("이번 주", DashboardText.ThisWeekLabel(AppLanguage.Ko));
