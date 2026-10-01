@@ -6,6 +6,20 @@ Release notes for a version are generated from its section here (see
 edition lives in `CHANGELOG.ko.md` — keep both in sync; the publish script
 refuses to release when either one is missing the current version.
 
+## v0.26.0 — Quick representative selection
+
+- Choosing a representative no longer requires the detail window. Right-click
+  a dex tile to set or clear the representative directly, or click a tile and
+  use the labeled action button in the new footer selection bar, which also
+  shows the selected species' rarity. Unown tiles open the form picker first.
+- The representative action is now a labeled accent button — in the dex
+  footer and in the species detail window — instead of a small icon-only
+  star, so the flow is visible without prior knowledge.
+- Fixed: the settings window's representative row clipped its buttons at the
+  fixed window width.
+- Fixed: "Choose in Pokédex…" opened the dashboard behind the settings
+  window; the settings window now steps aside while the dex is in front.
+
 ## v0.25.3 — Usage refresh lock fix
 
 - Fixed: usage numbers stopped updating for every provider while a Codex
