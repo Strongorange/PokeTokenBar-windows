@@ -57,6 +57,7 @@ public partial class SettingsWindow : Window
             RepresentativeValue.Text = DashboardText.RepresentativeFollowCurrent(lang);
             RepresentativeResetButton.Visibility = Visibility.Collapsed;
         }
+        RepresentativeValue.ToolTip = RepresentativeValue.Text;
     }
 
     private void OnRepresentativeResetClick(object sender, RoutedEventArgs e)
@@ -67,8 +68,11 @@ public partial class SettingsWindow : Window
 
     private void OnRepresentativeChooseClick(object sender, RoutedEventArgs e)
     {
-        if (System.Windows.Application.Current is App app)
-            app.OpenDashboardOnDexTab();
+        // macOS replaces the settings view with the dex; the closest Windows
+        // analog is hiding this (owned, always-on-top-of-owner) window so the
+        // dashboard actually comes to the front. ShowSettings() re-shows it.
+        if (System.Windows.Application.Current is App app && app.OpenDashboardOnDexTab())
+            Hide();
     }
 
     private void LoadCurrentValues()

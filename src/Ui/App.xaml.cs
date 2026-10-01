@@ -412,10 +412,12 @@ public partial class App : System.Windows.Application
         }
     }
 
-    public void OpenDashboardOnDexTab()
+    public bool OpenDashboardOnDexTab()
     {
         ShowDashboard();
-        _dashboard?.SelectDexTab();
+        if (_dashboard is null) return false;
+        _dashboard.SelectDexTab();
+        return true;
     }
 
     public void ApplyDifficulty(double growth, double shop)
