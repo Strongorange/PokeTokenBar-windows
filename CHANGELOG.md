@@ -6,7 +6,7 @@ Release notes for a version are generated from its section here (see
 edition lives in `CHANGELOG.ko.md` — keep both in sync; the publish script
 refuses to release when either one is missing the current version.
 
-## v0.26.0 — Quick representative selection
+## v0.25.4 — Quick representative selection
 
 - Choosing a representative no longer requires the detail window. Right-click
   a dex tile to set or clear the representative directly, or click a tile and
