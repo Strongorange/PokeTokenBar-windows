@@ -10,6 +10,29 @@ public readonly record struct ModelRate(double Input, double Output, double Cach
 
 public static class ModelPricing
 {
+    private static volatile IReadOnlyDictionary<string, ModelRate>? _remoteRates;
+
+    public static void ImportRemoteRates(IReadOnlyDictionary<string, ModelRate> rates)
+    {
+        var normalized = new Dictionary<string, ModelRate>(StringComparer.Ordinal);
+        foreach (var (key, rate) in rates)
+        {
+            if (!IsUsableRate(rate)) continue;
+            normalized[ModelKey(key)] = rate;
+        }
+        _remoteRates = normalized;
+    }
+
+    public static void ClearRemoteRates() => _remoteRates = null;
+
+    private static bool IsUsableRate(ModelRate rate) =>
+        IsFiniteNonNegative(rate.Input) && IsFiniteNonNegative(rate.Output) &&
+        IsFiniteNonNegative(rate.CacheWrite) && IsFiniteNonNegative(rate.CacheRead) &&
+        (rate.Input > 0 || rate.Output > 0);
+
+    private static bool IsFiniteNonNegative(double value) =>
+        double.IsFinite(value) && value >= 0 && value <= ModelsDevCatalog.MaxRatePerMillion;
+
     private static readonly IReadOnlyDictionary<string, ModelRate> Table = CreateTable();
 
     private static IReadOnlyDictionary<string, ModelRate> CreateTable()
@@ -79,21 +102,67 @@ public static class ModelPricing
     }
 
     public static ModelRate Rate(string model) =>
-        Table.TryGetValue(ModelKey(model), out var rate) ? rate : ModelRate.Zero;
+        TryRate(model, out var rate, out _) ? rate : ModelRate.Zero;
 
-       public static double? EstimatedCost(string model, long input, long output, long cacheWrite, long cacheRead)
+    private static bool TryRate(string model, out ModelRate rate, out string matchedKey)
     {
-        var key = ModelKey(model);
-        if (!Table.TryGetValue(key, out var r)) return null;
+        rate = default;
+        matchedKey = "";
+        foreach (var key in CandidateKeys(model))
+        {
+            var remote = _remoteRates;
+            if (remote is not null && remote.TryGetValue(key, out var remoteRate))
+            {
+                rate = remoteRate;
+                matchedKey = key;
+                return true;
+            }
+            if (Table.TryGetValue(key, out var tableRate))
+            {
+                rate = tableRate;
+                matchedKey = key;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static IEnumerable<string> CandidateKeys(string model)
+    {
+        var primary = ModelKey(model);
+        yield return primary;
+        var variant = VariantKey(model);
+        if (variant.Length > 0 && variant != primary) yield return variant;
+    }
+
+    internal static string VariantKey(string model)
+    {
+        var key = model.Trim().ToLowerInvariant();
+        var changed = false;
+        if (key.StartsWith("antigravity-", StringComparison.Ordinal))
+        {
+            key = key["antigravity-".Length..];
+            changed = true;
+        }
+        if (key.EndsWith("-thinking", StringComparison.Ordinal))
+        {
+            key = key[..^"-thinking".Length];
+            changed = true;
+        }
+        return changed ? ModelKey(key) : "";
+    }
+
+    private static readonly string[] LongContextKeys =
+        ["gpt-6-astra", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.5", "gpt-5.4"];
+
+    public static double? EstimatedCost(string model, long input, long output, long cacheWrite, long cacheRead)
+    {
         if (input < 0 || output < 0 || cacheWrite < 0 || cacheRead < 0) return null;
+        if (!TryRate(model, out var r, out var key)) return null;
         if (cacheWrite != 0 && r.CacheWrite <= 0) return null;
 
         var prompt = (double)input + cacheRead + cacheWrite;
-        var longContextKeys = new[]
-        {
-            "gpt-6-astra", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.5", "gpt-5.4"
-        };
-        var longContext = longContextKeys.Contains(key) && prompt > 272_000
+        var longContext = LongContextKeys.Contains(key) && prompt > 272_000
                           || key == "gemini-2.5-pro" && prompt > 200_000;
         var inputMultiplier = longContext ? 2.0 : 1.0;
         var outputMultiplier = longContext ? 1.5 : 1.0;

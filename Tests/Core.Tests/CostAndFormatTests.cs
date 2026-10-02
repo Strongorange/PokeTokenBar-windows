@@ -4,6 +4,7 @@ using Xunit;
 
 namespace PokeTokenBar.Core.Tests;
 
+[Collection("model-pricing")]
 public class ModelPricingTests
 {
     private static readonly double Epsilon = 1e-12;

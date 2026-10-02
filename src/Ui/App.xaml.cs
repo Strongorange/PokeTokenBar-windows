@@ -13,6 +13,7 @@ namespace PokeTokenBar.Ui;
 public partial class App : System.Windows.Application
 {
     private UsageRefreshService _service = null!;
+    private ModelRateFeed _rateFeed = null!;
     private CompanionEngine _engine = null!;
     private SpriteStore _sprites = null!;
     private AppSettings _settings = null!;
@@ -45,6 +46,8 @@ public partial class App : System.Windows.Application
         _engine.Changed += OnCompanionChanged;
         _service = new UsageRefreshService(new UsageRefreshOptions { RootOptions = _rootOptions });
         _service.StateChanged += OnStateChanged;
+        _rateFeed = new ModelRateFeed();
+        _rateFeed.LoadCached();
         _updateChecker = new UpdateChecker(new UpdateCheckerOptions
         {
             CurrentVersion = (typeof(App).Assembly.GetName().Version ?? new Version()).ToString(3),
@@ -117,6 +120,7 @@ public partial class App : System.Windows.Application
 
     private async Task RefreshSafelyAsync()
     {
+        _ = RefreshRatesSafelyAsync();
         try
         {
             await _service.RefreshAsync(_shutdown.Token);
@@ -127,6 +131,18 @@ public partial class App : System.Windows.Application
         catch (Exception ex)
         {
             AppLog.Write($"manual refresh failed: {ex.Message}");
+        }
+    }
+
+    private async Task RefreshRatesSafelyAsync()
+    {
+        try
+        {
+            await _rateFeed.RefreshIfDueAsync();
+        }
+        catch (Exception ex)
+        {
+            AppLog.Write($"model rate refresh failed: {ex.Message}");
         }
     }
 
