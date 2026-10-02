@@ -59,6 +59,15 @@ public static class DashboardText
     public static string PeakDay(AppLanguage lang) =>
         T(lang, "최다", "Peak", "最多", "Máx.", "Max.", "Máx.", "Max.");
 
+    /// 히트맵 행 라벨 — 7자, 일요일 시작(HeatRow 순서와 1:1).
+    public static string WeekdayInitials(AppLanguage lang) =>
+        T(lang, "일월화수목금토", "SMTWTFS", "日月火水木金土", "DLMXJVS", "DLMMJVS",
+            "DSTQQSS", "SMDMDFS");
+
+    public static string LastYearTitle(AppLanguage lang) =>
+        T(lang, "최근 1년", "Last 12 months", "過去1年", "Último año", "Dernière année",
+            "Último ano", "Letztes Jahr");
+
     public static string RefreshButton(AppLanguage lang) =>
         T(lang, "새로 고침", "Refresh", "更新", "Actualizar", "Actualiser", "Atualizar",
             "Aktualisieren");

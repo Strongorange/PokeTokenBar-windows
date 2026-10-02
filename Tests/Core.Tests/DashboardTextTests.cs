@@ -32,6 +32,29 @@ public class DashboardTextTests
     }
 
     [Fact]
+    public void WeekdayInitialsAreSevenSundayFirstCharacters()
+    {
+        Assert.Equal("일월화수목금토", DashboardText.WeekdayInitials(AppLanguage.Ko));
+        Assert.Equal("SMTWTFS", DashboardText.WeekdayInitials(AppLanguage.En));
+        foreach (AppLanguage lang in Enum.GetValues(typeof(AppLanguage)))
+        {
+            Assert.Equal(7, DashboardText.WeekdayInitials(lang).Length);
+        }
+    }
+
+    [Fact]
+    public void LastYearTitleFollowsSevenLanguages()
+    {
+        Assert.Equal("최근 1년", DashboardText.LastYearTitle(AppLanguage.Ko));
+        Assert.Equal("Last 12 months", DashboardText.LastYearTitle(AppLanguage.En));
+        Assert.Equal("過去1年", DashboardText.LastYearTitle(AppLanguage.Ja));
+        Assert.Equal("Último año", DashboardText.LastYearTitle(AppLanguage.Es));
+        Assert.Equal("Dernière année", DashboardText.LastYearTitle(AppLanguage.Fr));
+        Assert.Equal("Último ano", DashboardText.LastYearTitle(AppLanguage.Pt));
+        Assert.Equal("Letztes Jahr", DashboardText.LastYearTitle(AppLanguage.De));
+    }
+
+    [Fact]
     public void SettingsWindowLabelsFollowMacOSTranslations()
     {
         Assert.Equal("설정", DashboardText.SettingsTitle(AppLanguage.Ko));

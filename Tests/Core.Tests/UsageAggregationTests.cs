@@ -178,4 +178,47 @@ public class UsageAggregationTests
         var start = UsageAggregation.EnrichmentScanStart(now, Seoul);
         Assert.Equal(DateTimeOffset.Parse("2026-08-30T00:00:00+09:00").ToUniversalTime(), start);
     }
+
+    [Fact]
+    public void HeatmapScanStartIncludesYearWindowWhenOlder()
+    {
+        var now = DateTimeOffset.Parse("2026-09-02T01:00:00Z");
+        var start = UsageAggregation.HeatmapScanStart(now, Seoul);
+        Assert.Equal(DateTimeOffset.Parse("2025-09-02T01:00:00Z"), start);
+
+        // 부스 창(5h)이 1년보다 오래될 일은 없지만, 후보 중 최소라는 계약은 유지된다
+        var soon = UsageAggregation.HeatmapScanStart(now, Seoul);
+        Assert.True(soon <= UsageAggregation.EnrichmentScanStart(now, Seoul));
+    }
+
+    [Fact]
+    public void YearDailySeriesStartsOnSundayAndZeroFillsToToday()
+    {
+        var entries = new[]
+        {
+            Entry("a", "2026-09-01T01:00:00Z", "2026-09-01", "claude-sonnet-5", 100, 0),
+            Entry("b", "2026-09-05T01:00:00Z", "2026-09-05", "claude-sonnet-5", 20, 0),
+            Entry("c", "2025-09-20T01:00:00Z", "2025-09-20", "claude-sonnet-5", 400, 0) // 그리드 시작 전
+        };
+        var now = DateTimeOffset.Parse("2026-09-23T12:00:00Z"); // 수요일
+        var series = UsageAggregation.YearDailySeries(entries, now, TimeZoneInfo.Utc);
+
+        Assert.Equal("2025-09-21", series[0].Date); // 오늘-364일(2025-09-24)의 주 일요일
+        Assert.Equal("2026-09-23", series[^1].Date);
+        var expectedCount = (DateTime.Parse("2026-09-23") - DateTime.Parse("2025-09-21")).Days + 1;
+        Assert.Equal(expectedCount, series.Count);
+        Assert.Equal(120, series.Sum(day => day.TotalTokens)); // 그리드 밖 400 제외
+        var septemberFifth = series.Single(day => day.Date == "2026-09-05");
+        Assert.Equal(20, septemberFifth.TotalTokens);
+        Assert.Equal(0, series[0].TotalTokens);
+    }
+
+    [Fact]
+    public void YearGridStartAlwaysLandsOnSunday()
+    {
+        Assert.Equal(new DateTime(2025, 9, 21), UsageAggregation.YearGridStart(new DateTime(2026, 9, 23)));
+        Assert.Equal(new DateTime(2025, 9, 28), UsageAggregation.YearGridStart(new DateTime(2026, 10, 2)));
+        Assert.Equal(DayOfWeek.Sunday,
+            UsageAggregation.YearGridStart(new DateTime(2026, 2, 27)).DayOfWeek);
+    }
 }
