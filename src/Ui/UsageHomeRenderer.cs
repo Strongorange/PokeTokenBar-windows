@@ -194,24 +194,12 @@ internal sealed class UsageHomeRenderer
         var panel = new StackPanel();
 
         var header = new DockPanel();
-        var totals = new StackPanel { Orientation = Orientation.Horizontal };
         var cost = new UsageCost(provider.TodayCost, provider.TodayCostCoverage);
-        if (cost.Coverage.HasKnown)
-            totals.Children.Add(new TextBlock
-            {
-                Text = cost.Text("", compact: true),
-                FontSize = 10,
-                Foreground = Token("TextSecondaryBrush"),
-                Margin = new Thickness(8, 0, 0, 0),
-                VerticalAlignment = VerticalAlignment.Bottom,
-            });
-        totals.Children.Add(new TextBlock
-        {
-            Text = TokenFormatter.Compact(provider.TodayTokens),
-            FontSize = 13,
-            FontFamily = new FontFamily("Consolas"),
-            VerticalAlignment = VerticalAlignment.Bottom,
-        });
+        var totals = UsageValuesLine.Create(
+            cost.Coverage.HasKnown ? cost.Text("", compact: true) : null,
+            TokenFormatter.Compact(provider.TodayTokens),
+            Token("TextSecondaryBrush"));
+        totals.VerticalAlignment = VerticalAlignment.Bottom;
         DockPanel.SetDock(totals, Dock.Right);
         header.Children.Add(totals);
         header.Children.Add(new TextBlock
