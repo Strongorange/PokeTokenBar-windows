@@ -6,6 +6,23 @@ Release notes for a version are generated from its section here (see
 edition lives in `CHANGELOG.ko.md` — keep both in sync; the publish script
 refuses to release when either one is missing the current version.
 
+## v0.26.0 — Year heatmap & cost estimates
+
+- The usage tab now has a year-long heatmap. Each day is one GitHub-style
+  cell, so a full year of usage patterns is visible at a glance, and the
+  view scrolls horizontally to cover the whole period.
+- The provider menu now shows estimated dollar costs for Codex and OpenCode
+  usage, not just Claude Code. Rates come from the community models.dev
+  catalog, refreshed automatically once a day; without internet the bundled
+  rate table keeps the estimates working.
+- Fixed: shop and bag buy/use buttons no longer stretch across the whole
+  card row.
+- Fixed: shop egg cards now show the real egg sprite instead of a dark
+  fallback emoji glyph.
+- Fixed: in provider cards the dollar cost and the token count used to sit
+  flush together as one blob on slightly different baselines; they now share
+  one baseline with proper spacing.
+
 ## v0.25.4 — Quick representative selection
 
 - Choosing a representative no longer requires the detail window. Right-click
