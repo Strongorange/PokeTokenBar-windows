@@ -116,45 +116,29 @@ internal sealed class ShopCards
                          _engine.PlanRareCandyUse(_flow.CandyCount), lang))
                 card.Children.Add(PreviewLine(line.Text, line.Secondary));
 
-        var controls = new DockPanel { Margin = new Thickness(0, 7, 0, 0) };
+        FrameworkElement controls;
         if (item.Kind.IsPassive())
         {
-            controls.Children.Add(new TextBlock
-            {
-                Text = "✓ " + DashboardText.ShinyCharmEffectHint(lang), FontSize = 11,
-                FontWeight = FontWeights.SemiBold, Foreground = Token("RarityUncommonBrush"),
-                VerticalAlignment = VerticalAlignment.Center,
-            });
+            controls = BagHintText("✓ " + DashboardText.ShinyCharmEffectHint(lang),
+                Token("RarityUncommonBrush"), FontWeights.SemiBold);
         }
         else if (item.Kind == ItemKind.Mint && item.CanUse)
         {
-            controls.Children.Add(new TextBlock
-            {
-                Text = DashboardText.MintEffectHint(lang), FontSize = 11,
-                Foreground = Token("TextTertiaryBrush"), VerticalAlignment = VerticalAlignment.Center,
-            });
-            AddBagUseButton(controls, item, view, lang, DashboardText.UseItemLabel(lang));
+            controls = UseRow(BagHintText(DashboardText.MintEffectHint(lang),
+                Token("TextTertiaryBrush"), null), item, view, lang,
+                DashboardText.UseItemLabel(lang));
         }
         else if (item.Kind == ItemKind.RareCandy && item.CanUse)
         {
-            controls.Children.Add(new TextBlock
-            {
-                Text = _flow.CandyXpHint(lang), FontSize = 11, Foreground = Token("TextTertiaryBrush"),
-                VerticalAlignment = VerticalAlignment.Center,
-            });
-            AddBagUseButton(controls, item, view, lang,
+            controls = UseRow(BagHintText(_flow.CandyXpHint(lang),
+                Token("TextTertiaryBrush"), null), item, view, lang,
                 DashboardText.UseLabel(lang) + " ×" + _flow.CandyCount);
         }
         else
         {
-            controls.Children.Add(new TextBlock
-            {
-                Text = view.IsEgg
-                    ? DashboardText.UseAfterHatch(lang)
-                    : DashboardText.UseNeedsPokemon(lang),
-                FontSize = 11, Foreground = Token("TextTertiaryBrush"),
-                VerticalAlignment = VerticalAlignment.Center,
-            });
+            controls = BagHintText(
+                view.IsEgg ? DashboardText.UseAfterHatch(lang) : DashboardText.UseNeedsPokemon(lang),
+                Token("TextTertiaryBrush"), null);
         }
         card.Children.Add(controls);
 
@@ -174,12 +158,22 @@ internal sealed class ShopCards
         Foreground = secondary ? Token("TextSecondaryBrush") : Token("RarityLegendaryBrush"),
     };
 
-    private void AddBagUseButton(DockPanel controls, CompanionBagItem item, CompanionGameView view,
+    private TextBlock BagHintText(string text, Brush foreground, FontWeight? weight)
+    {
+        return new TextBlock
+        {
+            Text = text, FontSize = 11, Foreground = foreground,
+            FontWeight = weight ?? FontWeights.Normal,
+            VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 7, 0, 0),
+        };
+    }
+
+    private FrameworkElement UseRow(TextBlock hint, CompanionBagItem item, CompanionGameView view,
         AppLanguage lang, string buttonLabel)
     {
         if (_flow.ConfirmingBagItem == item.Kind)
         {
-            var row = new StackPanel { Orientation = Orientation.Horizontal };
             var use = new Button
             {
                 Content = buttonLabel, MinHeight = 26,
@@ -200,17 +194,18 @@ internal sealed class ShopCards
                 _flow.CancelBagConfirm();
                 _requestRender();
             };
-            row.Children.Add(use);
-            row.Children.Add(cancel);
-            DockPanel.SetDock(row, Dock.Right);
-            controls.Children.Add(row);
-            controls.Children.Add(new TextBlock
+            var buttons = new StackPanel { Orientation = Orientation.Horizontal };
+            buttons.Children.Add(use);
+            buttons.Children.Add(cancel);
+            var message = new TextBlock
             {
                 Text = DashboardText.UseOnCurrent(lang, view.ActiveName), FontSize = 11,
                 Foreground = Token("TextSecondaryBrush"), VerticalAlignment = VerticalAlignment.Center,
                 TextWrapping = TextWrapping.Wrap,
-            });
-            return;
+            };
+            var row = ShopActionRow.Create(message, buttons);
+            row.Margin = new Thickness(0, 7, 0, 0);
+            return row;
         }
         var button = new Button { Content = buttonLabel, MinWidth = 70, MinHeight = 26 };
         button.Click += (_, _) =>
@@ -218,8 +213,9 @@ internal sealed class ShopCards
             _flow.BeginBagConfirm(item.Kind);
             _requestRender();
         };
-        DockPanel.SetDock(button, Dock.Right);
-        controls.Children.Add(button);
+        var idle = ShopActionRow.Create(hint, button);
+        idle.Margin = new Thickness(0, 7, 0, 0);
+        return idle;
     }
 
     public void RenderShop(CompanionGameView view)
@@ -265,10 +261,8 @@ internal sealed class ShopCards
         }
         else
         {
-            var controls = new DockPanel { Margin = new Thickness(0, 8, 0, 0) };
             if (row.CanBuy && _flow.ConfirmingShopItem == kind)
             {
-                var confirm = new DockPanel();
                 var buttons = new StackPanel { Orientation = Orientation.Horizontal };
                 var buy = new Button
                 {
@@ -292,15 +286,15 @@ internal sealed class ShopCards
                 };
                 buttons.Children.Add(buy);
                 buttons.Children.Add(cancel);
-                DockPanel.SetDock(buttons, Dock.Right);
-                confirm.Children.Add(buttons);
-                confirm.Children.Add(new TextBlock
+                var message = new TextBlock
                 {
                     Text = DashboardText.BuyConfirm(lang, row.Label),
                     FontSize = 11, Foreground = Token("TextSecondaryBrush"),
                     VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap,
-                });
-                controls.Children.Add(confirm);
+                };
+                var confirm = ShopActionRow.Create(message, buttons);
+                confirm.Margin = new Thickness(0, 8, 0, 0);
+                card.Children.Add(confirm);
             }
             else
             {
@@ -310,9 +304,7 @@ internal sealed class ShopCards
                     FontSize = 11, Foreground = Token("TextTertiaryBrush"),
                     FontFamily = new FontFamily("Consolas"), VerticalAlignment = VerticalAlignment.Center,
                 };
-                DockPanel.SetDock(price, Dock.Left);
-                controls.Children.Add(price);
-
+                FrameworkElement trailing;
                 if (row.CanBuy)
                 {
                     var buy = new Button
@@ -324,21 +316,20 @@ internal sealed class ShopCards
                         _flow.BeginItemConfirm(kind);
                         _requestRender();
                     };
-                    DockPanel.SetDock(buy, Dock.Right);
-                    controls.Children.Add(buy);
+                    trailing = buy;
                 }
                 else
                 {
-                    var locked = new TextBlock
+                    trailing = new TextBlock
                     {
                         Text = DashboardText.NotEnoughTokens(lang), FontSize = 11,
-                        Foreground = Token("TextTertiaryBrush"),
+                        Foreground = Token("TextTertiaryBrush"), VerticalAlignment = VerticalAlignment.Center,
                     };
-                    DockPanel.SetDock(locked, Dock.Right);
-                    controls.Children.Add(locked);
                 }
+                var idle = ShopActionRow.Create(price, trailing);
+                idle.Margin = new Thickness(0, 8, 0, 0);
+                card.Children.Add(idle);
             }
-            card.Children.Add(controls);
         }
 
         return WrapShopCard(card);
@@ -349,56 +340,47 @@ internal sealed class ShopCards
     {
         var card = new StackPanel();
         card.Children.Add(CreateShopCardHeader(
-            new TextBlock
-            {
-                Text = "🥚", FontSize = 15, HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-            },
+            CreateEggIcon(),
             row.Label, "", DashboardText.EggDescription(lang, tier), tier, lang));
 
         if (!view.HasActive)
         {
-            var lockedRow = new DockPanel { Margin = new Thickness(0, 8, 0, 0) };
             var buyDisabled = new Button
             {
                 Content = DashboardText.BuyLabel(lang), MinWidth = 70, MinHeight = 26,
                 IsEnabled = false,
             };
-            DockPanel.SetDock(buyDisabled, Dock.Right);
-            lockedRow.Children.Add(buyDisabled);
-            lockedRow.Children.Add(new TextBlock
+            var lockedHint = new TextBlock
             {
                 Text = DashboardText.EggShopLockedHint(lang), FontSize = 11,
                 Foreground = Token("TextTertiaryBrush"), VerticalAlignment = VerticalAlignment.Center,
                 TextWrapping = TextWrapping.Wrap,
-            });
+            };
+            var lockedRow = ShopActionRow.Create(lockedHint, buyDisabled);
+            lockedRow.Margin = new Thickness(0, 8, 0, 0);
             card.Children.Add(lockedRow);
         }
         else
         {
-            var controls = new DockPanel { Margin = new Thickness(0, 8, 0, 0) };
             var price = new TextBlock
             {
                 Text = $"{DashboardText.ShopPriceLabel(lang)} {TokenFormatter.Compact(row.Price)}",
                 FontSize = 11, Foreground = Token("TextTertiaryBrush"),
                 FontFamily = new FontFamily("Consolas"), VerticalAlignment = VerticalAlignment.Center,
             };
-            DockPanel.SetDock(price, Dock.Left);
-            controls.Children.Add(price);
 
+            FrameworkElement controls;
             if (!row.CanBuy)
             {
-                var locked = new TextBlock
+                controls = ShopActionRow.Create(price, new TextBlock
                 {
                     Text = DashboardText.NotEnoughTokens(lang), FontSize = 11,
-                    Foreground = Token("TextTertiaryBrush"),
-                };
-                DockPanel.SetDock(locked, Dock.Right);
-                controls.Children.Add(locked);
+                    Foreground = Token("TextTertiaryBrush"), VerticalAlignment = VerticalAlignment.Center,
+                });
             }
             else if (_flow.EggConfirm.Tier == tier && _flow.EggConfirm.Stage == EggConfirmStage.Confirm)
             {
-                AddEggConfirmRow(controls, lang,
+                controls = EggConfirmRow(lang,
                     DashboardText.EggConfirm(lang, view.ActiveName, row.Label),
                     DashboardText.BuyLabel(lang), FontWeights.Normal, Token("TextSecondaryBrush"),
                     () => { _flow.AdvanceEggConfirm(row.Label, view.IsShiny); _requestRender(); },
@@ -406,7 +388,7 @@ internal sealed class ShopCards
             }
             else if (_flow.EggConfirm.Tier == tier && _flow.EggConfirm.Stage == EggConfirmStage.ShinyWarning)
             {
-                AddEggConfirmRow(controls, lang,
+                controls = EggConfirmRow(lang,
                     DashboardText.FreshEggShinyWarning(lang),
                     DashboardText.FreshEggDiscardShiny(lang), FontWeights.SemiBold, Token("WarningBrush"),
                     () => { _flow.AdvanceEggConfirm(row.Label, false); _requestRender(); },
@@ -423,20 +405,19 @@ internal sealed class ShopCards
                     _flow.BeginEggConfirm(tier);
                     _requestRender();
                 };
-                DockPanel.SetDock(buy, Dock.Right);
-                controls.Children.Add(buy);
+                controls = ShopActionRow.Create(price, buy);
             }
+            controls.Margin = new Thickness(0, 8, 0, 0);
             card.Children.Add(controls);
         }
 
         return WrapShopCard(card);
     }
 
-    private void AddEggConfirmRow(DockPanel controls, AppLanguage lang, string message,
+    private DockPanel EggConfirmRow(AppLanguage lang, string message,
         string buyLabel, FontWeight messageWeight, Brush messageBrush,
         Action buyAction, Action cancelAction)
     {
-        var confirm = new DockPanel();
         var buttons = new StackPanel { Orientation = Orientation.Horizontal };
         var buy = new Button
         {
@@ -452,17 +433,32 @@ internal sealed class ShopCards
         cancel.Click += (_, _) => cancelAction();
         buttons.Children.Add(buy);
         buttons.Children.Add(cancel);
-        DockPanel.SetDock(buttons, Dock.Right);
-        confirm.Children.Add(buttons);
-        confirm.Children.Add(new TextBlock
+        return ShopActionRow.Create(new TextBlock
         {
             Text = message,
             FontSize = 11,
             FontWeight = messageWeight,
             Foreground = messageBrush,
             VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap,
-        });
-        controls.Children.Add(confirm);
+        }, buttons);
+    }
+
+    /// <summary>macOS parity: the real egg sprite (SpriteView speciesID nil,
+    /// 26px in a 30px cell) — cached-first via SpriteSlot, 🥚 only as the
+    /// pre-load fallback glyph (WPF renders emoji monochrome).</summary>
+    private FrameworkElement CreateEggIcon()
+    {
+        var grid = new Grid { Width = 26, Height = 26 };
+        var image = new Image { Width = 26, Height = 26, Stretch = Stretch.Uniform };
+        var placeholder = new TextBlock
+        {
+            Text = "🥚", FontSize = 13, HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        grid.Children.Add(placeholder);
+        grid.Children.Add(image);
+        new SpriteSlot(image, placeholder).UpdateEgg(_sprites, "🥚");
+        return grid;
     }
 
     private FrameworkElement CreateItemIcon(ItemKind kind, double size = 24)
