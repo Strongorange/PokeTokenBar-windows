@@ -25,4 +25,8 @@
     <Resource Include="..\..\assets\pokeball.ico" Link="Assets\pokeball.ico" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="PokeTokenBar.Ui.Tests" />
+  </ItemGroup>
+
 </Project>

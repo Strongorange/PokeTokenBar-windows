@@ -15,17 +15,20 @@
   <Folder Name="/src/Ui/">
     <Project Path="src/Ui/PokeTokenBar.Ui.csproj" />
   </Folder>
-  <Folder Name="/tests/" />
-  <Folder Name="/tests/Application.Tests/">
-    <Project Path="tests/Application.Tests/PokeTokenBar.Application.Tests.csproj" />
+  <Folder Name="/Tests/" />
+  <Folder Name="/Tests/Application.Tests/">
+    <Project Path="Tests/Application.Tests/PokeTokenBar.Application.Tests.csproj" />
   </Folder>
-  <Folder Name="/tests/Core.Tests/">
-    <Project Path="tests/Core.Tests/PokeTokenBar.Core.Tests.csproj" />
+  <Folder Name="/Tests/Core.Tests/">
+    <Project Path="Tests/Core.Tests/PokeTokenBar.Core.Tests.csproj" />
   </Folder>
-  <Folder Name="/tests/Platform.Windows.Tests/">
-    <Project Path="tests/Platform.Windows.Tests/PokeTokenBar.Platform.Windows.Tests.csproj" />
+  <Folder Name="/Tests/Platform.Windows.Tests/">
+    <Project Path="Tests/Platform.Windows.Tests/PokeTokenBar.Platform.Windows.Tests.csproj" />
   </Folder>
-  <Folder Name="/tests/Providers.Tests/">
-    <Project Path="tests/Providers.Tests/PokeTokenBar.Providers.Tests.csproj" />
+  <Folder Name="/Tests/Providers.Tests/">
+    <Project Path="Tests/Providers.Tests/PokeTokenBar.Providers.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Tests/Ui.Tests/">
+    <Project Path="Tests/Ui.Tests/PokeTokenBar.Ui.Tests.csproj" />
   </Folder>
 </Solution>
