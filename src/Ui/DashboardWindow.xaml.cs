@@ -39,7 +39,7 @@ public partial class DashboardWindow : Window
             WeekMonthRow, ProviderChips, ProviderDetail, ProvidersUnavailableText,
             ProvidersSection, TrendSection, TrendCaptionLabel, TrendPeakLabel,
             TrendPeakValue, TrendReadout, TrendModelsHost, TrendBarsHost, TrendTicksHost,
-            TrendAxisHost);
+            TrendAxisHost, YearSection, YearHeatHost);
         _shopCards = new ShopCards(this, sprites, engine, _flow,
             () => UpdateGame(_engine.View()), BagCards, ShopCardsHost, SpendableAmount);
         _companionHeader = new CompanionHeader(
@@ -55,6 +55,8 @@ public partial class DashboardWindow : Window
             DexEmpty, DexEmptyTitle, DexEmptyHint, DexEmptySprite, DexEmptyPlaceholder,
             DexFooter, DexFooterStar, DexFooterInfo);
         LocalizeStaticText(engine.State.Language);
+        HorizontalScrollSupport.Attach(YearHeatScroll);
+        YearHeatScroll.SizeChanged += (_, _) => _usageHome.RerenderYear();
     }
 
     public void Relocalize(AppLanguage lang)
@@ -84,6 +86,7 @@ public partial class DashboardWindow : Window
         SpendableLabel.Text = DashboardText.SpendableTokens(lang);
         ShopHintText.Text = DashboardText.ShopHint(lang);
         ProvidersHeader.Text = DashboardText.ProvidersTitle(lang);
+        YearHeader.Text = DashboardText.LastYearTitle(lang);
         ExportButton.Content = DashboardText.ExportSave(lang);
         ImportButton.Content = DashboardText.ImportSave(lang);
         RefreshButton.Content = "_" + DashboardText.RefreshButton(lang);

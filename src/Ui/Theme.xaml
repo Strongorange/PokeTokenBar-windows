@@ -23,6 +23,12 @@
     <SolidColorBrush x:Key="RarityLegendaryBrush" Color="#F7630C" />
     <SolidColorBrush x:Key="WarningBrush" Color="#B45F06" />
     <SolidColorBrush x:Key="TooltipBgBrush" Color="#2B2B2B" />
+    <!-- 잔디 히트맵 — Fluent 액센트(#0078D4)로 가는 4단계 + 빈 칸(HeatLevel 0..4와 1:1) -->
+    <SolidColorBrush x:Key="Heat0Brush" Color="#EDEDED" />
+    <SolidColorBrush x:Key="Heat1Brush" Color="#BFDDF4" />
+    <SolidColorBrush x:Key="Heat2Brush" Color="#80BCEA" />
+    <SolidColorBrush x:Key="Heat3Brush" Color="#409ADF" />
+    <SolidColorBrush x:Key="Heat4Brush" Color="#0078D4" />
 
     <Style x:Key="Card" TargetType="Border">
         <Setter Property="Background" Value="{StaticResource CardBgBrush}" />
