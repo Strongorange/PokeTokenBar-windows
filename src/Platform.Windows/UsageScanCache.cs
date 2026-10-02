@@ -7,7 +7,9 @@ namespace PokeTokenBar.Platform.Windows;
 public sealed class UsageScanCache<TPayload>
 {
     public const int CurrentFormatVersion = 1;
-    public static readonly TimeSpan BlobRetention = TimeSpan.FromDays(40);
+    /// 히트맵이 1년치 로그를 스캔하므로 캐시도 1년+을 유지 — 짧게 두면 매 사이클
+    /// 지난 파일을 재파싱한다(프루닝이 스캔 창보다 길어야 증분 스캔이 성립).
+    public static readonly TimeSpan BlobRetention = TimeSpan.FromDays(400);
 
     private sealed class CacheEntry
     {

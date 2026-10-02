@@ -33,7 +33,8 @@ public sealed record UsageDisplayState(
     double WeekCost = 0,
     CostCoverage TodayCostCoverage = default,
     CostCoverage WeekCostCoverage = default,
-    CostCoverage MonthCostCoverage = default)
+    CostCoverage MonthCostCoverage = default,
+    IReadOnlyList<DailyUsage>? YearDaily = null)
 {
     public ProviderUsageSummary? Provider(string providerId) =>
         Providers.FirstOrDefault(provider => provider.ProviderId == providerId);

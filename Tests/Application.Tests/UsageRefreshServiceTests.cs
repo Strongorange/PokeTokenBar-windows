@@ -95,6 +95,22 @@ public class UsageRefreshServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task RefreshSurfacesYearDailySeriesFromSundayGridStart()
+    {
+        WriteClaudeTodayAndEarlierThisMonth();
+
+        var state = await BuildService().RefreshAsync();
+
+        Assert.NotNull(state.YearDaily);
+        Assert.Equal("2025-09-21", state.YearDaily[0].Date); // 그리드 시작 일요일
+        Assert.Equal("2026-09-23", state.YearDaily[^1].Date);
+        var expectedCount = (DateTime.Parse("2026-09-23") - DateTime.Parse("2025-09-21")).Days + 1;
+        Assert.Equal(expectedCount, state.YearDaily.Count);
+        Assert.Equal(550, state.YearDaily.Single(day => day.Date == "2026-09-05").TotalTokens);
+        Assert.Equal(state.MonthTokens, state.YearDaily.Sum(day => day.TotalTokens));
+    }
+
+    [Fact]
     public async Task RefreshSurfacesCombinedTodayModels()
     {
         WriteClaudeTodayAndEarlierThisMonth();
@@ -369,8 +385,10 @@ public class UsageRefreshServiceTests : IDisposable
 
     private void WriteCodexParentChild()
     {
+        // 부모 mtime은 '창 밖'이어야 의존성 전용 경로가 열린다 — 히트맵 1년 창
+        // 도입 후 스캔 하한이 now-365일이므로 그보다 오래전(2025-08)으로 둔다.
         WriteCodexFile(@"2026\08\10\rollout-2026-08-10T10-00-00-oldpar.jsonl",
-            new DateTimeOffset(2026, 8, 10, 0, 0, 0, TimeSpan.Zero),
+            new DateTimeOffset(2025, 8, 10, 0, 0, 0, TimeSpan.Zero),
             CodexMetaLine("2026-09-23T11:00:00.000Z", ParentSession),
             CodexTokenLine("2026-09-23T11:00:00.100Z", (1000, 0, 100, 1100), (1000, 0, 100, 1100)),
             CodexTokenLine("2026-09-23T11:00:00.200Z", (2000, 0, 200, 2200), (1000, 0, 100, 1100)));

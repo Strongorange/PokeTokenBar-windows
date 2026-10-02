@@ -147,6 +147,7 @@ public sealed class UsageRefreshService
         var combinedMonth = UsageAggregation.Period(combined, monthKey, monthFrom, todayKey);
         var combinedWeek = UsageAggregation.Period(combined, weekKey, weekKey, todayKey);
         var combinedMonthDaily = UsageAggregation.MonthDailySeries(combined, now, timeZone);
+        var combinedYearDaily = UsageAggregation.YearDailySeries(combined, now, timeZone);
         var combinedTodayModels = UsageAggregation.Daily(combined, todayKey, includeModels: true);
         return new UsageDisplayState(
             now,
@@ -161,7 +162,8 @@ public sealed class UsageRefreshService
             combinedWeek.TotalCost,
             combinedToday?.CostCoverage ?? CostCoverage.Empty,
             combinedWeek.CostCoverage,
-            combinedMonth.CostCoverage);
+            combinedMonth.CostCoverage,
+            combinedYearDaily);
     }
 
     private static ProviderUsageSummary Summarize(

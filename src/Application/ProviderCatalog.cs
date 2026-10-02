@@ -49,7 +49,7 @@ public static class ProviderCatalog
                 var available = roots.Count > 0;
                 if (!available)
                     return new ProviderRefreshOutcome(false, EmptySnapshot(provider));
-                var floor = UsageAggregation.EnrichmentScanStart(now, timeZone);
+                var floor = UsageAggregation.HeatmapScanStart(now, timeZone);
                 var files = scanner.Scan(
                     roots.Select(root => root.Path),
                     floor,
@@ -77,7 +77,7 @@ public static class ProviderCatalog
                 if (!available)
                     return new ProviderRefreshOutcome(false, EmptySnapshot(provider));
                 var rootPaths = roots.Select(root => root.Path).ToList();
-                var floor = UsageAggregation.EnrichmentScanStart(now, timeZone);
+                var floor = UsageAggregation.HeatmapScanStart(now, timeZone);
                 var allFiles = CodexRolloutEnumeration.EnumerateAll(fileSystem, rootPaths);
                 var windowFiles = allFiles.Where(file => file.MtimeUtc >= floor).ToList();
                 scanner.Scan(rootPaths, floor, (path, lines) => CodexLogParser.Parse(path, lines, timeZone));
@@ -107,7 +107,7 @@ public static class ProviderCatalog
                 var available = roots.Count > 0;
                 if (!available)
                     return new ProviderRefreshOutcome(false, EmptySnapshot(provider));
-                var floorMillis = UsageAggregation.EnrichmentScanStart(now, timeZone).ToUnixTimeMilliseconds();
+                var floorMillis = UsageAggregation.HeatmapScanStart(now, timeZone).ToUnixTimeMilliseconds();
                 var payloads = roots
                     .Select(root => reader.ReadEntries(root.Path, fileSystem, floorMillis, timeZone, scratchDirectory))
                     .ToList();
