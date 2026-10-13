@@ -6,6 +6,16 @@ Release notes for a version are generated from its section here (see
 edition lives in `CHANGELOG.ko.md` — keep both in sync; the publish script
 refuses to release when either one is missing the current version.
 
+## v0.26.1 — Floating pet render self-heal
+
+- Fixed: the floating pet could turn permanently invisible when an
+  animated sprite failed to load right after a hatch or evolution — the
+  failed load left the transparent window blank with no retry, so the
+  pet stayed hidden until the app was restarted. A failed animated load
+  now falls back to the cached static sprite automatically, and toggling
+  the pet off and on from the tray always re-renders it as a manual
+  recovery path.
+
 ## v0.26.0 — Year heatmap & cost estimates
 
 - The usage tab now has a year-long heatmap. Each day is one GitHub-style
