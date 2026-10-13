@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using Microsoft.Win32;
 using PokeTokenBar.Application;
 using PokeTokenBar.Core;
@@ -12,9 +13,12 @@ namespace PokeTokenBar.Ui;
 
 public partial class FloatingPetWindow : Window
 {
+    private static readonly TimeSpan AnimationSettleDelay = TimeSpan.FromSeconds(4);
+
     private readonly CompanionEngine _engine;
     private readonly SpriteStore _store;
     private readonly Action<double, double> _onMoved;
+    private readonly DispatcherTimer _animationCheck;
     private MemoryStream? _gifStream;
     private int _renderVersion;
     private (bool Egg, int Species, bool Shiny, UnownForm? Form)? _lastSubject;
@@ -32,6 +36,9 @@ public partial class FloatingPetWindow : Window
         _engine = engine;
         _store = store;
         _onMoved = onMoved;
+        _animationCheck = new DispatcherTimer { Interval = AnimationSettleDelay };
+        _animationCheck.Tick += OnAnimationCheckTick;
+        SpriteImage.AddHandler(AnimationBehavior.ErrorEvent, new RoutedEventHandler(OnAnimatedSpriteError));
         ApplySize(size);
         Relocalize(engine.State.Language);
         SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
@@ -49,6 +56,13 @@ public partial class FloatingPetWindow : Window
         Width = size;
         Height = size;
         PlaceholderText.FontSize = size * 0.6;
+    }
+
+    /// <summary>Forces a full re-render (used when the pet is re-enabled from the tray).</summary>
+    public void Rerender()
+    {
+        _lastSubject = null;
+        Update(_engine.View());
     }
 
     public void Place(double? x, double? y)
@@ -117,6 +131,10 @@ public partial class FloatingPetWindow : Window
             var stream = new MemoryStream(sprite.Data);
             _gifStream = stream;
             AnimationBehavior.SetSourceStream(SpriteImage, stream);
+            // The load error can fire synchronously inside SetSourceStream and
+            // heal back to the static sprite; only arm the settle check if the
+            // animated stream is still attached afterwards.
+            if (ReferenceEquals(_gifStream, stream)) _animationCheck.Start();
         }
         else
         {
@@ -142,9 +160,54 @@ public partial class FloatingPetWindow : Window
 
     private void DetachSprite()
     {
+        _animationCheck.Stop();
         AnimationBehavior.SetSourceStream(SpriteImage, null);
         SpriteImage.Source = null;
         _gifStream = null;
+    }
+
+    private void OnAnimationCheckTick(object? sender, EventArgs e)
+    {
+        try
+        {
+            _animationCheck.Stop();
+            if (SpriteImage.Source is not null) return;
+            HealAnimated("animated sprite produced no frames");
+        }
+        catch (Exception ex)
+        {
+            AppLog.Write($"pet animated sprite check failed: {ex.Message}");
+        }
+    }
+
+    private void OnAnimatedSpriteError(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var detail = e is AnimationErrorEventArgs args && args.Exception is { } ex ? $": {ex.Message}" : "";
+            HealAnimated($"animated sprite failed{detail}");
+        }
+        catch (Exception ex)
+        {
+            AppLog.Write($"pet animated sprite heal failed: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// A failed animated load leaves the transparent window compositing nothing
+    /// with no retry (the subject guard suppresses re-render), so swap back to
+    /// the cached static sprite as soon as the failure is observed.
+    /// </summary>
+    private void HealAnimated(string reason)
+    {
+        if (_gifStream is null) return;
+        var subject = _lastSubject;
+        if (subject is not { } s) return;
+        _renderVersion++;
+        AppLog.Write($"pet {reason} (species {s.Species}); falling back to static sprite");
+        var fallback = _store.CachedSubject(s.Species, animated: false, s.Shiny, s.Form);
+        if (fallback is not null) Render(fallback);
+        else ShowPlaceholder("❔");
     }
 
     private void OnMouseLeftDown(object sender, MouseButtonEventArgs e)

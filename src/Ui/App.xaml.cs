@@ -353,6 +353,9 @@ public partial class App : System.Windows.Application
             {
                 _pet ??= CreatePetWindow();
                 _pet.Show();
+                // A stuck blank render (e.g. an animated load that died) must
+                // recover when the user toggles the pet back on.
+                _pet.Rerender();
             }
             else
             {

@@ -18,6 +18,7 @@ internal sealed class SpriteSlot
     private readonly Image _image;
     private readonly TextBlock? _placeholder;
     private MemoryStream? _stream;
+    private SpriteStore? _store;
     private (int Species, bool Animated, bool Shiny, UnownForm? Form)? _subject;
     private bool _egg;
     private int _version;
@@ -26,11 +27,13 @@ internal sealed class SpriteSlot
     {
         _image = image;
         _placeholder = placeholder;
+        _image.AddHandler(AnimationBehavior.ErrorEvent, new RoutedEventHandler(OnAnimatedSpriteError));
     }
 
     public void Update(SpriteStore store, int speciesID, bool animated, bool shiny,
         UnownForm? form, string glyph)
     {
+        _store = store;
         var subject = (speciesID, animated, shiny, form);
         if (_subject == subject && !_egg) return;
         _subject = subject;
@@ -58,6 +61,7 @@ internal sealed class SpriteSlot
 
     public void UpdateEgg(SpriteStore store, string glyph)
     {
+        _store = store;
         if (_egg) return;
         _egg = true;
         _subject = null;
@@ -134,5 +138,26 @@ internal sealed class SpriteSlot
         AnimationBehavior.SetSourceStream(_image, null);
         _image.Source = null;
         _stream = null;
+    }
+
+    /// <summary>
+    /// Mirrors the pet window's heal: a failed animated load leaves the image
+    /// blank with no retry, so fall back to the cached static sprite.
+    /// </summary>
+    private void OnAnimatedSpriteError(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (_stream is null || _store is null || _subject is not { } s) return;
+            _version++;
+            var detail = e is AnimationErrorEventArgs args && args.Exception is { } ex ? $": {ex.Message}" : "";
+            AppLog.Write($"sprite slot animated render failed{detail} (species {s.Species}); falling back to static");
+            var fallback = _store.CachedSubject(s.Species, animated: false, s.Shiny, s.Form);
+            if (fallback is not null) Render(fallback);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Write($"sprite slot animated heal failed: {ex.Message}");
+        }
     }
 }
