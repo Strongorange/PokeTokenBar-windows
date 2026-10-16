@@ -417,6 +417,19 @@ enum LocalAdditionalUsageReader {
         modifiedSince: Date
     ) -> [LocalUsageReader.Entry] {
         let cutoff = Int64(modifiedSince.timeIntervalSince1970 * 1000)
+        // OpenCode V2 writes assistant usage to the event-sourced session_message
+        // projection. Its global time index keeps this query bounded to the active
+        // usage window; the older message table remains useful for V1 history.
+        var entries = query(
+            database,
+            sql: """
+            SELECT id, time_created, data FROM session_message
+            WHERE type = 'assistant' AND time_created >= ?1
+            """,
+            bindInt64: cutoff) { statement in
+                parseOpenCodeSessionMessageRow(statement)
+            } ?? []
+
         let recentSQL = "SELECT id, session_id, data FROM message WHERE time_created >= ?1"
         var rows = query(database, sql: recentSQL, bindInt64: cutoff) { statement in
             parseOpenCodeDatabaseRow(statement)
@@ -427,7 +440,8 @@ enum LocalAdditionalUsageReader {
                 parseOpenCodeDatabaseRow(statement)
             }
         }
-        return rows ?? []
+        entries += rows ?? []
+        return LocalUsageReader.dedupKeepMax(entries)
     }
 
     private static func parseOpenCodeDatabaseRow(_ statement: OpaquePointer) -> LocalUsageReader.Entry? {
@@ -435,6 +449,40 @@ enum LocalAdditionalUsageReader {
               let payload = columnText(statement, 2),
               let object = jsonObject(data: Data(payload.utf8)) else { return nil }
         return parseOpenCodeMessage(object, fallbackID: id)
+    }
+
+    private static func parseOpenCodeSessionMessageRow(_ statement: OpaquePointer) -> LocalUsageReader.Entry? {
+        guard let id = columnText(statement, 0),
+              let payload = columnText(statement, 2),
+              let object = jsonObject(data: Data(payload.utf8)) else { return nil }
+        return parseOpenCodeSessionMessage(
+            object,
+            fallbackID: id,
+            createdAt: sqlite3_column_double(statement, 1))
+    }
+
+    /// OpenCode V2 stores assistant messages separately from the V1 `message` projection.
+    /// Its model reference is nested and its token breakdown has no `total` field.
+    static func parseOpenCodeSessionMessage(
+        _ object: Object,
+        fallbackID: String,
+        createdAt: Any?
+    ) -> LocalUsageReader.Entry? {
+        guard let tokens = object["tokens"] as? Object,
+              let model = object["model"] as? Object,
+              let date = dateValue(createdAt),
+              let modelID = stringValue(model["id"]),
+              stringValue(model["providerID"]) != nil else { return nil }
+        let cache = tokens["cache"] as? Object
+        return makeEntry(
+            id: "opencode|\(fallbackID)",
+            date: date,
+            model: modelID,
+            input: intValue(tokens["input"]),
+            output: intValue(tokens["output"]) + intValue(tokens["reasoning"]),
+            cacheWrite: intValue(cache?["write"]),
+            cacheRead: intValue(cache?["read"]),
+            cost: doubleValue(object["cost"]))
     }
 
     // MARK: Hermes database
@@ -741,25 +789,30 @@ enum LocalAdditionalUsageReader {
             })
     }
 
-    /// Cursor IDE login token stored in `state.vscdb` ItemTable.
-    static func cursorAuthAccessToken(roots: [URL]? = nil) -> String? {
+    /// Cursor IDE auth values stored in `state.vscdb` ItemTable.
+    static func cursorAuthValue(_ key: String, roots: [URL]? = nil) -> String? {
         for root in roots ?? configuredCursorRoots {
             let database = root.appendingPathComponent("state.vscdb")
             guard FileManager.default.fileExists(atPath: database.path) else { continue }
             for attempt in 0 ..< 6 {
                 let rows = query(database, sql: """
-                    SELECT value FROM ItemTable WHERE key = 'cursorAuth/accessToken' LIMIT 1
+                    SELECT value FROM ItemTable WHERE key = '\(key)' LIMIT 1
                     """) { statement -> String? in
                     columnText(statement, 0)
                 }
-                if let token = rows?.first?.trimmingCharacters(in: .whitespacesAndNewlines), !token.isEmpty {
-                    return token
+                if let value = rows?.first?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty {
+                    return value
                 }
                 if rows != nil { break }
                 Thread.sleep(forTimeInterval: 0.05 * Double(attempt + 1))
             }
         }
         return nil
+    }
+
+    /// Cursor IDE login token stored in `state.vscdb` ItemTable.
+    static func cursorAuthAccessToken(roots: [URL]? = nil) -> String? {
+        cursorAuthValue("cursorAuth/accessToken", roots: roots)
     }
 
     /// Debug string for AppLog when session token lookup fails (no secret values).
@@ -1432,6 +1485,10 @@ enum LocalAdditionalUsageReader {
         return entries
     }
 
+    /// Count textual content, not the whole event envelope. CLI 2.25.0 also writes
+    /// toolUse/input, toolResult/content (text or JSON), and thinking/text blocks.
+    /// Only payload text counts: omit IDs, signatures, redacted data and images.
+    /// JSON payloads use the existing value-byte estimator, not content-block dispatch.
     private static func kiroJSONLTextBytes(_ value: Any?) -> Int {
         if let string = value as? String { return string.utf8.count }
         if let array = value as? [Any] {
@@ -1439,7 +1496,21 @@ enum LocalAdditionalUsageReader {
         }
         guard let object = value as? Object else { return 0 }
         if let kind = object["kind"] as? String {
-            return kind == "text" ? kiroJSONLTextBytes(object["data"]) : 0
+            let data = object["data"]
+            switch kind {
+            case "text":
+                return kiroJSONLTextBytes(data)
+            case "toolUse":
+                return ((data as? Object)?["input"]).map(kiroJSONValueByteLength) ?? 0
+            case "toolResult":
+                return kiroJSONLTextBytes((data as? Object)?["content"])
+            case "thinking":
+                return ((data as? Object)?["text"] as? String)?.utf8.count ?? 0
+            case "json":
+                return data.map(kiroJSONValueByteLength) ?? 0
+            default:
+                return 0
+            }
         }
         for key in ["content", "text", "data"] where object[key] != nil {
             return kiroJSONLTextBytes(object[key])

@@ -26,6 +26,7 @@ struct ShopView: View {
                     }
                 }
             }
+            .reservesScrollerLane()
         }
         .frame(height: 520)
     }
@@ -47,14 +48,21 @@ struct ShopView: View {
 }
 
 /// 상점 아이템 1장 — 아이콘·이름·설명(사탕 XP / 민트 "성격 랜덤 변경")·보유수 + 가격/구매(인라인 확인).
-/// kind 별 store.canBuy(kind)/buy(kind) 로 일반화 — 판매 목록은 store.purchasableItems.
+/// kind 별 store.canBuy(kind)/buy(kind:count:) 로 일반화 — 판매 목록은 store.purchasableItems.
+/// 소모품은 수량 Stepper(가방의 사탕 일괄 사용과 같은 패턴)로 잔액 한도까지 한 번에 산다.
 @MainActor
 private struct ShopItemCard: View {
     let store: CompanionStore
     let kind: ItemKind
     @State private var confirming = false
+    @State private var quantity = 1
 
     private var price: Int { store.price(of: kind) ?? 0 }
+    private var maxQuantity: Int { max(1, store.maxBuyCount(kind)) }
+    /// 잔액이 줄어 한도가 내려가도 선택값이 한도를 넘지 않게 클램프.
+    private var selectedQuantity: Int { min(quantity, maxQuantity) }
+    /// 보유형은 1회 구매라 수량 선택이 없다. 2개 이상 살 수 있을 때만 Stepper 노출.
+    private var showsQuantity: Bool { !kind.isPassive && store.maxBuyCount(kind) > 1 }
 
     var body: some View {
         let l = store.l
@@ -69,18 +77,36 @@ private struct ShopItemCard: View {
                             Text(l.ownedCount(owned)).font(.caption2.weight(.bold))
                                 .foregroundStyle(.secondary).monospacedDigit()
                         }
+                        Spacer(minLength: 4)
+                        if showsQuantity {
+                            Stepper(value: $quantity, in: 1...maxQuantity) {
+                                Text("×\(selectedQuantity)").font(.callout.weight(.semibold)).monospacedDigit()
+                            }
+                            .fixedSize()
+                            .accessibilityLabel(l.itemName(kind))
+                            .accessibilityValue("\(selectedQuantity)")
+                        }
                     }
                     Text(l.itemDescription(kind))
                         .font(.caption).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                Spacer()
+                // 바깥 Spacer 없음 — 이름 줄의 Spacer 가 남는 폭을 전부 받아 Stepper 를 카드 오른쪽 끝에
+                // 붙인다(가방 ItemCard 와 같은 구조). 둘 다 두면 남는 폭을 나눠 가져 Stepper 가 가운데에 뜬다.
             }
             buyControls(l)
         }
         .padding(10)
         .background(Color.secondary.opacity(0.06))
         .clipShape(RoundedRectangle(cornerRadius: 10))
+        .onChange(of: store.maxBuyCount(kind)) { _, _ in
+            quantity = selectedQuantity
+        }
+    }
+
+    /// 수량이 붙은 표시 이름("이상한 사탕 ×3"). 1개면 기존 문구 그대로.
+    private func quantityName(_ l: L) -> String {
+        selectedQuantity > 1 ? "\(l.itemName(kind)) ×\(selectedQuantity)" : l.itemName(kind)
     }
 
     @ViewBuilder
@@ -94,17 +120,18 @@ private struct ShopItemCard: View {
             }
         } else if confirming {
             HStack(spacing: 8) {
-                Text(l.buyConfirm(l.itemName(kind)))
+                Text(l.buyConfirm(quantityName(l)))
                     .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                 Spacer()
-                Button(l.buy) { buyNow() }
+                Button(selectedQuantity > 1 ? "\(l.buy) ×\(selectedQuantity)" : l.buy) { buyNow() }
                     .buttonStyle(.borderedProminent).controlSize(.small)
                 Button(l.cancel) { confirming = false }
                     .buttonStyle(.borderless).controlSize(.small)
             }
         } else {
             HStack {
-                Text("\(l.shopPriceLabel) \(TokenFormatter.compact(price))")
+                // 가격은 선택 수량의 합계 — 확인 전에 총 지출을 보여준다.
+                Text("\(l.shopPriceLabel) \(TokenFormatter.compact(price * selectedQuantity))")
                     .font(.caption2).foregroundStyle(.tertiary).monospacedDigit()
                 Spacer()
                 if store.canBuy(kind) {
@@ -120,7 +147,7 @@ private struct ShopItemCard: View {
 
     private func buyNow() {
         confirming = false
-        _ = store.buy(kind)
+        if store.buy(kind, count: selectedQuantity) { quantity = 1 }
     }
 }
 
@@ -136,7 +163,7 @@ private struct EggCard: View {
     let nav: PopoverNavigation
     let tier: Rarity?
     @State private var stage: Stage = .idle
-    private enum Stage { case idle, confirm, shinyConfirm }
+    private enum Stage { case idle, confirm, preciousConfirm }
 
     private var price: Int { store.price(of: .egg(tier)) }
 
@@ -153,15 +180,21 @@ private struct EggCard: View {
                         Text(l.eggName(tier)).font(.callout.weight(.semibold))
                         if let tier {
                             // 도감 칩과 같은 라벨·색 — 상점의 등급 표기가 도감과 한 말로 맞물리게.
-                            Text(l.rarityLabel(tier).uppercased()).font(.system(size: 8, weight: .bold))
-                                .padding(.horizontal, 5).padding(.vertical, 1)
-                                .background(rarityColor(tier)).foregroundStyle(.white)
-                                .clipShape(Capsule())
+                            Badge(l.rarityLabel(tier).uppercased(), tint: .rarity(tier))
                         }
                     }
                     Text(l.eggDescription(tier))
                         .font(.caption).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
+                    // "놓아준다" 바로 아래 — 무엇을 잃는지 읽은 자리에서 무엇이 남는지 이어 읽게 한다.
+                    // 가격 줄이 아니라 여기인 이유: 이건 가격·구매 가능 여부와 무관한 상품 설명이고,
+                    // 아래쪽은 버튼과 `eggShopLockedHint`(왜 못 사는지) 가 쓰는 자리다.
+                    // 놓아줄 대상이 있을 때만 — 알 상태에선 할 말이 아니다.
+                    if store.hasActive {
+                        Text(l.eggReleaseNote)
+                            .font(.caption2).foregroundStyle(.tertiary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
                 Spacer()
             }
@@ -204,20 +237,20 @@ private struct EggCard: View {
                 Text(l.eggConfirm(store.displayName, l.eggName(tier)))
                     .font(.caption2).foregroundStyle(.secondary).lineLimit(2)
                 Spacer()
-                // 이로치면 한 번 더 경고, 아니면 즉시 실행.
+                // 이로치나 전설 등 고가치 포켓몬이면 한 번 더 경고, 아니면 즉시 실행.
                 Button(l.buy) {
-                    if store.currentIsShiny { stage = .shinyConfirm } else { commit() }
+                    if store.isHighValueCompanion { stage = .preciousConfirm } else { commit() }
                 }
                 .buttonStyle(.borderedProminent).controlSize(.small)
                 Button(l.cancel) { stage = .idle }
                     .buttonStyle(.borderless).controlSize(.small)
             }
-        case .shinyConfirm:
+        case .preciousConfirm:
             HStack(spacing: 8) {
-                Text(l.freshEggShinyWarning)
+                Text(store.rarity == .legendary ? l.freshEggLegendaryWarning : l.freshEggShinyWarning)
                     .font(.caption2.weight(.semibold)).foregroundStyle(.orange).lineLimit(2)
                 Spacer()
-                Button(l.freshEggDiscardShiny) { commit() }
+                Button(store.currentIsShiny && store.rarity != .legendary ? l.freshEggDiscardShiny : l.freshEggDiscardValuable) { commit() }
                     .buttonStyle(.borderedProminent).controlSize(.small).tint(.orange)
                 Button(l.cancel) { stage = .idle }
                     .buttonStyle(.borderless).controlSize(.small)

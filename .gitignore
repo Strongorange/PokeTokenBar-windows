@@ -23,7 +23,10 @@ build/
 # Project documentation is versioned with the repository.
 
 # Agent worktrees / local state
-.claude/
+.claude/*
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/prepare-pr
 .worktrees/
 
 # Local-only review-gate opt-out (not published)
