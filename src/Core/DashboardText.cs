@@ -201,6 +201,84 @@ public static class DashboardText
         T(lang, "필터 초기화", "Reset filters", "フィルターを解除", "Restablecer filtros",
             "Réinitialiser les filtres", "Redefinir filtros", "Filter zurücksetzen");
 
+    // Automatic backup snapshots (macOS #330, Settings → automatic backups)
+
+    public static string SnapshotsSectionTitle(AppLanguage lang) =>
+        T(lang, "자동 백업 (스냅샷)", "Automatic Backups (Snapshots)", "自動バックアップ（スナップショット）",
+            "Copias automáticas (Instantáneas)", "Sauvegardes automatiques (Instantanés)",
+            "Backups automáticos (Instantâneos)", "Automatische Sicherungen (Snapshots)");
+
+    public static string CreateSnapshotButton(AppLanguage lang) =>
+        T(lang, "스냅샷 만들기", "Create snapshot", "スナップショットを作成", "Crear instantánea",
+            "Créer un instantané", "Criar instantâneo", "Snapshot erstellen");
+
+    public static string CreateSnapshotHint(AppLanguage lang) =>
+        T(lang, "진행 상태의 로컬 복원 지점을 즉시 저장해요 (최근 10개 보존)",
+            "Saves an instant local restore point of your progress (keeps up to 10)",
+            "現在の進行状況の復元ポイントを即座に保存します（最新10件を保持）",
+            "Guarda un punto de restauración local de tu progreso (mantiene hasta 10)",
+            "Enregistre un point de restauration local de ta progression (jusqu'à 10 conservés)",
+            "Salva um ponto de restauração local do seu progresso (mantém até 10)",
+            "Speichert einen lokalen Wiederherstellungspunkt deines Fortschritts (behält bis zu 10)");
+
+    public static string SnapshotCreatedToast(AppLanguage lang) =>
+        T(lang, "스냅샷이 생성되었습니다", "Snapshot created", "スナップショットを作成しました",
+            "Instantánea creada", "Instantané créé", "Instantâneo criado", "Snapshot erstellt");
+
+    public static string RestoreSnapshotButton(AppLanguage lang) =>
+        T(lang, "복원", "Restore", "復元", "Restaurar", "Restaurer", "Restaurar", "Wiederherstellen");
+
+    public static string RestoreConfirmTitle(AppLanguage lang) =>
+        T(lang, "이 스냅샷으로 복원할까요?", "Restore this snapshot?", "このスナップショットに復元しますか？",
+            "¿Restaurar esta instantánea?", "Restaurer cet instantané ?",
+            "Restaurar este instantâneo?", "Diesen Snapshot wiederherstellen?");
+
+    public static string RestoreConfirmBody(AppLanguage lang, string snapshotDate, int snapshotDex,
+        string snapshotTokens, int currentDex, string currentTokens) =>
+        T(lang,
+            $"복원할 스냅샷: 도감 {snapshotDex}마리 · 누적 {snapshotTokens}\n저장 시각: {snapshotDate}\n" +
+            $"현재 상태: 도감 {currentDex}마리 · 누적 {currentTokens}\n\n" +
+            "현재 상태는 새 스냅샷으로 자동 백업된 뒤 복원됩니다.",
+            $"Target snapshot: {snapshotDex} in Pokédex · {snapshotTokens} lifetime\nCreated: {snapshotDate}\n" +
+            $"Current state: {currentDex} in Pokédex · {currentTokens} lifetime\n\n" +
+            "Your current state will be backed up as a new snapshot before restoring.",
+            $"復元するスナップショット: 図鑑 {snapshotDex}匹 · 累計 {snapshotTokens}\n作成日時: {snapshotDate}\n" +
+            $"現在の状態: 図鑑 {currentDex}匹 · 累計 {currentTokens}\n\n" +
+            "現在の状態は復元前に新しいスナップショットとしてバックアップされます。",
+            $"Instantánea a restaurar: Pokédex {snapshotDex} · {snapshotTokens} acumulados\nCreada: {snapshotDate}\n" +
+            $"Estado actual: Pokédex {currentDex} · {currentTokens} acumulados\n\n" +
+            "Tu estado actual se guardará como una nueva instantánea antes de restaurar.",
+            $"Instantané à restaurer : Pokédex {snapshotDex} · {snapshotTokens} cumulés\nCréé le : {snapshotDate}\n" +
+            $"État actuel : Pokédex {currentDex} · {currentTokens} cumulés\n\n" +
+            "Ton état actuel sera sauvegardé dans un nouvel instantané avant la restauration.",
+            $"Instantâneo a restaurar: Pokédex {snapshotDex} · {snapshotTokens} acumulados\nCriado: {snapshotDate}\n" +
+            $"Estado atual: Pokédex {currentDex} · {currentTokens} acumulados\n\n" +
+            "Seu estado atual será salvo como um novo instantâneo antes da restauração.",
+            $"Wiederherzustellender Snapshot: {snapshotDex} im Pokédex · {snapshotTokens} insgesamt\n" +
+            $"Erstellt: {snapshotDate}\nAktueller Stand: {currentDex} im Pokédex · {currentTokens} insgesamt\n\n" +
+            "Dein aktueller Stand wird vor der Wiederherstellung als neuer Snapshot gesichert.");
+
+    public static string RestoreDoneMessage(AppLanguage lang, int dex, string tokens) =>
+        T(lang, $"복원되었습니다 — 도감 {dex}마리 · 누적 {tokens}",
+            $"Restored — {dex} in Pokédex · {tokens} lifetime",
+            $"復元しました — 図鑑 {dex}匹 · 累計 {tokens}",
+            $"Restaurado — Pokédex {dex} · {tokens} acumulados",
+            $"Restauré — Pokédex {dex} · {tokens} cumulés",
+            $"Restaurado — Pokédex {dex} · {tokens} acumulados",
+            $"Wiederhergestellt – {dex} im Pokédex · {tokens} insgesamt");
+
+    public static string NoSnapshotsYet(AppLanguage lang) =>
+        T(lang, "아직 저장된 스냅샷이 없습니다", "No snapshots saved yet",
+            "保存されたスナップショットはまだありません", "Aún no hay instantáneas guardadas",
+            "Aucun instantané enregistré pour l'instant", "Nenhum instantâneo salvo ainda",
+            "Noch keine Snapshots gespeichert");
+
+    public static string SnapshotDexAndTokens(AppLanguage lang, int dex, string tokens) =>
+        T(lang, $"도감 {dex}마리 · 누적 {tokens}", $"Pokédex {dex} · {tokens} lifetime",
+            $"図鑑 {dex}匹 · 累計 {tokens}", $"Pokédex {dex} · {tokens} acumulados",
+            $"Pokédex {dex} · {tokens} cumulés", $"Pokédex {dex} · {tokens} acumulados",
+            $"Pokédex {dex} · {tokens} insgesamt");
+
     public static string ShopTitle(AppLanguage lang) =>
         T(lang, "상점", "Shop", "ショップ", "Tienda", "Boutique", "Loja", "Laden");
 

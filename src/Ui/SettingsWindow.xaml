@@ -146,6 +146,27 @@
                     </DockPanel>
                 </StackPanel>
             </Border>
+
+            <!-- Automatic backups (macOS #330). History starts collapsed (#446): the section
+                 stays quiet until the user asks for it. -->
+            <Border Style="{StaticResource Card}" Margin="0,10,0,0">
+                <StackPanel>
+                    <TextBlock x:Name="SnapshotsHeader" Style="{StaticResource SectionHeader}" />
+                    <DockPanel Margin="0,4,0,0">
+                        <Button x:Name="CreateSnapshotButton" DockPanel.Dock="Right" MinWidth="110"
+                                Click="OnCreateSnapshotClick" />
+                        <TextBlock x:Name="CreateSnapshotHint" VerticalAlignment="Center"
+                                   FontSize="11" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                    </DockPanel>
+                    <Expander x:Name="SnapshotHistory" IsExpanded="False" Margin="0,8,0,0">
+                        <Expander.Header>
+                            <TextBlock x:Name="SnapshotHistoryHeader" FontSize="12" />
+                        </Expander.Header>
+                        <StackPanel x:Name="SnapshotList" Margin="0,6,0,0" />
+                    </Expander>
+                </StackPanel>
+            </Border>
         </StackPanel>
     </ScrollViewer>
 </Window>

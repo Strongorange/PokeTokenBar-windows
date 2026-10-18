@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Win32;
@@ -138,6 +139,107 @@ public partial class SettingsWindow : Window
         CheckNowButton.Content = "_" + DashboardText.CheckNowButton(lang);
         ShowSkippedAgainButton.Content = "_" + DashboardText.ShowSkippedAgain(lang);
         UpdateInstallButton.Content = "_" + DashboardText.UpdateButton(lang);
+        SnapshotsHeader.Text = DashboardText.SnapshotsSectionTitle(lang);
+        CreateSnapshotButton.Content = "_" + DashboardText.CreateSnapshotButton(lang);
+        CreateSnapshotHint.Text = DashboardText.CreateSnapshotHint(lang);
+        RenderSnapshotList();
+    }
+
+    // Automatic backup snapshots (macOS #330)
+
+    private void RenderSnapshotList()
+    {
+        var lang = _engine.State.Language;
+        var snapshots = _engine.AvailableSnapshots();
+        SnapshotHistoryHeader.Text = snapshots.Count > 0
+            ? $"{DashboardText.SnapshotsSectionTitle(lang)} ({snapshots.Count})"
+            : DashboardText.NoSnapshotsYet(lang);
+        SnapshotList.Children.Clear();
+        foreach (var snapshot in snapshots)
+            SnapshotList.Children.Add(BuildSnapshotRow(snapshot, lang));
+    }
+
+    private Border BuildSnapshotRow(SaveSnapshot snapshot, AppLanguage lang)
+    {
+        var date = snapshot.Date.ToLocalTime().ToString("g", CultureInfo.CurrentCulture);
+        var line = new TextBlock
+        {
+            Text = $"{date} · {DashboardText.SnapshotDexAndTokens(lang, snapshot.DexCount,
+                TokenFormatter.Compact(snapshot.LifetimeTokens))}",
+            FontSize = 11,
+            VerticalAlignment = VerticalAlignment.Center,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            ToolTip = snapshot.FileName,
+        };
+        var restore = new Button
+        {
+            Content = "_" + DashboardText.RestoreSnapshotButton(lang),
+            MinWidth = 74,
+            MinHeight = 24,
+            Cursor = System.Windows.Input.Cursors.Hand,
+            Tag = snapshot,
+        };
+        restore.Click += OnRestoreSnapshotClick;
+        var row = new DockPanel { Margin = new Thickness(0, 2, 0, 2), LastChildFill = true };
+        DockPanel.SetDock(restore, Dock.Right);
+        row.Children.Add(restore);
+        row.Children.Add(line);
+        return new Border
+        {
+            Padding = new Thickness(0, 2, 0, 2),
+            Child = row,
+        };
+    }
+
+    private void OnCreateSnapshotClick(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            _engine.CreateManualSnapshot();
+            MessageBox.Show(this, DashboardText.SnapshotCreatedToast(_engine.State.Language),
+                DashboardText.SnapshotsSectionTitle(_engine.State.Language),
+                MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, ex.Message,
+                DashboardText.SnapshotsSectionTitle(_engine.State.Language),
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        RenderSnapshotList();
+    }
+
+    private void OnRestoreSnapshotClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: SaveSnapshot snapshot }) return;
+        var lang = _engine.State.Language;
+        var state = _engine.State;
+        var date = snapshot.Date.ToLocalTime().ToString("g", CultureInfo.CurrentCulture);
+        var confirmed = MessageBox.Show(this,
+            DashboardText.RestoreConfirmBody(lang, date, snapshot.DexCount,
+                TokenFormatter.Compact(snapshot.LifetimeTokens),
+                state.Dex.Count, TokenFormatter.Compact(state.UsedSinceInstall)),
+            DashboardText.RestoreConfirmTitle(lang),
+            MessageBoxButton.YesNo, MessageBoxImage.Question);
+        if (confirmed != MessageBoxResult.Yes) return;
+        try
+        {
+            _engine.RestoreSnapshot(snapshot);
+            var restored = _engine.State;
+            MessageBox.Show(this,
+                DashboardText.RestoreDoneMessage(lang, restored.Dex.Count,
+                    TokenFormatter.Compact(restored.UsedSinceInstall)),
+                DashboardText.SnapshotsSectionTitle(lang),
+                MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, ex.Message,
+                DashboardText.SnapshotsSectionTitle(lang),
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        RenderSnapshotList();
+        RenderRepresentativeRow();
     }
 
     private static readonly System.Windows.Media.SolidColorBrush ResultHighlightBrush =

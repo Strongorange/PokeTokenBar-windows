@@ -36,6 +36,35 @@ public static class CompanionStateFile
         }
     }
 
+    /// <summary>
+    /// Load with corruption recovery (macOS #330): a state file that no longer decodes is moved
+    /// to `.corrupt` and the newest valid snapshot is restored in its place. `recovered` tells the
+    /// caller to persist the recovered state.
+    /// </summary>
+    public static CompanionState LoadWithSnapshotRecovery(string path, out bool recovered)
+    {
+        recovered = false;
+        try
+        {
+            if (!File.Exists(path)) return new CompanionState();
+            using var document = JsonDocument.Parse(File.ReadAllText(path));
+            return SaveTransfer.Sanitized(CompanionStateCodec.Read(document.RootElement));
+        }
+        catch (Exception ex)
+        {
+            AppLog.Write($"companion state decode failed — recovering from snapshot: {path}: {ex.Message}");
+            TryBackupCorrupt(path);
+            if (SaveSnapshotManager.LoadLatestValidSnapshot(path) is { } snapshotState)
+            {
+                recovered = true;
+                AppLog.Write("automatically recovered companion state from snapshot");
+                return SaveTransfer.Sanitized(snapshotState);
+            }
+            AppLog.Write("no snapshot available, starting fresh");
+            return new CompanionState();
+        }
+    }
+
     private static void TryBackupCorrupt(string path)
     {
         try

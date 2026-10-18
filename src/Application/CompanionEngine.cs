@@ -179,14 +179,33 @@ public sealed class CompanionEngine
     private long _statusLastTotal;
     private DateTimeOffset? _statusWindowUntil;
     private string? _statusEvolvedName;
+    private List<SaveSnapshot> _snapshots = [];
 
     public CompanionEngine(CompanionEngineOptions? options = null)
     {
         _options = options ?? new CompanionEngineOptions();
         _growthDifficulty = PokemonBalance.ClampDifficulty(_options.GrowthDifficulty);
         _shopDifficulty = PokemonBalance.ClampDifficulty(_options.ShopDifficulty);
-        _state = CompanionStateFile.Load(_options.StateFilePath);
-        var changed = NormalizeActive();
+        var recovered = false;
+        try
+        {
+            _state = CompanionStateFile.LoadWithSnapshotRecovery(_options.StateFilePath,
+                out recovered);
+        }
+        catch
+        {
+            _state = new CompanionState();
+        }
+        try
+        {
+            _snapshots = SaveSnapshotManager.ListSnapshots(_options.StateFilePath);
+        }
+        catch
+        {
+            _snapshots = [];
+        }
+        var changed = recovered;
+        changed |= NormalizeActive();
         changed |= MigrateProfilesIfNeeded();
         changed |= EnrichCombatProfiles();
         if (changed) SaveCore();
@@ -1128,9 +1147,10 @@ public sealed class CompanionEngine
 
     public void ImportSave(byte[] data)
     {
+        SaveEnvelope envelope;
         lock (_gate)
         {
-            var envelope = SaveTransfer.Decode(data);
+            envelope = SaveTransfer.Decode(data);
             var directory = Path.GetDirectoryName(_options.StateFilePath);
             if (string.IsNullOrEmpty(directory))
                 throw new SaveTransferException(SaveTransferError.BackupFailed);
@@ -1147,6 +1167,15 @@ public sealed class CompanionEngine
                 throw new SaveTransferException(SaveTransferError.BackupFailed);
             }
             PruneImportBackups(directory);
+        }
+        ApplyEnvelope(envelope, $"save imported from {envelope.SourceDevice}");
+    }
+
+    /// <summary>Shared apply path for imports and snapshot restores (macOS applySave).</summary>
+    private void ApplyEnvelope(SaveEnvelope envelope, string logLine)
+    {
+        lock (_gate)
+        {
             _state = SaveTransfer.RebasedForThisDevice(
                 envelope.State, _state,
                 _lastMap ?? new Dictionary<string, long>(), _lastDate, _lastHasUsage);
@@ -1159,10 +1188,82 @@ public sealed class CompanionEngine
             _statusWindowUntil = null;
             _statusEvolvedName = null;
             SaveCore();
-            AppLog.Write($"save imported from {envelope.SourceDevice}: " +
-                         $"dex={_state.Dex.Count} lifetime={_state.UsedSinceInstall}");
+            AppLog.Write($"{logLine}: dex={_state.Dex.Count} lifetime={_state.UsedSinceInstall}");
         }
         Changed?.Invoke();
+    }
+
+    // MARK: 자동 백업 (스냅샷)
+
+    public IReadOnlyList<SaveSnapshot> AvailableSnapshots()
+    {
+        lock (_gate)
+        {
+            try
+            {
+                _snapshots = SaveSnapshotManager.ListSnapshots(_options.StateFilePath);
+            }
+            catch (Exception ex)
+            {
+                AppLog.Write($"snapshot listing failed: {ex.Message}");
+            }
+            return _snapshots.ToList();
+        }
+    }
+
+    public SaveSnapshot CreateManualSnapshot()
+    {
+        lock (_gate) return CreateSnapshotCore(_options.Clock());
+    }
+
+    private SaveSnapshot CreateSnapshotCore(DateTimeOffset timestamp)
+    {
+        var snapshot = SaveSnapshotManager.CreateSnapshot(
+            _state, _options.StateFilePath, timestamp, _options.AppVersion, _options.DeviceName);
+        _snapshots = SaveSnapshotManager.ListSnapshots(_options.StateFilePath);
+        return snapshot;
+    }
+
+    /// <summary>
+    /// One automatic snapshot per 12 hours, only once the save has progress worth rolling back.
+    /// Called from SaveCore so every persisted mutation re-checks the (cached) newest snapshot.
+    /// </summary>
+    private void AutoSnapshotIfNeeded(DateTimeOffset now)
+    {
+        if (_snapshots.Count > 0 && now - _snapshots[0].Date < SaveSnapshotManager.MinAutoSnapshotInterval)
+            return;
+        if (_state.UsedSinceInstall <= 0 && _state.Dex.Count == 0 && _state.Active is null) return;
+        try
+        {
+            CreateSnapshotCore(now);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Write($"auto snapshot failed: {ex.Message}");
+        }
+    }
+
+    public void RestoreSnapshot(SaveSnapshot snapshot)
+    {
+        SaveEnvelope envelope;
+        lock (_gate)
+        {
+            // Read and validate the selected snapshot before taking the safety snapshot: at the
+            // retention limit, that extra file prunes the oldest one, which may be the snapshot
+            // being restored. A snapshot that no longer decodes also fails here, before anything
+            // is written or pruned.
+            envelope = SaveSnapshotManager.LoadEnvelope(snapshot.FilePath);
+            try
+            {
+                CreateSnapshotCore(_options.Clock());
+            }
+            catch (Exception ex)
+            {
+                AppLog.Write($"pre-restore safety snapshot failed: {ex.Message}");
+            }
+        }
+        ApplyEnvelope(envelope, $"snapshot restored: {snapshot.FileName}");
+        lock (_gate) _snapshots = SaveSnapshotManager.ListSnapshots(_options.StateFilePath);
     }
 
     private static void PruneImportBackups(string directory)
@@ -1522,6 +1623,7 @@ public sealed class CompanionEngine
         try
         {
             CompanionStateFile.Save(_options.StateFilePath, _state);
+            AutoSnapshotIfNeeded(_options.Clock());
         }
         catch (Exception ex)
         {
