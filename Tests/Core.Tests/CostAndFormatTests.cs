@@ -106,6 +106,47 @@ public class TokenFormatterTests
         Assert.Equal(expected, TokenFormatter.Compact(value));
     }
 
+    /// <summary>
+    /// Port of testCompactPromotesUnitsAtRoundedBoundaries (#365): K/M use one decimal,
+    /// so a value that would display as 1000.0 promotes to the next unit instead.
+    /// </summary>
+    [Theory]
+    [InlineData(999, "999")]
+    [InlineData(1_000, "1K")]
+    [InlineData(999_949, "999.9K")]
+    [InlineData(999_950, "1M")]
+    [InlineData(999_999, "1M")]
+    [InlineData(1_000_000, "1M")]
+    [InlineData(999_949_999, "999.9M")]
+    [InlineData(999_950_000, "1B")]
+    [InlineData(999_999_999, "1B")]
+    [InlineData(1_000_000_000, "1B")]
+    [InlineData(1_240_000_000, "1.24B")]
+    public void CompactPromotesUnitsAtRoundedBoundaries(long value, string expected)
+    {
+        Assert.Equal(expected, TokenFormatter.Compact(value));
+        Assert.Equal("-" + expected, TokenFormatter.Compact(-value));
+    }
+
+    /// <summary>
+    /// Port of testFormatterRoundingBoundaries (#418): branching on the raw value and then
+    /// rounding prints a value the branch said was below the cutoff — "80.0%" instead of
+    /// "80%", "$100.0" instead of "$100", "$10000" instead of "$10.0K".
+    /// </summary>
+    [Fact]
+    public void FormatterRoundingBoundaries()
+    {
+        Assert.Equal("80%", TokenFormatter.Percent(79.96));
+        Assert.Equal("100%", TokenFormatter.Percent(99.97));
+        Assert.Equal("0%", TokenFormatter.Percent(0.04));
+        Assert.Equal("79.9%", TokenFormatter.Percent(79.94));
+        Assert.Equal("$100", TokenFormatter.CostCompact(99.96));
+        Assert.Equal("$99.9", TokenFormatter.CostCompact(99.94));
+        Assert.Equal("$10.0K", TokenFormatter.CostCompact(9_999.6));
+        Assert.Equal("$9999", TokenFormatter.CostCompact(9_999.4));
+        Assert.Equal("$100", TokenFormatter.CostCompact(100));
+    }
+
     [Theory]
     [InlineData(0.0, "$0.00")]
     [InlineData(1.5, "$1.50")]
