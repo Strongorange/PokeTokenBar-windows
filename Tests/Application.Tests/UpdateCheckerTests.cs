@@ -221,6 +221,105 @@ public class UpdateCheckerTests
         Assert.Null(throwing.Checker.Available);
     }
 
+    /// <summary>
+    /// Port of #321: the cooldown records only a validated release — a failed fetch does
+    /// not block the next attempt for 30 minutes.
+    /// </summary>
+    [Fact]
+    public async Task FailedChecksDoNotStartTheCooldown()
+    {
+        var fetches = 0;
+        string? Fetch(Uri url)
+        {
+            fetches++;
+            return null;
+        }
+        var harness = new Harness(fetch: Fetch);
+
+        await harness.Checker.CheckAsync(0);
+        await harness.Checker.CheckAsync();
+
+        Assert.Equal(2, fetches);
+    }
+
+    [Fact]
+    public async Task UnsafeUrlsDoNotStartTheCooldown()
+    {
+        var fetches = 0;
+        string? Fetch(Uri url)
+        {
+            fetches++;
+            return ReleaseJson("v1.2.0", "https://evil.example.com/releases");
+        }
+        var harness = new Harness(fetch: Fetch);
+
+        await harness.Checker.CheckAsync(0);
+        await harness.Checker.CheckAsync();
+
+        Assert.Equal(2, fetches);
+        Assert.Null(harness.Checker.Available);
+    }
+
+    /// <summary>
+    /// A prerelease tag is neither applied (it would compare equal to its release) nor
+    /// counted as a checked release, so the next popover open retries.
+    /// </summary>
+    [Fact]
+    public async Task PrereleaseTagsAreNeitherAppliedNorCountedAsChecked()
+    {
+        var fetches = 0;
+        string? Fetch(Uri url)
+        {
+            fetches++;
+            return ReleaseJson("v2.6.0-beta.1", ReleaseUrl);
+        }
+        var harness = new Harness(fetch: Fetch);
+
+        await harness.Checker.CheckAsync(0);
+        Assert.Null(harness.Checker.Available);
+
+        await harness.Checker.CheckAsync();
+        Assert.Equal(2, fetches);
+    }
+
+    /// <summary>Overlapping checks share one fetch now that failures no longer block retries.</summary>
+    [Fact]
+    public async Task OverlappingChecksShareOneFetch()
+    {
+        var fetches = 0;
+        string? Fetch(Uri url)
+        {
+            fetches++;
+            return ReleaseJson("v1.2.0", ReleaseUrl);
+        }
+        var harness = new Harness(fetch: Fetch);
+
+        var first = harness.Checker.CheckAsync(0);
+        var second = harness.Checker.CheckAsync(0);
+        await first;
+        await second;
+
+        Assert.Equal(1, fetches);
+        Assert.NotNull(harness.Checker.Available);
+    }
+
+    [Theory]
+    [InlineData("v2.5.4", "2.5.4")]
+    [InlineData("2.5.4", "2.5.4")]
+    [InlineData("V2.5.4", "2.5.4")]
+    [InlineData("02.5.04", "2.5.4")]
+    [InlineData("v2.6.0-beta.1", null)]
+    [InlineData("2.5", null)]
+    [InlineData("2.5.4.1", null)]
+    [InlineData("2..4", null)]
+    [InlineData(".5.4", null)]
+    [InlineData("2.x.4", null)]
+    [InlineData("", null)]
+    public void NormalizedReleaseVersionAcceptsPlainTripleOnly(string tag, string? expected)
+    {
+        Assert.Equal(expected, UpdateChecker.NormalizedReleaseVersion(tag));
+    }
+
     [Theory]
     [InlineData("http://github.com/Strongorange/PokeTokenBar-windows/releases")]
     [InlineData("https://evil.example.com/releases")]

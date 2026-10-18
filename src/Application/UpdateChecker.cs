@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net.Http;
 using System.Text.Json;
 using PokeTokenBar.Core;
@@ -54,6 +55,9 @@ public sealed class UpdateChecker
     private readonly Action<string?> _writeSkipped;
     private readonly object _gate = new();
     private DateTimeOffset? _lastChecked;
+    /// <summary>Overlapping checks share one fetch once the early cooldown stamp is gone
+    /// (a failed check no longer blocks the next attempt).</summary>
+    private bool _checkInFlight;
     private UpdateRelease? _available;
     private UpdateRelease? _skipped;
 
@@ -102,18 +106,24 @@ public sealed class UpdateChecker
     }
 
     /// <summary>
-    /// Fetch the latest release. Calls closer than <paramref name="minIntervalSeconds"/>
-    /// are ignored (rate-limit protection); manual checks pass 0 to bypass.
+    /// Fetch the latest release. The cooldown applies to <em>successful</em> checks only
+    /// (rate-limit protection): a failed fetch, unsafe URL, malformed or prerelease tag does
+    /// not start the cooldown, so the next popover open retries right away. Manual checks
+    /// pass 0 to bypass the interval.
     /// </summary>
     public Task CheckAsync(int minIntervalSeconds = DefaultMinIntervalSeconds)
     {
+        bool startFetch;
         lock (_gate)
         {
+            if (_checkInFlight) return Task.CompletedTask;
             var now = _clock();
             if (_lastChecked is { } last && (now - last).TotalSeconds < minIntervalSeconds)
                 return Task.CompletedTask;
-            _lastChecked = now;
+            _checkInFlight = true;
+            startFetch = true;
         }
+        if (!startFetch) return Task.CompletedTask;
         return Task.Run(() =>
         {
             try
@@ -123,12 +133,46 @@ public sealed class UpdateChecker
                 if (ParseRelease(body) is not { } release) return;
                 // The URL is handed to the browser, so only https github.com is accepted.
                 if (!IsSafeReleaseUrl(release.Html)) return;
+                // A prerelease tag such as v2.6.0-beta.1 would compare equal to 2.6.0 and
+                // garbage as 0.0.0; neither may be applied nor counted as a checked release.
+                if (NormalizedReleaseVersion(release.Tag) is null) return;
+                lock (_gate)
+                {
+                    _lastChecked = _clock();
+                }
                 Consider(release.Tag, release.Html);
             }
             catch
             {
             }
+            finally
+            {
+                lock (_gate) _checkInFlight = false;
+            }
         });
+    }
+
+    /// <summary>
+    /// Release tag as a comparable version, or null when the tag is not a plain
+    /// MAJOR.MINOR.PATCH (optionally v-prefixed). IsNewer reads non-numeric parts as 0,
+    /// so a prerelease such as v2.6.0-beta.1 would compare equal to 2.6.0.
+    /// </summary>
+    public static string? NormalizedReleaseVersion(string tag)
+    {
+        var version = tag.Trim();
+        if (version.StartsWith('v') || version.StartsWith('V')) version = version[1..];
+        var parts = version.Split('.');
+        if (parts.Length != 3) return null;
+        var normalized = new string[3];
+        for (var i = 0; i < parts.Length; i++)
+        {
+            var part = parts[i];
+            if (part.Length is 0 or > 9) return null;
+            if (!part.All(char.IsAsciiDigit)) return null;
+            normalized[i] = int.Parse(part, CultureInfo.InvariantCulture)
+                .ToString(CultureInfo.InvariantCulture);
+        }
+        return string.Join('.', normalized);
     }
 
     /// <summary>Apply one fetched release. The tag may carry a "v" prefix.</summary>
