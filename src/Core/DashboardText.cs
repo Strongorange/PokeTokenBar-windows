@@ -148,6 +148,59 @@ public static class DashboardText
         T(lang, "글자 선택", "Choose form", "フォルムを選択", "Elegir forma", "Choisir une forme",
             "Escolher forma", "Form auswählen");
 
+    // Dex search / sort / filters (macOS #329)
+
+    public static string DexSearchPlaceholder(AppLanguage lang) =>
+        T(lang, "이름 또는 #번호 검색…", "Search name or #…", "名前または#番号で検索…",
+            "Buscar por nombre o #…", "Rechercher par nom ou #…", "Buscar por nome ou #…",
+            "Nach Name oder # suchen…");
+
+    public static string SortTitle(AppLanguage lang) =>
+        T(lang, "정렬", "Sort", "並び替え", "Ordenar", "Trier", "Ordenar", "Sortieren");
+
+    public static string SortNumberAsc(AppLanguage lang) =>
+        T(lang, "도감 번호 (낮은 순)", "Number (Low to High)", "図鑑番号（昇順）",
+            "Nº de Pokédex (asc.)", "N° de Pokédex (croissant)", "Nº da Pokédex (crescente)",
+            "Nummer (aufsteigend)");
+
+    public static string SortNumberDesc(AppLanguage lang) =>
+        T(lang, "도감 번호 (높은 순)", "Number (High to Low)", "図鑑番号（降順）",
+            "Nº de Pokédex (desc.)", "N° de Pokédex (décroissant)", "Nº da Pokédex (decrescente)",
+            "Nummer (absteigend)");
+
+    public static string SortNameAsc(AppLanguage lang) =>
+        T(lang, "이름 (가나다·A-Z)", "Name (A–Z)", "名前（五十音・A-Z）", "Nombre (A–Z)",
+            "Nom (A–Z)", "Nome (A–Z)", "Name (A–Z)");
+
+    public static string SortNameDesc(AppLanguage lang) =>
+        T(lang, "이름 (역순)", "Name (Z–A)", "名前（逆順）", "Nombre (Z–A)",
+            "Nom (Z–A)", "Nome (Z–A)", "Name (Z–A)");
+
+    public static string SortRarity(AppLanguage lang) =>
+        T(lang, "희귀도 순", "Rarity (High to Low)", "希少度順", "Rareza (mayor a menor)",
+            "Rareté (décroissante)", "Raridade (maior a menor)", "Seltenheit (absteigend)");
+
+    public static string SortDateDesc(AppLanguage lang) =>
+        T(lang, "최근 잡은 순", "Most Recent", "最近捕獲", "Más recientes", "Plus récents",
+            "Mais recentes", "Neueste zuerst");
+
+    public static string SortDateAsc(AppLanguage lang) =>
+        T(lang, "오래된 순", "Oldest First", "古い順", "Más antiguos", "Plus anciens",
+            "Mais antigos", "Älteste zuerst");
+
+    public static string FilterShinyOnly(AppLanguage lang) =>
+        T(lang, "이로치만", "Shiny only", "色違いのみ", "Solo variocolor",
+            "Chromatique uniquement", "Apenas Shiny", "Nur schillernde");
+
+    public static string NoSearchResults(AppLanguage lang) =>
+        T(lang, "검색 결과가 없어요", "No Pokémon found", "見つかりませんでした",
+            "No se encontraron Pokémon", "Aucun Pokémon trouvé", "Nenhum Pokémon encontrado",
+            "Keine Pokémon gefunden");
+
+    public static string ClearFilters(AppLanguage lang) =>
+        T(lang, "필터 초기화", "Reset filters", "フィルターを解除", "Restablecer filtros",
+            "Réinitialiser les filtres", "Redefinir filtros", "Filter zurücksetzen");
+
     public static string ShopTitle(AppLanguage lang) =>
         T(lang, "상점", "Shop", "ショップ", "Tienda", "Boutique", "Loja", "Laden");
 

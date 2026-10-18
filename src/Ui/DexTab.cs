@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using PokeTokenBar.Application;
 using PokeTokenBar.Core;
@@ -7,9 +8,9 @@ using PokeTokenBar.Core;
 namespace PokeTokenBar.Ui;
 
 /// <summary>
-/// Dex grid + catch log renderer. Owns the rarity-filter and mode state;
-/// pure decisions live in GameTabPresentation and CompanionPresentation
-/// (unit-tested).
+/// Dex grid + catch log renderer. Owns the rarity-filter, search, sort and
+/// shiny-filter state; pure decisions live in GameTabPresentation,
+/// CompanionPresentation and DexQuery (unit-tested).
 /// </summary>
 internal sealed class DexTab
 {
@@ -18,6 +19,10 @@ internal sealed class DexTab
     private readonly Action _requestRender;
     private readonly FrameworkElement _modeToggle;
     private readonly TextBlock _header;
+    private readonly TextBox _searchBox;
+    private readonly TextBlock _searchPlaceholder;
+    private readonly ComboBox _sortBox;
+    private readonly ToggleButton _shinyToggle;
     private readonly StackPanel _rarityFilter;
     private readonly ListBox _list;
     private readonly FrameworkElement _catchLogPanel;
@@ -27,10 +32,19 @@ internal sealed class DexTab
     private readonly FrameworkElement _empty;
     private readonly TextBlock _emptyTitle;
     private readonly TextBlock _emptyHint;
+    private readonly Button _emptyReset;
     private readonly SpriteSlot _emptySprite;
     private Rarity? _dexRarityFilter;
     private Rarity? _catchRarityFilter;
     private bool _showLog;
+    // Search / sort / shiny state is per screen, like the two macOS search bars (#329).
+    private string _dexQuery = "";
+    private string _catchQuery = "";
+    private DexSortOption _dexSort = DexSortOption.NumberAsc;
+    private CatchLogSortOption _catchSort = CatchLogSortOption.RecentFirst;
+    private bool _dexShinyOnly;
+    private bool _catchShinyOnly;
+    private (bool Log, AppLanguage Lang)? _sortBoxSignature;
     private IReadOnlyList<CompanionDexRow> _visibleRows = [];
     private readonly CompanionEngine _engine;
     private readonly Action<int> _openDetail;
@@ -44,10 +58,12 @@ internal sealed class DexTab
     public DexTab(
         FrameworkElement theme, SpriteStore sprites, CompanionEngine engine,
         Action<int> openDetail, Action requestRender,
-        FrameworkElement modeToggle, TextBlock header, StackPanel rarityFilter,
+        FrameworkElement modeToggle, TextBlock header, TextBox searchBox,
+        TextBlock searchPlaceholder, ComboBox sortBox, ToggleButton shinyToggle,
+        StackPanel rarityFilter,
         ListBox list, FrameworkElement catchLogPanel, TextBlock catchHeader,
         StackPanel catchRarityFilter, ListBox catchList,
-        FrameworkElement empty, TextBlock emptyTitle, TextBlock emptyHint,
+        FrameworkElement empty, TextBlock emptyTitle, TextBlock emptyHint, Button emptyReset,
         Image emptySprite, TextBlock emptySpritePlaceholder,
         FrameworkElement footer, Button footerStar, TextBlock footerInfo)
     {
@@ -58,6 +74,10 @@ internal sealed class DexTab
         _requestRender = requestRender;
         _modeToggle = modeToggle;
         _header = header;
+        _searchBox = searchBox;
+        _searchPlaceholder = searchPlaceholder;
+        _sortBox = sortBox;
+        _shinyToggle = shinyToggle;
         _rarityFilter = rarityFilter;
         _list = list;
         _catchLogPanel = catchLogPanel;
@@ -67,12 +87,59 @@ internal sealed class DexTab
         _empty = empty;
         _emptyTitle = emptyTitle;
         _emptyHint = emptyHint;
+        _emptyReset = emptyReset;
         _footer = footer;
         _footerStar = footerStar;
         _footerInfo = footerInfo;
         _emptySprite = new SpriteSlot(emptySprite, emptySpritePlaceholder);
         _list.SelectionChanged += OnListSelectionChanged;
         _footerStar.Click += OnFooterStarClick;
+        _searchBox.TextChanged += (_, _) =>
+        {
+            if (_rebuilding) return;
+            if (_showLog) _catchQuery = _searchBox.Text;
+            else _dexQuery = _searchBox.Text;
+            _requestRender();
+        };
+        _sortBox.SelectionChanged += (_, _) =>
+        {
+            if (_rebuilding || _sortBox.SelectedItem is not ComboBoxItem item || item.Tag is null)
+                return;
+            if (_showLog)
+                _catchSort = (CatchLogSortOption) item.Tag;
+            else
+                _dexSort = (DexSortOption) item.Tag;
+            _requestRender();
+        };
+        _shinyToggle.Checked += OnShinyToggleChanged;
+        _shinyToggle.Unchecked += OnShinyToggleChanged;
+        _emptyReset.Click += (_, _) => ResetFilters();
+    }
+
+    private void OnShinyToggleChanged(object sender, RoutedEventArgs e)
+    {
+        if (_rebuilding) return;
+        if (_showLog) _catchShinyOnly = _shinyToggle.IsChecked == true;
+        else _dexShinyOnly = _shinyToggle.IsChecked == true;
+        _requestRender();
+    }
+
+    /// <summary>macOS resetFilters: clear the current screen's query, rarity and shiny filter.</summary>
+    public void ResetFilters()
+    {
+        if (_showLog)
+        {
+            _catchQuery = "";
+            _catchRarityFilter = null;
+            _catchShinyOnly = false;
+        }
+        else
+        {
+            _dexQuery = "";
+            _dexRarityFilter = null;
+            _dexShinyOnly = false;
+        }
+        _requestRender();
     }
 
     public void ShowLog(bool showLog) => _showLog = showLog;
@@ -93,15 +160,15 @@ internal sealed class DexTab
         {
             _list.Items.Clear();
             _catchList.Items.Clear();
+            SyncQueryControls(lang);
             if (view.DexRows.Count == 0)
             {
                 _header.Text = "";
+                ControlsRowVisibility(queryActive: false);
                 _list.Visibility = Visibility.Collapsed;
                 _rarityFilter.Visibility = Visibility.Collapsed;
-                _empty.Visibility = Visibility.Visible;
-                _emptyTitle.Text = DashboardText.DexEmptyTitle(lang);
-                _emptyHint.Text = DashboardText.DexEmptyHint(lang);
-                _emptySprite.Update(_sprites, 25, true, false, null, "❔");
+                ShowEmpty(DashboardText.DexEmptyTitle(lang), DashboardText.DexEmptyHint(lang),
+                    showReset: false);
                 _selectedSpeciesID = null;
                 _footer.Visibility = Visibility.Collapsed;
                 return;
@@ -112,13 +179,24 @@ internal sealed class DexTab
                 _header.Text = "";
                 _list.Visibility = Visibility.Collapsed;
                 _rarityFilter.Visibility = Visibility.Collapsed;
+                var catchRows = DexQuery.FilterAndSortCatchRows(view.CatchRows, _catchQuery,
+                    _catchRarityFilter, _catchShinyOnly, _catchSort);
+                if (catchRows.Count == 0)
+                {
+                    _catchLogPanel.Visibility = Visibility.Collapsed;
+                    ControlsRowVisibility(queryActive: true);
+                    ShowEmpty(DashboardText.NoSearchResults(lang), "", showReset: true);
+                    _footer.Visibility = Visibility.Collapsed;
+                    return;
+                }
+                ControlsRowVisibility(queryActive: true);
                 _catchLogPanel.Visibility = Visibility.Visible;
                 _catchHeader.Text = GameTabPresentation.CatchHeader(view);
                 RenderRarityTally(_catchRarityFilterHost,
                     rarity => CompanionPresentation.RarityTally(view.CatchRows, rarity, row => row.Rarity),
                     _catchRarityFilter, lang,
                     rarity => _catchRarityFilter = _catchRarityFilter == rarity ? null : rarity);
-                foreach (var row in CompanionPresentation.VisibleCatchRows(view.CatchRows, _catchRarityFilter))
+                foreach (var row in catchRows)
                     _catchList.Items.Add(CreateCatchCard(row, lang));
                 _footer.Visibility = Visibility.Collapsed;
                 return;
@@ -134,11 +212,23 @@ internal sealed class DexTab
                     // info in the footer line (DexGridView.header selection reset).
                     _selectedSpeciesID = null;
                 });
+            ControlsRowVisibility(queryActive: true);
+            _visibleRows = DexQuery.FilterAndSortDexRows(view.DexRows, _dexQuery,
+                _dexRarityFilter, _dexShinyOnly, _dexSort);
+            if (_visibleRows.Count == 0)
+            {
+                _list.Visibility = Visibility.Collapsed;
+                _rarityFilter.Visibility = Visibility.Collapsed;
+                ShowEmpty(DashboardText.NoSearchResults(lang), "", showReset: true);
+                _selectedSpeciesID = null;
+                _footer.Visibility = Visibility.Collapsed;
+                return;
+            }
+            _empty.Visibility = Visibility.Collapsed;
             _list.Visibility = Visibility.Visible;
             _rarityFilter.Visibility = _rarityFilter.Children.Count > 0
                 ? Visibility.Visible
                 : Visibility.Collapsed;
-            _visibleRows = CompanionPresentation.VisibleDexRows(view.DexRows, _dexRarityFilter);
             foreach (var row in _visibleRows)
                 _list.Items.Add(CreateDexTile(row, lang,
                     row.SpeciesID == view.RepresentativeSpeciesID));
@@ -150,6 +240,67 @@ internal sealed class DexTab
             _rebuilding = false;
         }
         UpdateFooter();
+    }
+
+    private void ShowEmpty(string title, string hint, bool showReset)
+    {
+        _empty.Visibility = Visibility.Visible;
+        _emptyTitle.Text = title;
+        _emptyHint.Text = hint;
+        _emptyHint.Visibility = hint.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+        _emptySprite.Update(_sprites, 25, true, false, null, "❔");
+        _emptyReset.Content = DashboardText.ClearFilters(_lastView?.Language ?? AppLanguage.En);
+        _emptyReset.Visibility = showReset ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    /// <summary>The search/sort/shiny row hides on a fresh dex — there is nothing to search yet.</summary>
+    private void ControlsRowVisibility(bool queryActive)
+    {
+        var visible = queryActive ? Visibility.Visible : Visibility.Collapsed;
+        _searchBox.Visibility = visible;
+        _searchPlaceholder.Visibility = visible;
+        _sortBox.Visibility = visible;
+        _shinyToggle.Visibility = visible;
+    }
+
+    /// <summary>Localizes the shared controls and swaps the sort options with the active screen.</summary>
+    private void SyncQueryControls(AppLanguage lang)
+    {
+        _searchPlaceholder.Text = DashboardText.DexSearchPlaceholder(lang);
+        _searchBox.ToolTip = DashboardText.DexSearchPlaceholder(lang);
+        _shinyToggle.Content = "✨ " + DashboardText.FilterShinyOnly(lang);
+        _shinyToggle.ToolTip = DashboardText.FilterShinyOnly(lang);
+        var shinyOnly = _showLog ? _catchShinyOnly : _dexShinyOnly;
+        if (_shinyToggle.IsChecked != shinyOnly) _shinyToggle.IsChecked = shinyOnly;
+        var query = _showLog ? _catchQuery : _dexQuery;
+        if (!_searchBox.Text.Equals(query, StringComparison.Ordinal)) _searchBox.Text = query;
+
+        var signature = (_showLog, lang);
+        if (_sortBoxSignature == signature) return;
+        _sortBoxSignature = signature;
+        _sortBox.Items.Clear();
+        if (_showLog)
+        {
+            foreach (var option in Enum.GetValues<CatchLogSortOption>())
+                _sortBox.Items.Add(new ComboBoxItem
+                {
+                    Content = DexQuery.Label(lang, option),
+                    Tag = option,
+                    IsSelected = option == _catchSort,
+                });
+        }
+        else
+        {
+            foreach (var option in Enum.GetValues<DexSortOption>())
+                _sortBox.Items.Add(new ComboBoxItem
+                {
+                    Content = DexQuery.Label(lang, option),
+                    Tag = option,
+                    IsSelected = option == _dexSort,
+                });
+        }
+        if (_sortBox.SelectedItem is null && _sortBox.Items.Count > 0)
+            _sortBox.SelectedIndex = 0;
     }
 
     private void RestoreSelection()

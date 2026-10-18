@@ -45,7 +45,8 @@ public static class NoticeKinds
 public sealed record CompanionStageItem(string Label, bool Done, bool Current, bool Mystery);
 
     public sealed record CompanionDexRow(int SpeciesID, string Name, Rarity Rarity, bool IsShiny,
-        bool IsRaising, int FormsOwned = 0, int FormsTotal = 0);
+        bool IsRaising, int FormsOwned = 0, int FormsTotal = 0,
+        IReadOnlyDictionary<string, string>? Names = null);
 
     public sealed record CompanionChainNode(int SpeciesID, string Name);
 
@@ -59,7 +60,8 @@ public sealed record CompanionStageItem(string Label, bool Done, bool Current, b
         string Nature,
         PokemonForm? Form,
         DateTimeOffset? CaughtAt,
-        IReadOnlyList<CompanionChainNode> Chain);
+        IReadOnlyList<CompanionChainNode> Chain,
+        IReadOnlyList<string>? SearchNames = null);
 
     /// <summary>Every catalogued form of a species for the detail picker; unowned ones render dimmed.</summary>
     public sealed record CompanionFormStatus(PokemonForm Form, string Label, bool IsOwned, bool IsShiny);
@@ -1404,18 +1406,25 @@ public sealed class CompanionEngine
 
     private IReadOnlyList<CompanionDexRow> BuildDexRows()
     {
-        var rows = new Dictionary<int, (string Name, Rarity Rarity, bool IsShiny)>();
+        var rows = new Dictionary<int, (string Name, Rarity Rarity, bool IsShiny,
+            Dictionary<string, string>? Names)>();
         foreach (var entry in _state.Dex)
             foreach (var id in entry.ChainOrder)
             {
-                var name = entry.Names is not null && entry.Names.TryGetValue(id, out var byLang)
+                Dictionary<string, string>? byLang = null;
+                if (entry.Names is not null && entry.Names.TryGetValue(id, out var entryNames))
+                {
+                    byLang = entryNames;
+                }
+                var name = byLang is not null
                     ? _state.Language.ResolveName(byLang) ?? $"#{id}"
                     : $"#{id}";
                 var shiny = entry.IsShiny;
                 if (rows.TryGetValue(id, out var existing))
-                    rows[id] = (existing.Name, existing.Rarity, existing.IsShiny || shiny);
+                    rows[id] = (existing.Name, existing.Rarity, existing.IsShiny || shiny,
+                        existing.Names ?? byLang);
                 else
-                    rows[id] = (name, entry.Rarity, shiny);
+                    rows[id] = (name, entry.Rarity, shiny, byLang);
             }
         var currentID = _state.Active?.CurrentID;
         if (_state.Active is { } active)
@@ -1427,20 +1436,24 @@ public sealed class CompanionEngine
                 var name = activeLine is not null
                     ? activeLine.LocalizedName(id, _state.Language)
                     : $"#{id}";
+                Dictionary<string, string>? byLang = null;
+                if (activeLine is not null && activeLine.Names.TryGetValue(id, out var lineNames))
+                    byLang = lineNames;
                 var shiny = (active.DittoDisguise is null || active.DittoRevealed) && active.IsShiny;
                 if (rows.TryGetValue(id, out var existing))
-                    rows[id] = (existing.Name, existing.Rarity, existing.IsShiny || shiny);
+                    rows[id] = (existing.Name, existing.Rarity, existing.IsShiny || shiny,
+                        existing.Names ?? byLang);
                 else
-                    rows[id] = (name, active.Rarity, shiny);
+                    rows[id] = (name, active.Rarity, shiny, byLang);
             }
         return rows.Keys.OrderBy(id => id)
             .Select(id =>
             {
-                var (name, rarity, shiny) = rows[id];
+                var (name, rarity, shiny, names) = rows[id];
                 var formsTotal = PokemonForms.Forms(id).Count;
                 var formsOwned = formsTotal > 0 ? _state.CollectedForms(id).Count : 0;
                 return new CompanionDexRow(id, name, rarity, shiny, id == currentID,
-                    formsOwned, formsTotal);
+                    formsOwned, formsTotal, names);
             })
             .ToList();
     }
@@ -1465,7 +1478,8 @@ public sealed class CompanionEngine
                 entry.Form,
                 entry.CaughtAt,
                 entry.ChainOrder.Select(id => new CompanionChainNode(
-                    id, ChainNodeName(entry.Names, id))).ToList()));
+                    id, ChainNodeName(entry.Names, id))).ToList(),
+                SearchNames(entry.Names)));
         rows.Sort((a, b) => (b.CaughtAt ?? DateTimeOffset.MinValue)
             .CompareTo(a.CaughtAt ?? DateTimeOffset.MinValue));
         if (_state.Active is { } active)
@@ -1483,10 +1497,20 @@ public sealed class CompanionEngine
                 active.Form,
                 null,
                 active.PathIDs.Select(id => new CompanionChainNode(
-                    id, line is not null ? line.LocalizedName(id, _state.Language) : $"#{id}")).ToList()));
+                    id, line is not null ? line.LocalizedName(id, _state.Language) : $"#{id}")).ToList(),
+                line is not null
+                    ? active.PathIDs
+                        .Where(id => line.Names.TryGetValue(id, out _))
+                        .SelectMany(id => line.Names[id].Values)
+                        .ToList()
+                    : []));
         }
         return rows;
     }
+
+    /// <summary>Every stored name of the chain in every language, for multilingual search.</summary>
+    private static IReadOnlyList<string>? SearchNames(Dictionary<int, Dictionary<string, string>>? names) =>
+        names is null ? null : names.Values.SelectMany(byLang => byLang.Values).ToList();
 
     private string ChainNodeName(Dictionary<int, Dictionary<string, string>>? names, int id) =>
         names is not null && names.TryGetValue(id, out var byLang)

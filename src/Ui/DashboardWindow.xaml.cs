@@ -50,10 +50,11 @@ public partial class DashboardWindow : Window
             EvolutionScroll, EvolutionLine, CompanionSprite, CompanionSpritePlaceholder);
         _dexTab = new DexTab(
             this, sprites, engine, OpenSpeciesDetail, () => UpdateGame(_engine.View()),
-            DexModeToggle, DexHeader, DexRarityFilter, DexList,
+            DexModeToggle, DexHeader, DexSearchBox, DexSearchPlaceholder, DexSortBox,
+            DexShinyToggle, DexRarityFilter, DexList,
             CatchLogPanel, CatchHeader, CatchRarityFilter, CatchList,
-            DexEmpty, DexEmptyTitle, DexEmptyHint, DexEmptySprite, DexEmptyPlaceholder,
-            DexFooter, DexFooterStar, DexFooterInfo);
+            DexEmpty, DexEmptyTitle, DexEmptyHint, DexEmptyReset, DexEmptySprite,
+            DexEmptyPlaceholder, DexFooter, DexFooterStar, DexFooterInfo);
         LocalizeStaticText(engine.State.Language);
         HorizontalScrollSupport.Attach(YearHeatScroll);
         YearHeatScroll.SizeChanged += (_, _) => _usageHome.RerenderYear();

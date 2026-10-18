@@ -256,6 +256,35 @@
                                 <TextBlock x:Name="DexHeader" FontWeight="SemiBold" FontSize="13"
                                            TextTrimming="CharacterEllipsis" />
                             </DockPanel>
+                            <!-- Search / shiny filter / sort (macOS #329). The shiny toggle keeps a
+                                 fixed MinWidth so toggling its check state cannot resize the row
+                                 (upstream #390). -->
+                            <DockPanel Margin="0,6,0,0">
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                    <ToggleButton x:Name="DexShinyToggle" MinWidth="86" MinHeight="26"
+                                                  Padding="8,2" Margin="8,0,0,0" Cursor="Hand" />
+                                    <ComboBox x:Name="DexSortBox" MinWidth="150" Margin="8,0,0,0"
+                                              VerticalContentAlignment="Center" />
+                                </StackPanel>
+                                <Grid>
+                                    <TextBox x:Name="DexSearchBox" MinHeight="26" Padding="6,3"
+                                             VerticalContentAlignment="Center" />
+                                    <TextBlock x:Name="DexSearchPlaceholder" IsHitTestVisible="False"
+                                               Foreground="{DynamicResource TextTertiaryBrush}"
+                                               VerticalAlignment="Center" Margin="8,0,0,0">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Text, ElementName=DexSearchBox}" Value="">
+                                                        <Setter Property="Visibility" Value="Visible" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Grid>
+                            </DockPanel>
                             <StackPanel x:Name="DexRarityFilter" Orientation="Horizontal"
                                         Margin="0,6,0,0" />
                         </StackPanel>
@@ -321,6 +350,9 @@
                                            Foreground="{DynamicResource TextSecondaryBrush}"
                                            HorizontalAlignment="Center" Margin="0,4,0,0"
                                            TextWrapping="Wrap" />
+                                <Button x:Name="DexEmptyReset" MinHeight="26" Margin="0,10,0,0"
+                                        HorizontalAlignment="Center" Cursor="Hand"
+                                        Visibility="Collapsed" />
                             </StackPanel>
                         </Border>
                         <!-- macOS parity: dex footer — selected tile's rarity on the left,
