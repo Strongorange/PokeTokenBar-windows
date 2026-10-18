@@ -10,6 +10,7 @@ public static class PokemonResourceKinds
     public const string Type = "type";
     public const string Ability = "ability";
     public const string Move = "move";
+    public const string PokemonForm = "pokemon-form";
 }
 
 public sealed class PokemonLineSource
@@ -252,4 +253,12 @@ public sealed class PokemonLineSource
             return name;
         return PokemonNameLocalization.Identifier(slug);
     }
+
+    /// <summary>
+    /// Localized `pokemon-form` names keyed by the numeric form resource id — the Windows port's
+    /// embedded equivalent of macOS's live PokeAPI form-name cache.
+    /// </summary>
+    public IReadOnlyDictionary<string, string>? FormNames(int formID) =>
+        _resourceNames.TryGetValue(PokemonResourceKinds.PokemonForm, out var bySlug)
+        && bySlug.TryGetValue(formID.ToString(), out var byLang) ? byLang : null;
 }

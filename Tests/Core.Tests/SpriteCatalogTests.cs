@@ -9,15 +9,16 @@ public class SpriteCatalogTests
     [InlineData(25, true, false, null, "25-a")]
     [InlineData(25, false, true, null, "25-shs")]
     [InlineData(25, true, true, null, "25-sha")]
-    [InlineData(201, false, false, UnownForm.A, "201-s")]
-    [InlineData(201, true, true, UnownForm.B, "201-b-sha")]
-    [InlineData(201, true, false, UnownForm.Exclamation, "201-exclamation-a")]
-    [InlineData(201, false, true, UnownForm.Question, "201-question-shs")]
-    [InlineData(132, true, false, UnownForm.B, "132-a")]
+    [InlineData(201, false, false, "a", "201-s")]
+    [InlineData(201, true, true, "b", "201-b-sha")]
+    [InlineData(201, true, false, "exclamation", "201-exclamation-a")]
+    [InlineData(201, false, true, "question", "201-question-shs")]
+    [InlineData(132, true, false, "b", "132-a")]
+    [InlineData(412, true, false, "sandy", "412-sandy-a")]
     public void CacheKeyMatchesMacOSScheme(int speciesID, bool animated, bool shiny,
-        UnownForm? form, string expected)
+        string? rawForm, string expected)
     {
-        Assert.Equal(expected, SpriteCatalog.CacheKey(speciesID, animated, shiny, form));
+        Assert.Equal(expected, SpriteCatalog.CacheKey(speciesID, animated, shiny, Form(rawForm)));
     }
 
     [Theory]
@@ -29,14 +30,14 @@ public class SpriteCatalogTests
         "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/shiny/25.gif")]
     [InlineData(25, false, true, null,
         "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/25.png")]
-    [InlineData(201, true, false, UnownForm.Question,
+    [InlineData(201, true, false, "question",
         "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/201-question.gif")]
-    [InlineData(201, false, false, UnownForm.A,
+    [InlineData(201, false, false, "a",
         "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/201.png")]
     public void SpriteUrlMatchesMacOSScheme(int speciesID, bool animated, bool shiny,
-        UnownForm? form, string expected)
+        string? rawForm, string expected)
     {
-        Assert.Equal(expected, SpriteCatalog.SpriteUrl(speciesID, animated, shiny, form));
+        Assert.Equal(expected, SpriteCatalog.SpriteUrl(speciesID, animated, shiny, Form(rawForm)));
     }
 
     [Fact]
@@ -44,7 +45,7 @@ public class SpriteCatalogTests
     {
         Assert.Equal("25-a.gif", SpriteCatalog.CacheFileName(25, true, false));
         Assert.Equal("25-shs.png", SpriteCatalog.CacheFileName(25, false, true));
-        Assert.Equal("201-b-a.gif", SpriteCatalog.CacheFileName(201, true, false, UnownForm.B));
+        Assert.Equal("201-b-a.gif", SpriteCatalog.CacheFileName(201, true, false, Form("b")));
     }
 
     [Fact]
@@ -68,13 +69,35 @@ public class SpriteCatalogTests
     [Fact]
     public void UnownAssetNamesFollowPokeApiFormNaming()
     {
-        Assert.Equal("201", SpriteCatalog.AssetName(201, UnownForm.A));
-        Assert.Equal("201-b", SpriteCatalog.AssetName(201, UnownForm.B));
-        Assert.Equal("201-exclamation", SpriteCatalog.AssetName(201, UnownForm.Exclamation));
-        Assert.Equal("201-question", SpriteCatalog.AssetName(201, UnownForm.Question));
+        Assert.Equal("201", SpriteCatalog.AssetName(201, Form("a")));
+        Assert.Equal("201-b", SpriteCatalog.AssetName(201, Form("b")));
+        Assert.Equal("201-exclamation", SpriteCatalog.AssetName(201, Form("exclamation")));
+        Assert.Equal("201-question", SpriteCatalog.AssetName(201, Form("question")));
         Assert.Equal("201", SpriteCatalog.AssetName(201, null));
-        Assert.Equal("25", SpriteCatalog.AssetName(25, UnownForm.B));
+        Assert.Equal("25", SpriteCatalog.AssetName(25, Form("b")));
     }
+
+    /// <summary>
+    /// Port of the macOS form-sprite contract: variety forms use the variety PNG and the form GIF,
+    /// and cache files keep the `<id>-<form>` name either way.
+    /// </summary>
+    [Fact]
+    public void VarietyFormsUseTheVarietyPNGAndTheFormGif()
+    {
+        var sky = Form("sky");
+        Assert.Equal("492-sky-a.gif", SpriteCatalog.CacheFileName(492, true, false, sky));
+        Assert.Equal("10006", SpriteCatalog.StaticAssetName(492, sky));
+        Assert.Equal("https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/10006.png",
+            SpriteCatalog.SpriteUrl(492, false, false, sky));
+        var sandy = Form("sandy");
+        Assert.Equal("412-sandy", SpriteCatalog.StaticAssetName(412, sandy));
+        Assert.Equal("https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/412-sandy.png",
+            SpriteCatalog.SpriteUrl(412, false, false, sandy));
+        Assert.Equal("492", SpriteCatalog.StaticAssetName(492, null));
+    }
+
+    private static PokemonForm? Form(string? raw) =>
+        raw is null ? null : new PokemonForm(raw);
 }
 
 public class FloatingPetGeometryTests

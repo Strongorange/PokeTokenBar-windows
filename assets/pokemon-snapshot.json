@@ -1,7 +1,7 @@
 {
   "format": "poketokenbar.pokemon-snapshot",
   "schema": 2,
-  "generatedAt": "2026-09-27",
+  "generatedAt": "2026-10-16",
   "source": "PokeAPI v2 REST (pokeapi.co); names limited to app languages; moves filtered to black-2-white-2",
   "bases": [
     {
@@ -231937,6 +231937,656 @@
         "es": "Cabezazo Zen",
         "en": "Zen Headbutt",
         "ja": "しねんのずつき"
+      }
+    },
+    "pokemon-form": {
+      "386": {
+        "ja-hrkt": "ノーマルフォルム",
+        "ko": "노말폼",
+        "fr": "Forme Normale",
+        "de": "Normalform",
+        "es": "Forma Normal",
+        "en": "Normal Forme",
+        "ja": "ノーマルフォルム"
+      },
+      "412": {
+        "ja-hrkt": "くさきのミノ",
+        "ko": "초목도롱",
+        "fr": "Cape Plante",
+        "de": "Pflanzenumhang",
+        "es": "Tronco Planta",
+        "en": "Plant Cloak",
+        "ja": "くさきのミノ"
+      },
+      "413": {
+        "ja-hrkt": "くさきのミノ",
+        "ko": "초목도롱",
+        "fr": "Cape Plante",
+        "de": "Pflanzenumhang",
+        "es": "Tronco Planta",
+        "en": "Plant Cloak",
+        "ja": "くさきのミノ"
+      },
+      "421": {
+        "ja-hrkt": "ネガフォルム",
+        "ko": "네거폼",
+        "fr": "Temps Couvert",
+        "de": "Wolkenform",
+        "es": "Forma Encapotado",
+        "en": "Overcast Form",
+        "ja": "ネガフォルム"
+      },
+      "422": {
+        "ja-hrkt": "にしのうみ",
+        "ko": "서쪽바다",
+        "fr": "Mer Occident",
+        "de": "Westliches Meer",
+        "es": "Mar Oeste",
+        "en": "West Sea",
+        "ja": "にしのうみ"
+      },
+      "423": {
+        "ja-hrkt": "にしのうみ",
+        "ko": "서쪽바다",
+        "fr": "Mer Occident",
+        "de": "Westliches Meer",
+        "es": "Mar Oeste",
+        "en": "West Sea",
+        "ja": "にしのうみ"
+      },
+      "487": {
+        "ja-hrkt": "アナザーフォルム",
+        "ko": "어나더폼",
+        "fr": "Forme Alternative",
+        "de": "Wandelform",
+        "es": "Forma Modificada",
+        "en": "Altered Forme",
+        "ja": "アナザーフォルム"
+      },
+      "492": {
+        "ja-hrkt": "ランドフォルム",
+        "ko": "랜드폼",
+        "fr": "Forme Terrestre",
+        "de": "Landform",
+        "es": "Forma Tierra",
+        "en": "Land Forme",
+        "ja": "ランドフォルム"
+      },
+      "493": {
+        "ja-hrkt": "ノーマルタイプ",
+        "fr": "Normal",
+        "de": "Normalform",
+        "es": "Tipo Normal",
+        "en": "Normal Type",
+        "ja": "ノーマルタイプ"
+      },
+      "550": {
+        "ja-hrkt": "あかすじのすがた",
+        "ko": "적색근의 모습",
+        "fr": "Motif Rouge",
+        "de": "Rotlinige Form",
+        "es": "Forma Raya Roja",
+        "en": "Red-Striped Form",
+        "ja": "あかすじのすがた"
+      },
+      "555": {
+        "ja-hrkt": "ノーマルモード",
+        "ko": "노말모드",
+        "fr": "Mode Normal",
+        "de": "Normalmodus",
+        "es": "Modo Normal",
+        "en": "Standard Mode",
+        "ja": "ノーマルモード"
+      },
+      "585": {
+        "ja-hrkt": "はるのすがた",
+        "ko": "봄의 모습",
+        "fr": "Forme Printemps",
+        "de": "Frühlingsform",
+        "es": "Forma Primavera",
+        "en": "Spring Form",
+        "ja": "はるのすがた"
+      },
+      "586": {
+        "ja-hrkt": "はるのすがた",
+        "ko": "봄의 모습",
+        "fr": "Forme Printemps",
+        "de": "Frühlingsform",
+        "es": "Forma Primavera",
+        "en": "Spring Form",
+        "ja": "はるのすがた"
+      },
+      "641": {
+        "ja-hrkt": "けしんフォルム",
+        "ko": "화신폼",
+        "fr": "Forme Avatar",
+        "de": "Inkarnationsform",
+        "es": "Forma Avatar",
+        "en": "Incarnate Forme",
+        "ja": "けしんフォルム"
+      },
+      "642": {
+        "ja-hrkt": "けしんフォルム",
+        "ko": "화신폼",
+        "fr": "Forme Avatar",
+        "de": "Inkarnationsform",
+        "es": "Forma Avatar",
+        "en": "Incarnate Forme",
+        "ja": "けしんフォルム"
+      },
+      "645": {
+        "ja-hrkt": "けしんフォルム",
+        "ko": "화신폼",
+        "fr": "Forme Avatar",
+        "de": "Inkarnationsform",
+        "es": "Forma Avatar",
+        "en": "Incarnate Forme",
+        "ja": "けしんフォルム"
+      },
+      "647": {
+        "ja-hrkt": "いつものすがた",
+        "ko": "평상시 모습",
+        "fr": "Aspect Normal",
+        "de": "Standardform",
+        "es": "Forma Habitual",
+        "en": "Ordinary Form",
+        "ja": "いつものすがた"
+      },
+      "648": {
+        "ja-hrkt": "ボイスフォルム",
+        "ko": "보이스폼",
+        "fr": "Forme Chant",
+        "de": "Gesangsform",
+        "es": "Forma Lírica",
+        "en": "Aria Forme",
+        "ja": "ボイスフォルム"
+      },
+      "10028": {
+        "ja-hrkt": "たいようのすがた",
+        "ko": "태양의 모습",
+        "fr": "Forme Solaire",
+        "de": "Sonnenform",
+        "es": "Forma Sol",
+        "en": "Sunny Form",
+        "ja": "たいようのすがた"
+      },
+      "10029": {
+        "ja-hrkt": "あまみずのすがた",
+        "ko": "빗방울의 모습",
+        "fr": "Forme Eau de Pluie",
+        "de": "Regenform",
+        "es": "Forma Lluvia",
+        "en": "Rainy Form",
+        "ja": "あまみずのすがた"
+      },
+      "10030": {
+        "ja-hrkt": "ゆきぐものすがた",
+        "ko": "설운의 모습",
+        "fr": "Forme Blizzard",
+        "de": "Schneeform",
+        "es": "Forma Nieve",
+        "en": "Snowy Form",
+        "ja": "ゆきぐものすがた"
+      },
+      "10031": {
+        "ja-hrkt": "アタックフォルム",
+        "ko": "어택폼",
+        "fr": "Forme Attaque",
+        "de": "Angriffsform",
+        "es": "Forma Ataque",
+        "en": "Attack Forme",
+        "ja": "アタックフォルム"
+      },
+      "10032": {
+        "ja-hrkt": "ディフェンスフォルム",
+        "ko": "디펜스폼",
+        "fr": "Forme Défense",
+        "de": "Verteidigungsform",
+        "es": "Forma Defensa",
+        "en": "Defense Forme",
+        "ja": "ディフェンスフォルム"
+      },
+      "10033": {
+        "ja-hrkt": "スピードフォルム",
+        "ko": "스피드폼",
+        "fr": "Forme Vitesse",
+        "de": "Initiativeform",
+        "es": "Forma Velocidad",
+        "en": "Speed Forme",
+        "ja": "スピードフォルム"
+      },
+      "10034": {
+        "ja-hrkt": "すなちのミノ",
+        "ko": "모래땅도롱",
+        "fr": "Cape Sable",
+        "de": "Sandumhang",
+        "es": "Tronco Arena",
+        "en": "Sandy Cloak",
+        "ja": "すなちのミノ"
+      },
+      "10035": {
+        "ja-hrkt": "ゴミのミノ",
+        "ko": "슈레도롱",
+        "fr": "Cape Déchet",
+        "de": "Lumpenumhang",
+        "es": "Tronco Basura",
+        "en": "Trash Cloak",
+        "ja": "ゴミのミノ"
+      },
+      "10036": {
+        "ja-hrkt": "すなちのミノ",
+        "ko": "모래땅도롱",
+        "fr": "Cape Sable",
+        "de": "Sandumhang",
+        "es": "Tronco Arena",
+        "en": "Sandy Cloak",
+        "ja": "すなちのミノ"
+      },
+      "10037": {
+        "ja-hrkt": "ゴミのミノ",
+        "ko": "슈레도롱",
+        "fr": "Cape Déchet",
+        "de": "Lumpenumhang",
+        "es": "Tronco Basura",
+        "en": "Trash Cloak",
+        "ja": "ゴミのミノ"
+      },
+      "10038": {
+        "ja-hrkt": "ポジフォルム",
+        "ko": "포지폼",
+        "fr": "Temps Ensoleillé",
+        "de": "Sonnenform",
+        "es": "Forma Soleado",
+        "en": "Sunshine Form",
+        "ja": "ポジフォルム"
+      },
+      "10039": {
+        "ja-hrkt": "ひがしのうみ",
+        "ko": "동쪽바다",
+        "fr": "Mer Orient",
+        "de": "Östliches Meer",
+        "es": "Mar Este",
+        "en": "East Sea",
+        "ja": "ひがしのうみ"
+      },
+      "10040": {
+        "ja-hrkt": "ひがしのうみ",
+        "ko": "동쪽바다",
+        "fr": "Mer Orient",
+        "de": "Östliches Meer",
+        "es": "Mar Este",
+        "en": "East Sea",
+        "ja": "ひがしのうみ"
+      },
+      "10041": {
+        "ja-hrkt": "むしタイプ",
+        "fr": "Insecte",
+        "de": "Käfer",
+        "es": "Tipo Bicho",
+        "en": "Bug Type",
+        "ja": "むしタイプ"
+      },
+      "10042": {
+        "ja-hrkt": "あくタイプ",
+        "fr": "Ténèbres",
+        "de": "Unlicht",
+        "es": "Tipo Siniestro",
+        "en": "Dark Type",
+        "ja": "あくタイプ"
+      },
+      "10043": {
+        "ja-hrkt": "ドラゴンタイプ",
+        "fr": "Dragon",
+        "de": "Drache",
+        "es": "Tipo Dragón",
+        "en": "Dragon Type",
+        "ja": "ドラゴンタイプ"
+      },
+      "10044": {
+        "ja-hrkt": "でんきタイプ",
+        "fr": "Électrik",
+        "de": "Elektro",
+        "es": "Tipo Eléctrico",
+        "en": "Electric Type",
+        "ja": "でんきタイプ"
+      },
+      "10045": {
+        "ja-hrkt": "かくとうタイプ",
+        "fr": "Combat",
+        "de": "Kampf",
+        "es": "Tipo Lucha",
+        "en": "Fighting Type",
+        "ja": "かくとうタイプ"
+      },
+      "10046": {
+        "ja-hrkt": "ほのおタイプ",
+        "fr": "Feu",
+        "de": "Feuer",
+        "es": "Tipo Fuego",
+        "en": "Fire Type",
+        "ja": "ほのおタイプ"
+      },
+      "10047": {
+        "ja-hrkt": "ひこうタイプ",
+        "fr": "Vol",
+        "de": "Flug",
+        "es": "Tipo Volador",
+        "en": "Flying Type",
+        "ja": "ひこうタイプ"
+      },
+      "10048": {
+        "ja-hrkt": "ゴーストタイプ",
+        "fr": "Spectre",
+        "de": "Geist",
+        "es": "Tipo Fantasma",
+        "en": "Ghost Type",
+        "ja": "ゴーストタイプ"
+      },
+      "10049": {
+        "ja-hrkt": "くさタイプ",
+        "fr": "Plante",
+        "de": "Pflanze",
+        "es": "Tipo Planta",
+        "en": "Grass Type",
+        "ja": "くさタイプ"
+      },
+      "10050": {
+        "ja-hrkt": "じめんタイプ",
+        "fr": "Sol",
+        "de": "Boden",
+        "es": "Tipo Tierra",
+        "en": "Ground Type",
+        "ja": "じめんタイプ"
+      },
+      "10051": {
+        "ja-hrkt": "こおりタイプ",
+        "fr": "Glace",
+        "de": "Eis",
+        "es": "Tipo Hielo",
+        "en": "Ice Type",
+        "ja": "こおりタイプ"
+      },
+      "10052": {
+        "ja-hrkt": "どくタイプ",
+        "fr": "Poison",
+        "de": "Gift",
+        "es": "Tipo Veneno",
+        "en": "Poison Type",
+        "ja": "どくタイプ"
+      },
+      "10053": {
+        "ja-hrkt": "エスパータイプ",
+        "fr": "Psy",
+        "de": "Psycho",
+        "es": "Tipo Psíquico",
+        "en": "Psychic Type",
+        "ja": "エスパータイプ"
+      },
+      "10054": {
+        "ja-hrkt": "いわタイプ",
+        "fr": "Roche",
+        "de": "Gestein",
+        "es": "Tipo Roca",
+        "en": "Rock Type",
+        "ja": "いわタイプ"
+      },
+      "10055": {
+        "ja-hrkt": "はがねタイプ",
+        "fr": "Acier",
+        "de": "Stahl",
+        "es": "Tipo Acero",
+        "en": "Steel Type",
+        "ja": "はがねタイプ"
+      },
+      "10056": {
+        "ja-hrkt": "みずタイプ",
+        "fr": "Eau",
+        "de": "Wasser",
+        "es": "Tipo Agua",
+        "en": "Water Type",
+        "ja": "みずタイプ"
+      },
+      "10058": {
+        "ja-hrkt": "ヒートロトム",
+        "ko": "히트로토무",
+        "fr": "Motisma Chaleur",
+        "de": "Hitze-Rotom",
+        "es": "Rotom Calor",
+        "en": "Heat Rotom",
+        "ja": "ヒートロトム"
+      },
+      "10059": {
+        "ja-hrkt": "ウォッシュロトム",
+        "ko": "워시로토무",
+        "fr": "Motisma Lavage",
+        "de": "Wasch-Rotom",
+        "es": "Rotom Lavado",
+        "en": "Wash Rotom",
+        "ja": "ウォッシュロトム"
+      },
+      "10060": {
+        "ja-hrkt": "フロストロトム",
+        "ko": "프로스트로토무",
+        "fr": "Motisma Froid",
+        "de": "Frost-Rotom",
+        "es": "Rotom Frío",
+        "en": "Frost Rotom",
+        "ja": "フロストロトム"
+      },
+      "10061": {
+        "ja-hrkt": "スピンロトム",
+        "ko": "스핀로토무",
+        "fr": "Motisma Hélice",
+        "de": "Wirbel-Rotom",
+        "es": "Rotom Ventilador",
+        "en": "Fan Rotom",
+        "ja": "スピンロトム"
+      },
+      "10062": {
+        "ja-hrkt": "カットロトム",
+        "ko": "커트로토무",
+        "fr": "Motisma Tonte",
+        "de": "Schneid-Rotom",
+        "es": "Rotom Corte",
+        "en": "Mow Rotom",
+        "ja": "カットロトム"
+      },
+      "10063": {
+        "ja-hrkt": "オリジンフォルム",
+        "ko": "오리진폼",
+        "fr": "Forme Originelle",
+        "de": "Urform",
+        "es": "Forma Origen",
+        "en": "Origin Forme",
+        "ja": "オリジンフォルム"
+      },
+      "10064": {
+        "ja-hrkt": "スカイフォルム",
+        "ko": "스카이폼",
+        "fr": "Forme Céleste",
+        "de": "Zenitform",
+        "es": "Forma Cielo",
+        "en": "Sky Forme",
+        "ja": "スカイフォルム"
+      },
+      "10066": {
+        "ja-hrkt": "あおすじのすがた",
+        "ko": "청색근의 모습",
+        "fr": "Motif Bleu",
+        "de": "Blaulinige Form",
+        "es": "Forma Raya Azul",
+        "en": "Blue-Striped Form",
+        "ja": "あおすじのすがた"
+      },
+      "10067": {
+        "ja-hrkt": "ダルマモード",
+        "ko": "달마모드",
+        "fr": "Mode Transe",
+        "de": "Trance-Modus",
+        "es": "Modo Daruma",
+        "en": "Zen Mode",
+        "ja": "ダルマモード"
+      },
+      "10068": {
+        "ja-hrkt": "なつのすがた",
+        "ko": "여름의 모습",
+        "fr": "Forme Été",
+        "de": "Sommerform",
+        "es": "Forma Verano",
+        "en": "Summer Form",
+        "ja": "なつのすがた"
+      },
+      "10069": {
+        "ja-hrkt": "あきのすがた",
+        "ko": "가을의 모습",
+        "fr": "Forme Automne",
+        "de": "Herbstform",
+        "es": "Forma Otoño",
+        "en": "Autumn Form",
+        "ja": "あきのすがた"
+      },
+      "10070": {
+        "ja-hrkt": "ふゆのすがた",
+        "ko": "겨울의 모습",
+        "fr": "Forme Hiver",
+        "de": "Winterform",
+        "es": "Forma Invierno",
+        "en": "Winter Form",
+        "ja": "ふゆのすがた"
+      },
+      "10071": {
+        "ja-hrkt": "なつのすがた",
+        "ko": "여름의 모습",
+        "fr": "Forme Été",
+        "de": "Sommerform",
+        "es": "Forma Verano",
+        "en": "Summer Form",
+        "ja": "なつのすがた"
+      },
+      "10072": {
+        "ja-hrkt": "あきのすがた",
+        "ko": "가을의 모습",
+        "fr": "Forme Automne",
+        "de": "Herbstform",
+        "es": "Forma Otoño",
+        "en": "Autumn Form",
+        "ja": "あきのすがた"
+      },
+      "10073": {
+        "ja-hrkt": "ふゆのすがた",
+        "ko": "겨울의 모습",
+        "fr": "Forme Hiver",
+        "de": "Winterform",
+        "es": "Forma Invierno",
+        "en": "Winter Form",
+        "ja": "ふゆのすがた"
+      },
+      "10074": {
+        "ja-hrkt": "ステップフォルム",
+        "ko": "스텝폼",
+        "fr": "Forme Danse",
+        "de": "Tanzform",
+        "es": "Forma Danza",
+        "en": "Pirouette Forme",
+        "ja": "ステップフォルム"
+      },
+      "10075": {
+        "ja-hrkt": "アクアカセット",
+        "ko": "아쿠아카세트",
+        "fr": "Module Aqua",
+        "de": "Aquamodul",
+        "es": "HidroROM",
+        "en": "Douse Drive",
+        "ja": "アクアカセット"
+      },
+      "10076": {
+        "ja-hrkt": "イナズマカセット",
+        "ko": "번개카세트",
+        "fr": "Module Choc",
+        "de": "Blitzmodul",
+        "es": "FulgoROM",
+        "en": "Shock Drive",
+        "ja": "イナズマカセット"
+      },
+      "10077": {
+        "ja-hrkt": "ブレイズカセット",
+        "ko": "블레이즈카세트",
+        "fr": "Module Pyro",
+        "de": "Flammenmodul",
+        "es": "PiroROM",
+        "en": "Burn Drive",
+        "ja": "ブレイズカセット"
+      },
+      "10078": {
+        "ja-hrkt": "フリーズカセット",
+        "ko": "프리즈카세트",
+        "fr": "Module Cryo",
+        "de": "Gefriermodul",
+        "es": "CrioROM",
+        "en": "Chill Drive",
+        "ja": "フリーズカセット"
+      },
+      "10079": {
+        "ja-hrkt": "れいじゅうフォルム",
+        "ko": "영물폼",
+        "fr": "Forme Totémique",
+        "de": "Tiergeistform",
+        "es": "Forma Tótem",
+        "en": "Therian Forme",
+        "ja": "れいじゅうフォルム"
+      },
+      "10080": {
+        "ja-hrkt": "れいじゅうフォルム",
+        "ko": "영물폼",
+        "fr": "Forme Totémique",
+        "de": "Tiergeistform",
+        "es": "Forma Tótem",
+        "en": "Therian Forme",
+        "ja": "れいじゅうフォルム"
+      },
+      "10081": {
+        "ja-hrkt": "れいじゅうフォルム",
+        "ko": "영물폼",
+        "fr": "Forme Totémique",
+        "de": "Tiergeistform",
+        "es": "Forma Tótem",
+        "en": "Therian Forme",
+        "ja": "れいじゅうフォルム"
+      },
+      "10082": {
+        "ja-hrkt": "ブラックキュレム",
+        "ko": "블랙큐레무",
+        "fr": "Kyurem Noir",
+        "de": "Schwarzes Kyurem",
+        "es": "Kyurem Negro",
+        "en": "Black Kyurem",
+        "ja": "ブラックキュレム"
+      },
+      "10083": {
+        "ja-hrkt": "ホワイトキュレム",
+        "ko": "화이트큐레무",
+        "fr": "Kyurem Blanc",
+        "de": "Weißes Kyurem",
+        "es": "Kyurem Blanco",
+        "en": "White Kyurem",
+        "ja": "ホワイトキュレム"
+      },
+      "10084": {
+        "ja-hrkt": "かくごのすがた",
+        "ko": "각오의 모습",
+        "fr": "Aspect Décidé",
+        "de": "Resolutform",
+        "es": "Forma Brío",
+        "en": "Resolute Form",
+        "ja": "かくごのすがた"
+      },
+      "10085": {
+        "ja-hrkt": "フェアリータイプ",
+        "fr": "Fée",
+        "de": "Fee",
+        "es": "Tipo Hada",
+        "en": "Fairy Type",
+        "ja": "フェアリータイプ"
       }
     }
   }

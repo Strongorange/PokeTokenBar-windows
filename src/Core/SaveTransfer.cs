@@ -137,7 +137,7 @@ public static class SaveTransfer
             s.EggTier = null;
             s.PendingHatchID = null;
         }
-        s.PendingUnownForm = UnownForms.Resolved(s.PendingHatchID ?? 0, s.PendingUnownForm);
+        s.PendingForm = PokemonForms.ResolvedLine(s.PendingHatchID ?? 0, s.PendingForm);
         if (s.EggTier?.CaptureRateCeiling() is null) s.EggTier = null;
         if (s.Active is { } active)
         {

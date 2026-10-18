@@ -15,7 +15,10 @@ the Windows port bundles as an embedded resource:
                  every move learnable in the "black-2-white-2" version group,
                  encoded as [slug, method, level, method, level, ...] arrays
 - resourceNames: localized display names for every referenced type/ability/move
-                 slug in the app-supported language codes
+                  slug in the app-supported language codes, plus `pokemon-form`
+                  names for the collectible form catalog (see src/Core/PokemonForms.cs;
+                  macOS fetches these live with a 30-day cache, the Windows port
+                  embeds them here)
 
 Requires network access to pokeapi.co. Re-runnable; output is sorted so runs are
 byte-stable for identical upstream data.
@@ -328,6 +331,66 @@ foreach ($entry in $resourceKinds) {
     }
     $resourceNamesNode[$entry.kind] = $kindNode
 }
+
+# Collectible form catalog — numeric pokemon-form resource ids, mirroring the catalog in
+# src/Core/PokemonForms.cs (keep the two in sync). Unown shows its letter and the unnamed
+# usual looks (Castform, Rotom, Kyurem, Genesect defaults) use the localized "Normal Form",
+# so those ids are never looked up and are not fetched.
+$formIdsBySpecies = [ordered]@{
+    351 = @(10028, 10029, 10030)
+    386 = @(386, 10031, 10032, 10033)
+    412 = @(412, 10034, 10035)
+    413 = @(413, 10036, 10037)
+    421 = @(421, 10038)
+    422 = @(422, 10039)
+    423 = @(423, 10040)
+    479 = @(10058, 10059, 10060, 10061, 10062)
+    487 = @(487, 10063)
+    492 = @(492, 10064)
+    493 = @(493, 10045, 10047, 10052, 10050, 10054, 10041, 10048, 10055, 10046, 10056, 10049,
+            10044, 10053, 10051, 10043, 10042, 10085)
+    550 = @(550, 10066)
+    555 = @(555, 10067)
+    585 = @(585, 10068, 10069, 10070)
+    586 = @(586, 10071, 10072, 10073)
+    641 = @(641, 10079)
+    642 = @(642, 10080)
+    645 = @(645, 10081)
+    646 = @(10082, 10083)
+    647 = @(647, 10084)
+    648 = @(648, 10074)
+    649 = @(10075, 10076, 10077, 10078)
+}
+$formIds = @($formIdsBySpecies.Values | ForEach-Object { $_ } | Sort-Object -Unique)
+Write-Host "Fetching $($formIds.Count) pokemon-form names..."
+$formRaw = $formIds | ForEach-Object -Parallel {
+    $uri = "https://pokeapi.co/api/v2/pokemon-form/$_"
+    for ($try = 1; $try -le 4; $try++) {
+        try {
+            $f = Invoke-RestMethod -Uri $uri -TimeoutSec 30
+            [pscustomobject]@{ id = $_; formNames = @($f.form_names) }
+            break
+        }
+        catch {
+            if ($try -eq 4) { throw }
+            Start-Sleep -Milliseconds (400 * $try)
+        }
+    }
+} -ThrottleLimit $ThrottleLimit
+
+$formNamesNode = [System.Text.Json.Nodes.JsonObject]::new()
+foreach ($f in ($formRaw | Sort-Object id)) {
+    $byLang = [System.Text.Json.Nodes.JsonObject]::new()
+    foreach ($n in $f.formNames) {
+        $code = ([string]$n.language.name).Trim().ToLowerInvariant()
+        if ($langs -contains $code -and $null -eq $byLang[$code]) {
+            $name = ([string]$n.name).Trim()
+            if ($name.Length -gt 0) { $byLang[$code] = $name }
+        }
+    }
+    $formNamesNode[[string]$f.id] = $byLang
+}
+$resourceNamesNode['pokemon-form'] = $formNamesNode
 
 $root = [System.Text.Json.Nodes.JsonObject]::new()
 $root['format'] = 'poketokenbar.pokemon-snapshot'

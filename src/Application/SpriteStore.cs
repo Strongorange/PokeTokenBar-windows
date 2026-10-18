@@ -51,10 +51,10 @@ public sealed class SpriteStore
         }
     }
 
-    public byte[]? CachedData(int speciesID, bool animated, bool shiny = false, UnownForm? unownForm = null)
+    public byte[]? CachedData(int speciesID, bool animated, bool shiny = false, PokemonForm? form = null)
     {
         if (animated && !PokemonAssets.HasAnimatedSprite(speciesID)) return null;
-        var key = SpriteCatalog.CacheKey(speciesID, animated, shiny, unownForm);
+        var key = SpriteCatalog.CacheKey(speciesID, animated, shiny, form);
         lock (_gate)
         {
             if (_mem.TryGetValue(key, out var hit))
@@ -68,10 +68,10 @@ public sealed class SpriteStore
         return data;
     }
 
-    public byte[]? Data(int speciesID, bool animated, bool shiny = false, UnownForm? unownForm = null)
+    public byte[]? Data(int speciesID, bool animated, bool shiny = false, PokemonForm? form = null)
     {
         if (animated && !PokemonAssets.HasAnimatedSprite(speciesID)) return null;
-        var key = SpriteCatalog.CacheKey(speciesID, animated, shiny, unownForm);
+        var key = SpriteCatalog.CacheKey(speciesID, animated, shiny, form);
         lock (_gate)
         {
             if (_mem.TryGetValue(key, out var hit))
@@ -86,28 +86,28 @@ public sealed class SpriteStore
             Remember(key, data);
             return data;
         }
-        var fetched = _fetch(new Uri(SpriteCatalog.SpriteUrl(speciesID, animated, shiny, unownForm)));
+        var fetched = _fetch(new Uri(SpriteCatalog.SpriteUrl(speciesID, animated, shiny, form)));
         if (fetched is null || fetched.Length == 0) return null;
         WriteDisk(key, SpriteCatalog.FileExtension(animated), fetched);
         Remember(key, fetched);
         return fetched;
     }
 
-    public SpriteBytes? Subject(int speciesID, bool animated, bool shiny, UnownForm? unownForm = null)
+    public SpriteBytes? Subject(int speciesID, bool animated, bool shiny, PokemonForm? form = null)
     {
         foreach (var variant in Variants(animated, shiny))
         {
-            var data = Data(speciesID, variant.Animated, variant.Shiny, unownForm);
+            var data = Data(speciesID, variant.Animated, variant.Shiny, form);
             if (data is not null) return new SpriteBytes(data, variant.Animated);
         }
         return null;
     }
 
-    public SpriteBytes? CachedSubject(int speciesID, bool animated, bool shiny, UnownForm? unownForm = null)
+    public SpriteBytes? CachedSubject(int speciesID, bool animated, bool shiny, PokemonForm? form = null)
     {
         foreach (var variant in Variants(animated, shiny))
         {
-            var data = CachedData(speciesID, variant.Animated, variant.Shiny, unownForm);
+            var data = CachedData(speciesID, variant.Animated, variant.Shiny, form);
             if (data is not null) return new SpriteBytes(data, variant.Animated);
         }
         return null;

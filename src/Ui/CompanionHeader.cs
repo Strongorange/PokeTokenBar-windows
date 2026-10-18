@@ -102,7 +102,7 @@ internal sealed class CompanionHeader
         RenderEvolutionLine(view);
         if (view.HasActive)
             _companionSprite.Update(_sprites, view.ActiveSpeciesID, true, view.IsShiny,
-                view.ActiveUnownForm, "❔");
+                view.ActiveForm, "❔");
         else
             _companionSprite.UpdateEgg(_sprites, "🥚");
 
@@ -164,7 +164,7 @@ internal sealed class CompanionHeader
             slot.Children.Add(placeholder);
             slot.Children.Add(image);
             new SpriteSlot(image, placeholder).Update(_sprites, item.Content.SpeciesID,
-                false, view.IsShiny, view.ActiveUnownForm, "❔");
+                false, view.IsShiny, view.ActiveForm, "❔");
         }
         cell.Children.Add(slot);
         cell.Children.Add(new System.Windows.Shapes.Ellipse

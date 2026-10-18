@@ -21,7 +21,7 @@ public partial class FloatingPetWindow : Window
     private readonly DispatcherTimer _animationCheck;
     private MemoryStream? _gifStream;
     private int _renderVersion;
-    private (bool Egg, int Species, bool Shiny, UnownForm? Form)? _lastSubject;
+    private (bool Egg, int Species, bool Shiny, PokemonForm? Form)? _lastSubject;
     private Point _downScreen;
     private Point _downOrigin;
     private bool _pressed;
@@ -76,7 +76,7 @@ public partial class FloatingPetWindow : Window
         var representativeID = view.RepresentativeSpeciesID;
         var speciesID = representativeID ?? view.ActiveSpeciesID;
         var shiny = representativeID is not null ? view.RepresentativeIsShiny : view.IsShiny;
-        var form = representativeID is not null ? view.RepresentativeUnownForm : view.ActiveUnownForm;
+        var form = representativeID is not null ? view.RepresentativeForm : view.ActiveForm;
         var egg = view.IsEgg && representativeID is null;
         var subject = (egg, speciesID, shiny, form);
         if (_lastSubject == subject) return;
@@ -107,7 +107,7 @@ public partial class FloatingPetWindow : Window
         });
     }
 
-    private void UpgradeToAnimated(int version, int speciesID, bool shiny, UnownForm? form)
+    private void UpgradeToAnimated(int version, int speciesID, bool shiny, PokemonForm? form)
     {
         Task.Run(() =>
         {

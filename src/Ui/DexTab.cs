@@ -141,7 +141,6 @@ internal sealed class DexTab
             _visibleRows = CompanionPresentation.VisibleDexRows(view.DexRows, _dexRarityFilter);
             foreach (var row in _visibleRows)
                 _list.Items.Add(CreateDexTile(row, lang,
-                    row.SpeciesID == UnownForms.SpeciesID ? view.UnownForms.Count : 0,
                     row.SpeciesID == view.RepresentativeSpeciesID));
             RestoreSelection();
             _footer.Visibility = Visibility.Visible;
@@ -275,14 +274,13 @@ internal sealed class DexTab
         return capsule;
     }
 
-    private UIElement CreateDexTile(CompanionDexRow row, AppLanguage lang, int unownCollected,
-        bool isRepresentative)
+    private UIElement CreateDexTile(CompanionDexRow row, AppLanguage lang, bool isRepresentative)
     {
         var tile = new Grid
         {
             Width = 76,
             Margin = new Thickness(1),
-            ToolTip = GameTabPresentation.TileTooltip(row, unownCollected, isRepresentative, lang),
+            ToolTip = GameTabPresentation.TileTooltip(row, isRepresentative, lang),
         };
         for (var i = 0; i < 3; i++) tile.RowDefinitions.Add(new RowDefinition());
 
@@ -343,7 +341,7 @@ internal sealed class DexTab
 
         var name = new TextBlock
         {
-            Text = GameTabPresentation.TileName(row, unownCollected),
+            Text = GameTabPresentation.TileName(row),
             FontSize = 11,
             TextAlignment = TextAlignment.Center,
             TextTrimming = TextTrimming.CharacterEllipsis,
@@ -361,13 +359,13 @@ internal sealed class DexTab
         };
     }
 
-    /// Port of the macOS tile context menu: non-Unown tiles toggle the
-    /// representative directly; Unown needs a form choice, so it jumps to the
+    /// Port of the macOS tile context menu: formless tiles toggle the
+    /// representative directly; form species need a form choice, so they jump to the
     /// detail window (CompanionView.DexSpeciesCell.contextMenu).
     private ContextMenu BuildTileMenu(CompanionDexRow row, AppLanguage lang, bool isRepresentative)
     {
         var menu = new ContextMenu();
-        if (row.SpeciesID == UnownForms.SpeciesID)
+        if (PokemonForms.HasForms(row.SpeciesID))
         {
             var chooseForm = new MenuItem { Header = "_" + DashboardText.UnownChooseForm(lang) };
             chooseForm.Click += (_, _) => _openDetail(row.SpeciesID);
@@ -525,8 +523,8 @@ internal sealed class DexTab
             TextTrimming = TextTrimming.CharacterEllipsis,
             Margin = new Thickness(0, 2, 0, 0),
         });
-        var form = node.SpeciesID == UnownForms.SpeciesID ? row.UnownForm : null;
-        new SpriteSlot(image, placeholder).Update(_sprites, node.SpeciesID, false, row.IsShiny, form, "❔");
+        new SpriteSlot(image, placeholder).Update(_sprites, node.SpeciesID, false, row.IsShiny,
+            PokemonForms.Resolved(node.SpeciesID, row.Form), "❔");
         return cell;
     }
 

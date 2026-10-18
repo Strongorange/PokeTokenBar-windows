@@ -130,6 +130,16 @@ public static class DashboardText
             $"Formas Unown {count}/28", $"Formes Zarbi {count}/28", $"Formas Unown {count}/28",
             $"Icognito-Formen {count}/28");
 
+    public static string FormsCollected(AppLanguage lang, int owned, int total) =>
+        T(lang, $"모습 {owned}/{total}", $"Forms {owned}/{total}", $"すがた {owned}/{total}",
+            $"Formas {owned}/{total}", $"Formes {owned}/{total}", $"Formas {owned}/{total}",
+            $"Formen {owned}/{total}");
+
+    /// <summary>Castform, Rotom, Kyurem and Genesect have no official name for their usual look.</summary>
+    public static string NormalFormLabel(AppLanguage lang) =>
+        T(lang, "일반 모양", "Normal Form", "ふつうのすがた", "Forma normal", "Forme normale",
+            "Forma normal", "Normale Form");
+
     public static string UnownNotCollected(AppLanguage lang) =>
         T(lang, "미수집", "Not collected", "未収集", "Sin conseguir", "Non collectionnée",
             "Não coletada", "Noch nicht gesammelt");

@@ -14,7 +14,8 @@ public class MonState
     public int TotalForms { get; set; }
     public bool IsShiny { get; set; }
     public PokemonNature? Nature { get; set; }
-    public UnownForm? UnownForm { get; set; }
+    /// <summary>Chosen at hatch for the whole line and resolved per species (PokemonForms.Resolved).</summary>
+    public PokemonForm? Form { get; set; }
     public PokemonProfile? Profile { get; set; }
     public bool HasGrowthBoost { get; set; }
     public int? DittoDisguise { get; set; }
@@ -33,7 +34,7 @@ public class MonState
     public MonState(int baseID, List<int> pathIDs, List<int>? plannedPathIDs, int stageIndex, long usedAtStage,
         Rarity rarity, int totalForms, bool isShiny = false, PokemonNature? nature = null,
         PokemonProfile? profile = null, bool hasGrowthBoost = false,
-        int? dittoDisguise = null, bool dittoRevealed = false, UnownForm? unownForm = null)
+        int? dittoDisguise = null, bool dittoRevealed = false, PokemonForm? form = null)
     {
         BaseID = baseID;
         PathIDs = pathIDs;
@@ -48,7 +49,7 @@ public class MonState
         HasGrowthBoost = hasGrowthBoost;
         DittoDisguise = dittoDisguise;
         DittoRevealed = dittoRevealed;
-        UnownForm = UnownForms.Resolved(baseID, unownForm);
+        Form = PokemonForms.ResolvedLine(baseID, form);
     }
 }
 
@@ -64,7 +65,7 @@ public class DexEntry
     public DateTimeOffset? CaughtAt { get; set; }
     public bool IsShiny { get; set; }
     public PokemonNature? Nature { get; set; }
-    public UnownForm? UnownForm { get; set; }
+    public PokemonForm? Form { get; set; }
     public PokemonProfile? Profile { get; set; }
     public Dictionary<int, Dictionary<string, string>>? Names { get; set; }
     public int? NamesVersion { get; set; }
@@ -81,7 +82,7 @@ public class DexEntry
     public DexEntry(int baseID, int finalID, List<int> chainOrder, Rarity rarity,
         DateTimeOffset? caughtAt, bool isShiny = false, PokemonNature? nature = null,
         PokemonProfile? profile = null, Dictionary<int, Dictionary<string, string>>? names = null,
-        DateTimeOffset? releasedAt = null, UnownForm? unownForm = null,
+        DateTimeOffset? releasedAt = null, PokemonForm? form = null,
         string? id = null)
     {
         ID = id ?? Guid.NewGuid().ToString();
@@ -98,7 +99,7 @@ public class DexEntry
             ? CurrentNamesVersion
             : null;
         ReleasedAt = releasedAt;
-        UnownForm = UnownForms.Resolved(baseID, unownForm);
+        Form = PokemonForms.ResolvedLine(baseID, form);
     }
 }
 
@@ -110,12 +111,12 @@ public class CompanionState
     public long EggUsage { get; set; }
     public Rarity? EggTier { get; set; }
     public int? PendingHatchID { get; set; }
-    public UnownForm? PendingUnownForm { get; set; }
+    public PokemonForm? PendingForm { get; set; }
     public Dictionary<string, long>? ClaimedTodayTokensByProvider { get; set; }
     public string LastDate { get; set; } = "";
     public MonState? Active { get; set; }
     public int? RepresentativeSpeciesID { get; set; }
-    public UnownForm? RepresentativeUnownForm { get; set; }
+    public PokemonForm? RepresentativeForm { get; set; }
     public List<DexEntry> Dex { get; set; } = [];
     public HashSet<string> CollectedFinals { get; set; } = [];
     public AppLanguage Language { get; set; } = AppLanguages.SystemDefault();
@@ -123,47 +124,63 @@ public class CompanionState
     public Dictionary<string, int> CandyGrantTier { get; set; } = [];
     public bool CandyFeatureSeeded { get; set; }
 
-    public bool OwnsSpecies(int speciesID, UnownForm? unownForm = null)
+    public bool OwnsSpecies(int speciesID, PokemonForm? form = null)
     {
-        var form = UnownForms.Resolved(speciesID, unownForm);
+        var resolved = PokemonForms.Resolved(speciesID, form);
         if (Dex.Any(entry => entry.ChainOrder.Contains(speciesID)
-                && UnownForms.Resolved(speciesID, entry.UnownForm) == form))
+                && PokemonForms.Resolved(speciesID, entry.Form) == resolved))
             return true;
         if (Active is null) return false;
         return Active.PathIDs.Take(Active.StageIndex + 1).Contains(speciesID)
-               && UnownForms.Resolved(speciesID, Active.UnownForm) == form;
+               && PokemonForms.Resolved(speciesID, Active.Form) == resolved;
     }
 
     public bool HasCollectedFinal(int baseID) =>
         CollectedFinals.Any(key => key.StartsWith($"{baseID}:", StringComparison.Ordinal));
 
-    public HashSet<UnownForm> CollectedUnownForms()
+    /// <summary>Match Pokédex ownership, including the active Pokémon and released catch records.</summary>
+    public HashSet<PokemonForm> CollectedForms(int speciesID)
     {
         var forms = Dex
-            .Where(entry => entry.ChainOrder.Contains(UnownForms.SpeciesID))
-            .Select(entry => UnownForms.Resolved(UnownForms.SpeciesID, entry.UnownForm))
+            .Where(entry => entry.ChainOrder.Contains(speciesID))
+            .Select(entry => PokemonForms.Resolved(speciesID, entry.Form))
             .Where(f => f is not null)
             .Select(f => f!.Value)
             .ToHashSet();
         if (Active is not null
-            && Active.PathIDs.Take(Active.StageIndex + 1).Contains(UnownForms.SpeciesID)
-            && UnownForms.Resolved(UnownForms.SpeciesID, Active.UnownForm) is { } activeForm)
+            && Active.PathIDs.Take(Active.StageIndex + 1).Contains(speciesID)
+            && PokemonForms.Resolved(speciesID, Active.Form) is { } activeForm)
         {
             forms.Add(activeForm);
         }
         return forms;
     }
 
-    public bool OwnsShinySpecies(int speciesID, UnownForm? unownForm = null)
+    /// <summary>
+    /// Hatch roll weights: a form counts as collected once every species of the line that shows it
+    /// is owned in it, so a Sandy Burmy that became Mothim still leaves Sandy Wormadam to find.
+    /// </summary>
+    public HashSet<PokemonForm> CollectedLineForms(int baseID)
     {
-        var form = UnownForms.Resolved(speciesID, unownForm);
+        var owned = PokemonForms.FormSpecies(baseID)
+            .Select(speciesID => (speciesID, forms: CollectedForms(speciesID)))
+            .ToList();
+        return PokemonForms.LineForms(baseID)
+            .Where(form => owned.All(pair =>
+                !PokemonForms.Forms(pair.speciesID).Contains(form) || pair.forms.Contains(form)))
+            .ToHashSet();
+    }
+
+    public bool OwnsShinySpecies(int speciesID, PokemonForm? form = null)
+    {
+        var resolved = PokemonForms.Resolved(speciesID, form);
         if (Dex.Any(entry => entry.IsShiny
                 && entry.ChainOrder.Contains(speciesID)
-                && UnownForms.Resolved(speciesID, entry.UnownForm) == form))
+                && PokemonForms.Resolved(speciesID, entry.Form) == resolved))
             return true;
         if (Active is null) return false;
         if (!Active.PathIDs.Take(Active.StageIndex + 1).Contains(speciesID)) return false;
-        if (UnownForms.Resolved(speciesID, Active.UnownForm) != form) return false;
+        if (PokemonForms.Resolved(speciesID, Active.Form) != resolved) return false;
         if (!Active.IsShiny) return false;
         return Active.DittoDisguise is null || Active.DittoRevealed;
     }
@@ -172,14 +189,14 @@ public class CompanionState
     {
         if (RepresentativeSpeciesID is not { } selected)
         {
-            RepresentativeUnownForm = null;
+            RepresentativeForm = null;
             return;
         }
-        RepresentativeUnownForm = UnownForms.Resolved(selected, RepresentativeUnownForm);
-        if (!OwnsSpecies(selected, RepresentativeUnownForm))
+        RepresentativeForm = PokemonForms.Resolved(selected, RepresentativeForm);
+        if (!OwnsSpecies(selected, RepresentativeForm))
         {
             RepresentativeSpeciesID = null;
-            RepresentativeUnownForm = null;
+            RepresentativeForm = null;
         }
     }
 }
@@ -312,6 +329,19 @@ public static class CompanionStateCodec
         return o;
     }
 
+    /// <summary>
+    /// Reads the first present key; saves written before other species had forms used `unownForm`.
+    /// Malformed values read as null so the caller's resolution falls back to the default form.
+    /// </summary>
+    private static PokemonForm? ReadForm(JsonElement e, params string[] keys)
+    {
+        foreach (var key in keys)
+            if (e.TryGetProperty(key, out var value) && value.ValueKind == JsonValueKind.String
+                && PokemonForms.Parse(value.GetString()) is { } form)
+                return form;
+        return null;
+    }
+
     public static MonState? ReadMon(JsonElement e)
     {
         if (e.ValueKind != JsonValueKind.Object) return null;
@@ -347,7 +377,7 @@ public static class CompanionStateCodec
                 e.TryGetProperty("hasGrowthBoost", out var hb) && hb.ValueKind == JsonValueKind.True,
                 e.TryGetProperty("dittoDisguise", out var dd) && dd.ValueKind == JsonValueKind.Number ? dd.GetInt32() : null,
                 e.TryGetProperty("dittoRevealed", out var dr) && dr.ValueKind == JsonValueKind.True,
-                e.TryGetProperty("unownForm", out var uf) ? UnownForms.Parse(uf.GetString()) : null);
+                ReadForm(e, "form", "unownForm"));
         }
         catch
         {
@@ -369,7 +399,7 @@ public static class CompanionStateCodec
             ["isShiny"] = mon.IsShiny
         };
         if (mon.Nature is { } nature) o["nature"] = PokemonNatures.Raw(nature);
-        if (mon.UnownForm is { } unown) o["unownForm"] = UnownForms.Raw(unown);
+        if (mon.Form is { } form) o["form"] = form.Raw;
         if (mon.Profile is { } profile) o["profile"] = WriteProfile(profile, mode);
         o["hasGrowthBoost"] = mon.HasGrowthBoost;
         if (mon.DittoDisguise is { } disguise) o["dittoDisguise"] = disguise;
@@ -403,7 +433,7 @@ public static class CompanionStateCodec
                 e.TryGetProperty("profile", out var p) ? ReadProfile(p) : null,
                 ReadNames(e),
                 e.TryGetProperty("releasedAt", out var ra) ? ReadDate(ra) : null,
-                e.TryGetProperty("unownForm", out var uf) ? UnownForms.Parse(uf.GetString()) : null,
+                ReadForm(e, "form", "unownForm"),
                 e.TryGetProperty("id", out var id) && id.ValueKind == JsonValueKind.String ? id.GetString() : null);
             if (e.TryGetProperty("namesVersion", out var nv) && nv.ValueKind == JsonValueKind.Number)
                 entry.NamesVersion = nv.GetInt32();
@@ -445,7 +475,7 @@ public static class CompanionStateCodec
         if (entry.CaughtAt is { } caughtAt) o["caughtAt"] = WriteDate(caughtAt, mode);
         o["isShiny"] = entry.IsShiny;
         if (entry.Nature is { } nature) o["nature"] = PokemonNatures.Raw(nature);
-        if (entry.UnownForm is { } unown) o["unownForm"] = UnownForms.Raw(unown);
+        if (entry.Form is { } form) o["form"] = form.Raw;
         if (entry.Profile is { } profile) o["profile"] = WriteProfile(profile, mode);
         if (entry.Names is { } names)
         {
@@ -481,8 +511,8 @@ public static class CompanionStateCodec
         state.EggTier = e.TryGetProperty("eggTier", out var et) ? Rarities.Parse(et.GetString()) : null;
         state.PendingHatchID = e.TryGetProperty("pendingHatchID", out var ph) && ph.ValueKind == JsonValueKind.Number
             ? ph.GetInt32() : null;
-        state.PendingUnownForm = UnownForms.Resolved(state.PendingHatchID ?? 0,
-            e.TryGetProperty("pendingUnownForm", out var puf) ? UnownForms.Parse(puf.GetString()) : null);
+        state.PendingForm = PokemonForms.ResolvedLine(state.PendingHatchID ?? 0,
+            ReadForm(e, "pendingForm", "pendingUnownForm"));
         if (e.TryGetProperty("claimedTodayTokensByProvider", out var claimed))
         {
             var map = new Dictionary<string, long>();
@@ -496,8 +526,8 @@ public static class CompanionStateCodec
         state.Active = e.TryGetProperty("active", out var active) ? ReadMon(active) : null;
         state.RepresentativeSpeciesID = e.TryGetProperty("representativeSpeciesID", out var rs)
             && rs.ValueKind == JsonValueKind.Number ? rs.GetInt32() : null;
-        state.RepresentativeUnownForm = UnownForms.Resolved(state.RepresentativeSpeciesID ?? 0,
-            e.TryGetProperty("representativeUnownForm", out var ruf) ? UnownForms.Parse(ruf.GetString()) : null);
+        state.RepresentativeForm = PokemonForms.Resolved(state.RepresentativeSpeciesID ?? 0,
+            ReadForm(e, "representativeForm", "representativeUnownForm"));
         var dex = new List<DexEntry>();
         if (e.TryGetProperty("dex", out var dexElement) && dexElement.ValueKind == JsonValueKind.Array)
             foreach (var item in dexElement.EnumerateArray())
@@ -541,7 +571,7 @@ public static class CompanionStateCodec
         };
         if (state.EggTier is { } tier) o["eggTier"] = Rarities.Raw(tier);
         if (state.PendingHatchID is { } pending) o["pendingHatchID"] = pending;
-        if (state.PendingUnownForm is { } pendingForm) o["pendingUnownForm"] = UnownForms.Raw(pendingForm);
+        if (state.PendingForm is { } pendingForm) o["pendingForm"] = pendingForm.Raw;
         if (state.ClaimedTodayTokensByProvider is { } claimed)
         {
             o["claimedTodayTokensByProvider"] = new JsonObject(claimed
@@ -550,8 +580,8 @@ public static class CompanionStateCodec
         o["lastDate"] = state.LastDate;
         if (state.Active is { } active) o["active"] = WriteMon(active, mode);
         if (state.RepresentativeSpeciesID is { } representative) o["representativeSpeciesID"] = representative;
-        if (state.RepresentativeUnownForm is { } representativeForm)
-            o["representativeUnownForm"] = UnownForms.Raw(representativeForm);
+        if (state.RepresentativeForm is { } representativeForm)
+            o["representativeForm"] = representativeForm.Raw;
         o["dex"] = new JsonArray(state.Dex
             .Select(entry => (JsonNode)WriteDexEntry(entry, mode))
             .ToArray());

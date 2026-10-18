@@ -230,29 +230,29 @@ public class GameTabPresentationTests
     {
         var plain = GameTabPresentation.TileTooltip(
             new CompanionDexRow(1, "Speciemon", Rarity.Rare, false, false),
-            0, false, AppLanguage.En);
+            false, AppLanguage.En);
         Assert.Equal(
             "#1 Speciemon · " + DashboardText.RarityLabel(AppLanguage.En, Rarity.Rare),
             plain);
 
         var full = GameTabPresentation.TileTooltip(
-            new CompanionDexRow(201, "Unown", Rarity.Common, true, true),
-            5, true, AppLanguage.En);
+            new CompanionDexRow(201, "Unown", Rarity.Common, true, true, FormsOwned: 5, FormsTotal: 28),
+            true, AppLanguage.En);
         Assert.StartsWith("#201 Unown ✨ · ", full);
         Assert.Contains("  ← " + DashboardText.RaisingLabel(AppLanguage.En), full);
-        Assert.Contains(" · " + DashboardText.UnownFormsCollected(AppLanguage.En, 5), full);
+        Assert.Contains(" · " + DashboardText.FormsCollected(AppLanguage.En, 5, 28), full);
         Assert.EndsWith(" · " + DashboardText.RepresentativeBadge(AppLanguage.En), full);
     }
 
     [Fact]
-    public void TileNamePrefixesRaisingAndSuffixesUnownCount()
+    public void TileNamePrefixesRaisingAndSuffixesFormCount()
     {
         Assert.Equal("Speciemon", GameTabPresentation.TileName(
-            new CompanionDexRow(1, "Speciemon", Rarity.Rare, false, false), 0));
+            new CompanionDexRow(1, "Speciemon", Rarity.Rare, false, false)));
         Assert.Equal("← Speciemon", GameTabPresentation.TileName(
-            new CompanionDexRow(1, "Speciemon", Rarity.Rare, false, true), 0));
-        Assert.EndsWith($" 3/{UnownForms.All.Length}", GameTabPresentation.TileName(
-            new CompanionDexRow(201, "Unown", Rarity.Common, false, false), 3));
+            new CompanionDexRow(1, "Speciemon", Rarity.Rare, false, true)));
+        Assert.Equal("Unown 3/28", GameTabPresentation.TileName(
+            new CompanionDexRow(201, "Unown", Rarity.Common, false, false, FormsOwned: 3, FormsTotal: 28)));
     }
 
     [Fact]
@@ -265,12 +265,14 @@ public class GameTabPresentationTests
     }
 
     [Fact]
-    public void DexFooterStarHiddenForUnownOnly()
+    public void DexFooterStarHiddenForFormSpeciesOnly()
     {
         Assert.True(GameTabPresentation.DexFooterCanSetRepresentative(
             new CompanionDexRow(1, "Speciemon", Rarity.Rare, false, false)));
         Assert.False(GameTabPresentation.DexFooterCanSetRepresentative(
-            new CompanionDexRow(UnownForms.SpeciesID, "Unown", Rarity.Common, false, false)));
+            new CompanionDexRow(PokemonForms.UnownSpeciesID, "Unown", Rarity.Common, false, false)));
+        Assert.False(GameTabPresentation.DexFooterCanSetRepresentative(
+            new CompanionDexRow(492, "Shaymin", Rarity.Rare, false, false)));
     }
 
     [Fact]
@@ -307,5 +309,5 @@ public class GameTabPresentationTests
             !hasActive, eggUsed, eggThreshold, eggProgress,
             dexCount, 0, availableTokens, 1, 1, [], [], [], [], [], [],
             1, null, eggGuarantee, null, false, null,
-            CompanionStatusKind.Idle, null, catchRows ?? [], [], AppLanguage.En);
+            CompanionStatusKind.Idle, null, catchRows ?? [], AppLanguage.En);
 }

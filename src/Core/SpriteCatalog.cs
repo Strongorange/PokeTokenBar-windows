@@ -5,24 +5,25 @@ public static class SpriteCatalog
     public const string PokemonBase = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon";
     public const string AnimatedPath = "versions/generation-v/black-white/animated";
 
-    public static string AssetName(int speciesID, UnownForm? unownForm)
-    {
-        var resolved = UnownForms.Resolved(speciesID, unownForm);
-        if (resolved is null || resolved == UnownForm.A) return speciesID.ToString();
-        return $"{speciesID}-{UnownForms.Raw(resolved.Value)}";
-    }
+    public static string AssetName(int speciesID, PokemonForm? form) =>
+        PokemonForms.AssetName(speciesID, form);
 
-    public static string CacheKey(int speciesID, bool animated, bool shiny, UnownForm? unownForm = null) =>
-        $"{AssetName(speciesID, unownForm)}-{(shiny ? "sh" : "")}{(animated ? "a" : "s")}";
+    /// <summary>PokeAPI names form GIFs `201-b`/`492-sky`; static PNGs of separate varieties use the
+    /// variety id (`10006.png`). Cache files keep the `<id>-<form>` name either way.</summary>
+    public static string StaticAssetName(int speciesID, PokemonForm? form) =>
+        PokemonForms.StaticAssetName(speciesID, form);
+
+    public static string CacheKey(int speciesID, bool animated, bool shiny, PokemonForm? form = null) =>
+        $"{AssetName(speciesID, form)}-{(shiny ? "sh" : "")}{(animated ? "a" : "s")}";
 
     public static string FileExtension(bool animated) => animated ? "gif" : "png";
 
-    public static string CacheFileName(int speciesID, bool animated, bool shiny, UnownForm? unownForm = null) =>
-        $"{CacheKey(speciesID, animated, shiny, unownForm)}.{FileExtension(animated)}";
+    public static string CacheFileName(int speciesID, bool animated, bool shiny, PokemonForm? form = null) =>
+        $"{CacheKey(speciesID, animated, shiny, form)}.{FileExtension(animated)}";
 
-    public static string SpriteUrl(int speciesID, bool animated, bool shiny, UnownForm? unownForm = null)
+    public static string SpriteUrl(int speciesID, bool animated, bool shiny, PokemonForm? form = null)
     {
-        var name = AssetName(speciesID, unownForm);
+        var name = animated ? AssetName(speciesID, form) : StaticAssetName(speciesID, form);
         var path = animated ? $"{AnimatedPath}/" : "";
         var color = shiny ? "shiny/" : "";
         return $"{PokemonBase}/{path}{color}{name}.{FileExtension(animated)}";

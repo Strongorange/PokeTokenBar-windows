@@ -132,42 +132,46 @@ public class GameBalanceTests
 
 public class UnownFormTests
 {
+    private static readonly IReadOnlyList<PokemonForm> Unown = PokemonForms.Forms(201);
+
+    private static PokemonForm Form(string raw) => new(raw);
+
     [Fact]
     public void RollFavorsUncollectedForms()
     {
-        var collected = new HashSet<UnownForm> { UnownForm.A };
-        Assert.Equal(UnownForm.A, UnownForms.Roll(0, collected));
-        Assert.Equal(UnownForm.B, UnownForms.Roll(1, collected));
+        var collected = new HashSet<PokemonForm> { Form("a") };
+        Assert.Equal(Form("a"), PokemonForms.Roll(0, Unown, collected));
+        Assert.Equal(Form("b"), PokemonForms.Roll(1, Unown, collected));
     }
 
     [Fact]
     public void RollWithoutCollectionUsesUniformDoubleWeight()
     {
-        Assert.Equal(UnownForm.A, UnownForms.Roll(0, new HashSet<UnownForm>()));
-        Assert.Equal(UnownForm.B, UnownForms.Roll(2, new HashSet<UnownForm>()));
+        Assert.Equal(Form("a"), PokemonForms.Roll(0, Unown, new HashSet<PokemonForm>()));
+        Assert.Equal(Form("b"), PokemonForms.Roll(2, Unown, new HashSet<PokemonForm>()));
     }
 
     [Fact]
     public void LastFormAbsorbsRemainingRoll()
     {
-        Assert.Equal(UnownForm.Question, UnownForms.Roll(54, new HashSet<UnownForm>()));
-        Assert.Equal(UnownForm.Question, UnownForms.Roll(55, new HashSet<UnownForm>()));
-        Assert.NotEqual(UnownForm.Question, UnownForms.Roll(53, new HashSet<UnownForm>()));
+        Assert.Equal(Form("question"), PokemonForms.Roll(54, Unown, new HashSet<PokemonForm>()));
+        Assert.Equal(Form("question"), PokemonForms.Roll(55, Unown, new HashSet<PokemonForm>()));
+        Assert.NotEqual(Form("question"), PokemonForms.Roll(53, Unown, new HashSet<PokemonForm>()));
     }
 
     [Fact]
-    public void ResolvedOnlyAppliesToUnownSpecies()
+    public void ResolvedOnlyAppliesToFormSpecies()
     {
-        Assert.Equal(UnownForm.A, UnownForms.Resolved(201, null));
-        Assert.Equal(UnownForm.B, UnownForms.Resolved(201, UnownForm.B));
-        Assert.Null(UnownForms.Resolved(25, UnownForm.B));
+        Assert.Equal(Form("a"), PokemonForms.Resolved(201, null));
+        Assert.Equal(Form("b"), PokemonForms.Resolved(201, Form("b")));
+        Assert.Null(PokemonForms.Resolved(25, Form("b")));
     }
 
     [Fact]
     public void DisplayNameAppendsSymbolForUnown()
     {
-        Assert.Equal("Unown [!]", UnownForms.DisplayName("Unown", 201, UnownForm.Exclamation));
-        Assert.Equal("Pikachu", UnownForms.DisplayName("Pikachu", 25, UnownForm.B));
+        Assert.Equal("Unown [!]", PokemonForms.DisplayName("Unown", 201, Form("exclamation"), null));
+        Assert.Equal("Pikachu", PokemonForms.DisplayName("Pikachu", 25, Form("b"), null));
     }
 
     [Fact]

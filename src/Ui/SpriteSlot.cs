@@ -19,7 +19,7 @@ internal sealed class SpriteSlot
     private readonly TextBlock? _placeholder;
     private MemoryStream? _stream;
     private SpriteStore? _store;
-    private (int Species, bool Animated, bool Shiny, UnownForm? Form)? _subject;
+    private (int Species, bool Animated, bool Shiny, PokemonForm? Form)? _subject;
     private bool _egg;
     private int _version;
 
@@ -31,7 +31,7 @@ internal sealed class SpriteSlot
     }
 
     public void Update(SpriteStore store, int speciesID, bool animated, bool shiny,
-        UnownForm? form, string glyph)
+        PokemonForm? form, string glyph)
     {
         _store = store;
         var subject = (speciesID, animated, shiny, form);
@@ -85,7 +85,7 @@ internal sealed class SpriteSlot
     }
 
     private void UpgradeToAnimated(SpriteStore store, int version, int speciesID,
-        bool shiny, UnownForm? form)
+        bool shiny, PokemonForm? form)
     {
         Task.Run(() =>
         {

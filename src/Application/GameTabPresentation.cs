@@ -115,31 +115,30 @@ public static class GameTabPresentation
         $"{DashboardText.CatchLogTitle(view.Language)} · " +
         DashboardText.DexTotalCount(view.Language, view.CatchRows.Count);
 
-    public static string TileTooltip(CompanionDexRow row, int unownCollected,
-        bool isRepresentative, AppLanguage lang)
+    public static string TileTooltip(CompanionDexRow row, bool isRepresentative, AppLanguage lang)
     {
         var star = row.IsShiny ? " ✨" : "";
         var raising = row.IsRaising ? $"  ← {DashboardText.RaisingLabel(lang)}" : "";
-        var unownForms = unownCollected > 0
-            ? $" · {DashboardText.UnownFormsCollected(lang, unownCollected)}" : "";
+        var forms = row.FormsTotal > 1
+            ? $" · {DashboardText.FormsCollected(lang, row.FormsOwned, row.FormsTotal)}" : "";
         var representative = isRepresentative ? $" · {DashboardText.RepresentativeBadge(lang)}" : "";
         return $"#{row.SpeciesID} {row.Name}{star} · " +
-               $"{DashboardText.RarityLabel(lang, row.Rarity)}{raising}{unownForms}{representative}";
+               $"{DashboardText.RarityLabel(lang, row.Rarity)}{raising}{forms}{representative}";
     }
 
-    public static string TileName(CompanionDexRow row, int unownCollected) =>
+    public static string TileName(CompanionDexRow row) =>
         (row.IsRaising ? "← " : "") + row.Name +
-        (unownCollected > 0 ? $" {unownCollected}/{UnownForms.All.Length}" : "");
+        (row.FormsTotal > 1 ? $" {row.FormsOwned}/{row.FormsTotal}" : "");
 
     /// Port of the macOS dex footer line: the tile only shows number/sprite/name,
     /// so rarity is the info gained by selecting (CompanionView.footer).
     public static string DexFooterInfo(CompanionDexRow row, AppLanguage lang) =>
         $"#{row.SpeciesID} {row.Name} · {DashboardText.RarityLabel(lang, row.Rarity)}";
 
-    /// Unown needs a form choice before it can represent, so the footer star
+    /// Form species need a form choice before they can represent, so the footer star
     /// stays hidden and the form picker (detail window) handles it instead.
     public static bool DexFooterCanSetRepresentative(CompanionDexRow row) =>
-        row.SpeciesID != UnownForms.SpeciesID;
+        !PokemonForms.HasForms(row.SpeciesID);
 
     public static string CaughtAgo(DateTimeOffset? caughtAt, DateTimeOffset now, AppLanguage lang)
     {

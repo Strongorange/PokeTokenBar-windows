@@ -15,14 +15,14 @@ public partial class SpeciesDetailWindow : Window
     private readonly SpriteStore _sprites;
     private readonly CompanionDetailSnapshot _detail;
     private readonly CompanionEngine _engine;
-    private readonly IReadOnlyList<CompanionUnownFormStatus> _unownForms;
+    private readonly IReadOnlyList<CompanionFormStatus> _formStatuses;
     private readonly StackPanel _individualsHost = new();
-    private readonly Dictionary<UnownForm, Border> _formTiles = [];
+    private readonly Dictionary<PokemonForm, Border> _formTiles = [];
     private readonly SpriteSlot _sprite;
     private Button? _representativeButton;
     private TextBlock? _shinyLine;
     private TextBlock? _raisingLine;
-    private UnownForm? _selectedForm;
+    private PokemonForm? _selectedForm;
     private int _selectedIndividualIndex;
 
     public SpeciesDetailWindow(CompanionDetailSnapshot detail, SpriteStore sprites,
@@ -33,9 +33,11 @@ public partial class SpeciesDetailWindow : Window
         _sprites = sprites;
         _detail = detail;
         _engine = engine;
-        _unownForms = detail.SpeciesID == UnownForms.SpeciesID ? detail.UnownForms : [];
+        _formStatuses = detail.FormStatuses;
         _sprite = new SpriteSlot(SpriteImage, SpritePlaceholder);
-        _selectedForm = _unownForms.Count > 0 ? _unownForms[0].Form : null;
+        _selectedForm = _formStatuses.FirstOrDefault(status => status.IsOwned) is { } firstOwned
+            ? firstOwned.Form
+            : null;
         Build(detail);
         UpdateHeroSprite();
         RenderIdentityLines();
@@ -44,9 +46,8 @@ public partial class SpeciesDetailWindow : Window
 
     private bool IsRepresentative =>
         _engine.State.RepresentativeSpeciesID == _detail.SpeciesID
-        && (_detail.SpeciesID != UnownForms.SpeciesID
-            || UnownForms.Resolved(_detail.SpeciesID, _selectedForm)
-                == _engine.State.RepresentativeUnownForm);
+        && PokemonForms.Resolved(_detail.SpeciesID, _selectedForm)
+            == _engine.State.RepresentativeForm;
 
     private void ToggleRepresentative()
     {
@@ -80,7 +81,7 @@ public partial class SpeciesDetailWindow : Window
 
     private List<CompanionDetailIndividual> FilteredIndividuals() =>
         _selectedForm is { } form
-            ? _detail.Individuals.Where(individual => individual.UnownForm == form).ToList()
+            ? _detail.Individuals.Where(individual => individual.Form == form).ToList()
             : _detail.Individuals.ToList();
 
     private void Build(CompanionDetailSnapshot detail)
@@ -111,8 +112,8 @@ public partial class SpeciesDetailWindow : Window
         HeaderRoot.Children.Add(representativeButton);
         UpdateRepresentativeButton();
 
-        if (_unownForms.Count > 0)
-            BuildUnownPicker(lang);
+        if (_formStatuses.Count > 0)
+            BuildFormPicker(lang);
 
         ContentRoot.Children.Add(_individualsHost);
         RenderIndividuals();
@@ -146,22 +147,31 @@ public partial class SpeciesDetailWindow : Window
             AddSecondary(ContentRoot, $"{move.Name} — {string.Join(" · ", move.Methods)}");
     }
 
-    private void BuildUnownPicker(AppLanguage lang)
+    /// <summary>
+    /// Form picker — every catalogued form of the species, uncollected ones dimmed and inert.
+    /// Unown keeps its narrow seven-column letter grid; named forms widen to show their labels.
+    /// </summary>
+    private void BuildFormPicker(AppLanguage lang)
     {
-        AddSection(ContentRoot, DashboardText.UnownFormsCollected(lang, _unownForms.Count));
-        var grid = new UniformGrid { Columns = 7 };
-        foreach (var form in UnownForms.All)
+        var owned = _formStatuses.Count(status => status.IsOwned);
+        AddSection(ContentRoot, DashboardText.FormsCollected(lang, owned, _formStatuses.Count));
+        var grid = new UniformGrid
         {
-            var status = _unownForms.FirstOrDefault(entry => entry.Form == form);
-            var tile = BuildFormTile(form, status, lang);
-            _formTiles[form] = tile;
+            Columns = _detail.SpeciesID == PokemonForms.UnownSpeciesID ? 7 : 4
+        };
+        foreach (var status in _formStatuses)
+        {
+            var tile = BuildFormTile(status, lang);
+            _formTiles[status.Form] = tile;
             grid.Children.Add(tile);
         }
         ContentRoot.Children.Add(grid);
     }
 
-    private Border BuildFormTile(UnownForm form, CompanionUnownFormStatus? status, AppLanguage lang)
+    private Border BuildFormTile(CompanionFormStatus status, AppLanguage lang)
     {
+        var isUnown = _detail.SpeciesID == PokemonForms.UnownSpeciesID;
+        var caption = isUnown ? status.Form.Symbol : status.Label;
         var image = new Image
         {
             Width = FormThumbSize,
@@ -179,7 +189,7 @@ public partial class SpeciesDetailWindow : Window
         var spriteHost = new Grid { Width = FormThumbSize, Height = FormThumbSize };
         spriteHost.Children.Add(image);
         spriteHost.Children.Add(placeholder);
-        if (status?.IsShiny == true)
+        if (status.IsShiny)
             spriteHost.Children.Add(new TextBlock
             {
                 Text = "✨",
@@ -188,20 +198,19 @@ public partial class SpeciesDetailWindow : Window
                 VerticalAlignment = VerticalAlignment.Top,
             });
         new SpriteSlot(image, placeholder)
-            .Update(_sprites, _detail.SpeciesID, false, status?.IsShiny == true, form, "❔");
+            .Update(_sprites, _detail.SpeciesID, false, status.IsShiny, status.Form, "❔");
 
-        var symbol = UnownForms.Symbol(form);
         var tile = new Border
         {
-            Padding = new Thickness(0, 3, 0, 2),
+            Padding = new Thickness(isUnown ? 0 : 4, 3, isUnown ? 0 : 4, 2),
             Margin = new Thickness(1),
             CornerRadius = new CornerRadius(4),
             BorderThickness = new Thickness(1.5),
-            Opacity = status is null ? 0.25 : 1,
-            Cursor = status is null ? null : Cursors.Hand,
-            ToolTip = status is null
-                ? $"{symbol} · {DashboardText.UnownNotCollected(lang)}"
-                : $"{symbol}{(status.IsShiny ? " ✨" : "")}",
+            Opacity = status.IsOwned ? 1 : 0.25,
+            Cursor = status.IsOwned ? Cursors.Hand : null,
+            ToolTip = status.IsOwned
+                ? $"{caption}{(status.IsShiny ? " ✨" : "")}"
+                : $"{caption} · {DashboardText.UnownNotCollected(lang)}",
             Child = new StackPanel
             {
                 Children =
@@ -209,7 +218,7 @@ public partial class SpeciesDetailWindow : Window
                     spriteHost,
                     new TextBlock
                     {
-                        Text = symbol,
+                        Text = caption,
                         FontSize = 9,
                         FontWeight = FontWeights.SemiBold,
                         HorizontalAlignment = HorizontalAlignment.Center,
@@ -217,12 +226,12 @@ public partial class SpeciesDetailWindow : Window
                 },
             },
         };
-        if (status is not null)
-            tile.MouseLeftButtonUp += (_, _) => SelectForm(form);
+        if (status.IsOwned)
+            tile.MouseLeftButtonUp += (_, _) => SelectForm(status.Form);
         return tile;
     }
 
-    private void SelectForm(UnownForm form)
+    private void SelectForm(PokemonForm form)
     {
         if (_formTiles.GetValueOrDefault(form) is null) return;
         _selectedForm = form;
@@ -238,7 +247,7 @@ public partial class SpeciesDetailWindow : Window
     {
         var lang = _detail.Language;
         var shiny = _selectedForm is { } form
-            ? _unownForms.FirstOrDefault(entry => entry.Form == form)?.IsShiny == true
+            ? _formStatuses.FirstOrDefault(entry => entry.Form == form)?.IsShiny == true
             : _detail.Individuals.Any(individual => individual.IsShiny);
         var raising = FilteredIndividuals().Any(individual => individual.IsRaising);
         if (_shinyLine is not null)
@@ -273,7 +282,7 @@ public partial class SpeciesDetailWindow : Window
         var individuals = FilteredIndividuals();
         bool shiny;
         if (_selectedForm is { } form)
-            shiny = _unownForms.FirstOrDefault(entry => entry.Form == form)?.IsShiny == true;
+            shiny = _formStatuses.FirstOrDefault(entry => entry.Form == form)?.IsShiny == true;
         else if (individuals.Count > 0)
         {
             var index = Math.Clamp(_selectedIndividualIndex, 0, individuals.Count - 1);

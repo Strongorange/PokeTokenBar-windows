@@ -448,6 +448,108 @@ public class CompanionEngineTests : IDisposable
         Assert.Equal([132], revealed.PathIDs);
     }
 
+    private const string BurmySnapshot = """
+        {
+          "format": "poketokenbar.pokemon-snapshot",
+          "schema": 1,
+          "bases": [ {"id": 412, "captureRate": 255}, {"id": 132, "captureRate": 35} ],
+          "lines": [
+            {"base": 412, "captureRate": 255, "legendary": false, "mythical": false, "tree": [412, [[413, []]]]},
+            {"base": 132, "captureRate": 35, "legendary": false, "mythical": false, "tree": [132, []]}
+          ],
+          "names": {
+            "412": {"en": "Burmy"},
+            "413": {"en": "Wormadam"},
+            "132": {"en": "Ditto"}
+          },
+          "resourceNames": {
+            "pokemon-form": {
+              "10034": {"en": "Sandy Cloak", "ko": "스모크 망토"},
+              "10036": {"en": "Sandy Cloak"}
+            }
+          }
+        }
+        """;
+
+    /// <summary>Port of testHatchUsesThePreparedFormOfAnyLine: the egg's prepared form hatches
+    /// on any catalogued line, not just Unown, and the pending slot clears afterwards.</summary>
+    [Fact]
+    public void HatchUsesThePreparedFormOfAnyLine()
+    {
+        var engine = BuildEngine(snapshot: BurmySnapshot);
+        engine.State.Language = AppLanguage.En;
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        engine.State.PendingHatchID = 412;
+        engine.State.PendingForm = new PokemonForm("sandy");
+        engine.State.EggUsage = PokemonBalance.EggHatchThreshold;
+
+        engine.ApplyUsage(Map(("claude_code", 100)), "2026-09-23", true);
+
+        var active = engine.State.Active!;
+        Assert.Equal(412, active.BaseID);
+        Assert.Equal(new PokemonForm("sandy"), active.Form);
+        Assert.Equal(new PokemonForm("sandy"), engine.View().ActiveForm);
+        Assert.Null(engine.State.PendingForm);
+    }
+
+    /// <summary>Port of testHatchWithoutPreparationRollsAmongTheLineForms: an unprepared hatch
+    /// draws among the line's forms, weighting uncollected forms double.</summary>
+    [Fact]
+    public void HatchWithoutPreparationRollsAmongTheLineForms()
+    {
+        var engine = BuildEngine(snapshot: BurmySnapshot);
+        engine.State.Language = AppLanguage.En;
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        engine.State.PendingHatchID = 412;
+        engine.State.EggUsage = PokemonBalance.EggHatchThreshold;
+
+        // rolls: shiny(1), nature(1), ditto(1 — no hit), profile(1), form(1);
+        // roll 1 among weights [2,2,2] lands on plant.
+        engine.ApplyUsage(Map(("claude_code", 100)), "2026-09-23", true);
+
+        Assert.Equal(new PokemonForm("plant"), engine.State.Active!.Form);
+    }
+
+    /// <summary>Port of testRevealedDittoDropsTheDisguiseForm: the disguise line's form does not
+    /// leak into the revealed Ditto.</summary>
+    [Fact]
+    public void RevealedDittoDropsTheDisguiseForm()
+    {
+        var engine = BuildEngine(new SequenceRng(1, 1, 128), snapshot: BurmySnapshot);
+        engine.State.Language = AppLanguage.En;
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        engine.State.PendingHatchID = 412;
+        engine.State.PendingForm = new PokemonForm("sandy");
+        engine.State.EggUsage = PokemonBalance.EggHatchThreshold;
+        engine.ApplyUsage(Map(("claude_code", 100)), "2026-09-23", true);
+        Assert.Equal(new PokemonForm("sandy"), engine.State.Active!.Form);
+        Assert.Equal(412, engine.State.Active.DittoDisguise); // Common line, two stages: disguised as the base
+
+        engine.ApplyUsage(Map(("claude_code", 400_000_000)), "2026-09-23", true);
+
+        var revealed = engine.State.Active!;
+        Assert.Equal(PokemonOdds.DittoSpeciesID, revealed.BaseID);
+        Assert.Null(revealed.Form);
+    }
+
+    /// <summary>The hatch event and title carry the localized form label (macOS parity:
+    /// "Burmy [Sandy Cloak]", never the raw identifier when names exist).</summary>
+    [Fact]
+    public void EvolutionAndEventsNameTheForm()
+    {
+        var engine = BuildEngine(snapshot: BurmySnapshot);
+        engine.State.Language = AppLanguage.En;
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        engine.State.PendingHatchID = 412;
+        engine.State.PendingForm = new PokemonForm("sandy");
+        engine.State.EggUsage = PokemonBalance.EggHatchThreshold;
+        engine.ApplyUsage(Map(("claude_code", 100)), "2026-09-23", true);
+
+        var view = engine.View();
+        Assert.Equal("Burmy [Sandy Cloak]", view.ActiveName);
+        Assert.Contains("Burmy [Sandy Cloak]", view.RecentEvents[^1].Text);
+    }
+
     [Fact]
     public void NoticesFireExactlyOncePerCompanionEvent()
     {
@@ -523,13 +625,13 @@ public class CompanionEngineTests : IDisposable
         var eggView = engine.View();
         Assert.True(eggView.IsEgg);
         Assert.Equal(0, eggView.ActiveSpeciesID);
-        Assert.Null(eggView.ActiveUnownForm);
+        Assert.Null(eggView.ActiveForm);
 
         engine.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
         var monView = engine.View();
         Assert.True(monView.HasActive);
         Assert.Equal(1, monView.ActiveSpeciesID);
-        Assert.Null(monView.ActiveUnownForm);
+        Assert.Null(monView.ActiveForm);
     }
 
     [Fact]
@@ -753,7 +855,7 @@ public class CompanionEngineTests : IDisposable
         var view = engine.View();
         Assert.Equal(1, view.RepresentativeSpeciesID);
         Assert.False(view.RepresentativeIsShiny);
-        Assert.Null(view.RepresentativeUnownForm);
+        Assert.Null(view.RepresentativeForm);
 
         Assert.True(engine.SetRepresentative(null));
         Assert.Null(engine.View().RepresentativeSpeciesID);
@@ -770,7 +872,7 @@ public class CompanionEngineTests : IDisposable
         var reopened = BuildEngine(fileName: "representative-state.json");
         Assert.Equal(2, reopened.State.RepresentativeSpeciesID);
         Assert.Equal(2, reopened.View().RepresentativeSpeciesID);
-        Assert.Null(reopened.View().RepresentativeUnownForm);
+        Assert.Null(reopened.View().RepresentativeForm);
     }
 
     [Fact]
@@ -1163,22 +1265,19 @@ public class CompanionEngineTests : IDisposable
         """;
 
     [Fact]
-    public void ViewExposesCollectedUnownFormStatuses()
+    public void ViewExposesCollectedFormStatuses()
     {
         var engine = BuildEngine(snapshot: UnownSnapshot);
         engine.State.Language = AppLanguage.En;
         engine.State.Dex.Add(new DexEntry(201, 201, [201], Rarity.Common, Now, isShiny: true,
             names: new Dictionary<int, Dictionary<string, string>> { [201] = new() { ["en"] = "Unown" } },
-            unownForm: UnownForm.B));
-        engine.State.Dex.Add(new DexEntry(201, 201, [201], Rarity.Common, Now, unownForm: UnownForm.C));
+            form: new PokemonForm("b")));
+        engine.State.Dex.Add(new DexEntry(201, 201, [201], Rarity.Common, Now, form: new PokemonForm("c")));
 
         var view = engine.View();
-        Assert.Equal(
-        [
-            new CompanionUnownFormStatus(UnownForm.B, true),
-            new CompanionUnownFormStatus(UnownForm.C, false),
-        ], view.UnownForms);
         var row = Assert.Single(view.DexRows);
+        Assert.Equal(2, row.FormsOwned);
+        Assert.Equal(28, row.FormsTotal);
         Assert.Equal("Unown", row.Name);
     }
 
@@ -1188,35 +1287,37 @@ public class CompanionEngineTests : IDisposable
         var engine = BuildEngine(snapshot: UnownSnapshot);
         engine.State.Language = AppLanguage.En;
         engine.State.Active = new MonState(201, [201], null, 0, 0, Rarity.Common, 1,
-            unownForm: UnownForm.B);
+            form: new PokemonForm("b"));
 
         var view = engine.View();
-        Assert.Equal(UnownForm.B, Assert.Single(view.UnownForms).Form);
         var row = Assert.Single(view.DexRows);
+        Assert.Equal(1, row.FormsOwned);
         Assert.DoesNotContain("[", row.Name);
         Assert.Equal("Unown", row.Name);
     }
 
     [Fact]
-    public void DetailExposesUnownFormsAndFormPerIndividual()
+    public void DetailExposesFormsAndFormPerIndividual()
     {
         var engine = BuildEngine(snapshot: UnownSnapshot);
         engine.State.Language = AppLanguage.En;
         engine.State.Dex.Add(new DexEntry(201, 201, [201], Rarity.Common, Now, isShiny: true,
-            profile: PokemonProfile.Generate(1), unownForm: UnownForm.B));
+            profile: PokemonProfile.Generate(1), form: new PokemonForm("b")));
         engine.State.Dex.Add(new DexEntry(201, 201, [201], Rarity.Common, Now,
-            profile: PokemonProfile.Generate(2), unownForm: UnownForm.C));
+            profile: PokemonProfile.Generate(2), form: new PokemonForm("c")));
 
         var detail = engine.Detail(201);
         Assert.NotNull(detail);
+        Assert.Equal(28, detail.FormStatuses.Count);
+        var owned = detail.FormStatuses.Where(status => status.IsOwned).ToList();
         Assert.Equal(
         [
-            new CompanionUnownFormStatus(UnownForm.B, true),
-            new CompanionUnownFormStatus(UnownForm.C, false),
-        ], detail.UnownForms);
+            new CompanionFormStatus(new PokemonForm("b"), "B", true, true),
+            new CompanionFormStatus(new PokemonForm("c"), "C", true, false),
+        ], owned);
         Assert.Equal(2, detail.Individuals.Count);
-        Assert.Equal(UnownForm.B, detail.Individuals[0].UnownForm);
-        Assert.Equal(UnownForm.C, detail.Individuals[1].UnownForm);
+        Assert.Equal(new PokemonForm("b"), detail.Individuals[0].Form);
+        Assert.Equal(new PokemonForm("c"), detail.Individuals[1].Form);
     }
 
     [Fact]
@@ -1227,13 +1328,10 @@ public class CompanionEngineTests : IDisposable
         engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
         engine.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
 
-        var view = engine.View();
-        Assert.Empty(view.UnownForms);
-
         var detail = engine.Detail(1);
         Assert.NotNull(detail);
-        Assert.Empty(detail.UnownForms);
-        Assert.All(detail.Individuals, individual => Assert.Null(individual.UnownForm));
+        Assert.Empty(detail.FormStatuses);
+        Assert.All(detail.Individuals, individual => Assert.Null(individual.Form));
     }
 
     private CompanionEngine BuildEngine(Func<DateTimeOffset> clock, string? snapshot = null)

@@ -95,15 +95,14 @@ public class AnimatedSpriteHealTests
         ShopRows: [],
         Bag: [],
         ActiveSpeciesID: speciesID,
-        ActiveUnownForm: null,
+        ActiveForm: null,
         EggGuarantee: null,
         RepresentativeSpeciesID: null,
         RepresentativeIsShiny: false,
-        RepresentativeUnownForm: null,
+        RepresentativeForm: null,
         Status: CompanionStatusKind.Idle,
         StatusEvolvedName: null,
         CatchRows: [],
-        UnownForms: [],
         Language: AppLanguage.Ko);
 
     [Fact]
