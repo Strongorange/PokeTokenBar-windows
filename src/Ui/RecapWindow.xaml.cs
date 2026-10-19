@@ -106,15 +106,17 @@ public partial class RecapWindow : Window
                 Cursor = Cursors.Hand,
                 Tag = scope,
             };
-            button.Checked += (_, _) =>
-            {
-                if (button.Tag is RecapScope tag && tag == _scope) return;
-                _scope = scope;
-                _offset = 0;
-                Render();
-            };
+            button.Checked += (_, _) => SelectScope(scope);
             ScopeButtons.Children.Add(button);
         }
+    }
+
+    private void SelectScope(RecapScope scope)
+    {
+        if (scope == _scope) return;
+        _scope = scope;
+        _offset = 0;
+        Render();
     }
 
     private void RenderMeters(RecapView view)
@@ -122,6 +124,13 @@ public partial class RecapWindow : Window
         Meters.Columns = Math.Max(1, view.Buckets.Count);
         Meters.Children.Clear();
         var peak = Math.Max(1, view.Buckets.Max(bucket => bucket.Tokens));
+        // macOS meter spacing: week 6 / month 1.5 / year 4 — split into side margins.
+        var horizontal = view.Scope switch
+        {
+            RecapScope.Week => 3.0,
+            RecapScope.Year => 2.0,
+            _ => 0.75
+        };
         foreach (var bucket in view.Buckets)
         {
             var lit = bucket.Tokens > 0
@@ -136,12 +145,11 @@ public partial class RecapWindow : Window
                     Height = 4,
                     RadiusX = 1,
                     RadiusY = 1,
+                    Margin = new Thickness(horizontal, 0, horizontal, 2),
                     Fill = new SolidColorBrush(isLit
                         ? bucket.IsCurrent ? Lcd : Dim(Lcd, 0.55)
                         : Dim(Lcd, bucket.HasData ? 0.09 : 0.035)),
                 });
-                if (block > 0)
-                    column.Children[^1].SetValue(MarginProperty, new Thickness(0, 0, 0, 2));
             }
             var label = new TextBlock
             {
@@ -151,12 +159,11 @@ public partial class RecapWindow : Window
                 FontWeight = bucket.IsCurrent ? FontWeights.Bold : FontWeights.Normal,
                 Foreground = new SolidColorBrush(bucket.IsCurrent ? Lcd : Dim(Lcd, 0.45)),
                 HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(0, 1, 0, 0),
             };
             var cell = new StackPanel { ToolTip = bucket.ToolTip };
             cell.Children.Add(column);
             cell.Children.Add(label);
-            if (cell.Children.Count == 2)
-                label.SetValue(MarginProperty, new Thickness(0, 3, 0, 0));
             Meters.Children.Add(cell);
         }
     }
