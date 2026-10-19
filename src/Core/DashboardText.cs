@@ -279,6 +279,90 @@ public static class DashboardText
             $"Pokédex {dex} · {tokens} cumulés", $"Pokédex {dex} · {tokens} acumulados",
             $"Pokédex {dex} · {tokens} insgesamt");
 
+    // Usage recap (macOS #332/#367/#368)
+
+    public static string RecapOpen(AppLanguage lang) =>
+        T(lang, "사용량 돌아보기", "Usage recap", "使用量のふりかえり", "Resumen de uso",
+            "Récap d'utilisation", "Resumo de uso", "Nutzungsrückblick");
+
+    public static string RecapScopeName(AppLanguage lang, RecapScope scope) => scope switch
+    {
+        RecapScope.Week => T(lang, "주간", "Week", "週", "Semana", "Semaine", "Semana", "Woche"),
+        RecapScope.Month => T(lang, "월간", "Month", "月", "Mes", "Mois", "Mês", "Monat"),
+        _ => T(lang, "연간", "Year", "年", "Año", "Année", "Ano", "Jahr")
+    };
+
+    /// <summary>Shown under a running period, whose chip compares the same number of days.</summary>
+    public static string RecapCompareSoFar(AppLanguage lang, RecapScope scope) => scope switch
+    {
+        RecapScope.Week => T(lang, "지난주 같은 기간과 비교", "Compared with the same days last week",
+            "先週の同じ期間と比較", "Comparado con los mismos días de la semana pasada",
+            "Comparé aux mêmes jours de la semaine dernière",
+            "Comparado com os mesmos dias da semana passada",
+            "Verglichen mit denselben Tagen der Vorwoche"),
+        RecapScope.Month => T(lang, "지난달 같은 기간과 비교", "Compared with the same days last month",
+            "先月の同じ期間と比較", "Comparado con los mismos días del mes pasado",
+            "Comparé aux mêmes jours du mois dernier",
+            "Comparado com os mesmos dias do mês passado",
+            "Verglichen mit denselben Tagen des Vormonats"),
+        _ => T(lang, "작년 같은 기간과 비교", "Compared with the same days last year",
+            "昨年の同じ期間と比較", "Comparado con los mismos días del año pasado",
+            "Comparé aux mêmes jours de l'an dernier",
+            "Comparado com os mesmos dias do ano passado",
+            "Verglichen mit denselben Tagen des Vorjahres")
+    };
+
+    public static string RecapCurrentPeriod(AppLanguage lang, RecapScope scope) => scope switch
+    {
+        RecapScope.Week => ThisWeekLabel(lang),
+        RecapScope.Month => ThisMonthLabel(lang),
+        _ => T(lang, "올해", "This year", "今年", "Este año", "Cette année", "Este ano", "Dieses Jahr")
+    };
+
+    public static string RecapPrevious(AppLanguage lang) =>
+        T(lang, "이전", "Previous", "前へ", "Anterior", "Précédent", "Anterior", "Vorherige");
+
+    public static string RecapNext(AppLanguage lang) =>
+        T(lang, "다음", "Next", "次へ", "Siguiente", "Suivant", "Próximo", "Nächste");
+
+    public static string RecapBestDay(AppLanguage lang) =>
+        T(lang, "최고의 날", "Best day", "最高の日", "Mejor día", "Meilleur jour", "Melhor dia",
+            "Bester Tag");
+
+    public static string RecapActiveDays(AppLanguage lang) =>
+        T(lang, "활동한 날", "Active days", "稼働日", "Días activos", "Jours actifs", "Dias ativos",
+            "Aktive Tage");
+
+    public static string RecapBestStreak(AppLanguage lang) =>
+        T(lang, "최장 연속", "Best streak", "最長連続", "Mejor racha", "Meilleure série",
+            "Melhor sequência", "Beste Serie");
+
+    public static string RecapGraduates(AppLanguage lang) =>
+        T(lang, "졸업", "Graduated", "卒業", "Graduados", "Diplômés", "Formados", "Abschlüsse");
+
+    public static string RecapNoGraduates(AppLanguage lang) =>
+        T(lang, "이 기간에 졸업한 포켓몬이 없어요.", "No graduation in this period.",
+            "この期間の卒業はありません。", "Ninguna graduación en este periodo.",
+            "Aucun diplômé sur cette période.", "Nenhuma formatura neste período.",
+            "In diesem Zeitraum keine Abschlüsse.");
+
+    public static string RecapNoData(AppLanguage lang) =>
+        T(lang, "기록 없음", "no data", "記録なし", "sin datos", "pas de données", "sem dados",
+            "keine Daten");
+
+    public static string RecapDays(AppLanguage lang, int count) =>
+        T(lang, $"{count}일", $"{count}d", $"{count}日", $"{count} d", $"{count} j", $"{count} d",
+            $"{count} T");
+
+    public static string RecapBestDayLine(AppLanguage lang, string day, string tokens) =>
+        T(lang, $"최고의 날은 {day} — {tokens} 토큰.",
+            $"Your best day was {day} — {tokens} tokens.",
+            $"最高の日は {day}、{tokens} トークン。",
+            $"Tu mejor día fue el {day}: {tokens} tokens.",
+            $"Ton meilleur jour, c'était {day} : {tokens} tokens.",
+            $"Seu melhor dia foi {day}: {tokens} tokens.",
+            $"Dein bester Tag war {day} — {tokens} Tokens.");
+
     public static string ShopTitle(AppLanguage lang) =>
         T(lang, "상점", "Shop", "ショップ", "Tienda", "Boutique", "Loja", "Laden");
 
