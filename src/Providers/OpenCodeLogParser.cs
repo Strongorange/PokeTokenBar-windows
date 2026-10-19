@@ -5,7 +5,7 @@ namespace PokeTokenBar.Providers;
 
 public static class OpenCodeLogParser
 {
-    public const int ParserVersion = 1;
+    public const int ParserVersion = 2;
 
     public static List<UsageEntry> Parse(string path, IReadOnlyList<string> lines, TimeZoneInfo? timeZone = null)
     {
@@ -57,11 +57,50 @@ public static class OpenCodeLogParser
         }
     }
 
+    /// <summary>
+    /// OpenCode v2 session_message row (upstream #363): assistant usage moves to the
+    /// event-sourced projection. `role` is not in the payload (the query filters
+    /// type='assistant'), the model is a nested {id, providerID} object instead of the v1
+    /// top-level modelID string, and tokens carry no `total`.
+    /// </summary>
+    public static UsageEntry? ParseSessionMessage(
+        string id, string dataJson, string sourceKey, long? fallbackCreatedMillis, TimeZoneInfo? timeZone = null)
+    {
+        var tz = timeZone ?? TimeZoneInfo.Local;
+        try
+        {
+            using var document = JsonDocument.Parse(dataJson);
+            var data = document.RootElement;
+            if (data.ValueKind != JsonValueKind.Object) return null;
+            if (!data.TryGetProperty("model", out var model)
+                || model.ValueKind != JsonValueKind.Object) return null;
+            var modelID = StringProperty(model, "id");
+            if (string.IsNullOrEmpty(modelID)) return null;
+            if (string.IsNullOrEmpty(StringProperty(model, "providerID"))) return null;
+            return BuildEntry(id, data, modelID, sourceKey, fallbackCreatedMillis, tz);
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
     private static UsageEntry? ParseMessageData(
         string id, JsonElement data, string sourceKey, long? fallbackCreatedMillis, TimeZoneInfo timeZone)
     {
         if (data.ValueKind != JsonValueKind.Object) return null;
-        if (StringProperty(data, "role") != "assistant") return null;
+        // macOS parity (parseOpenCodeMessage): `role` is not required — early v1 history rows
+        // carry no role; only an explicit non-assistant role disqualifies the row.
+        var role = StringProperty(data, "role");
+        if (role is not null && role != "assistant") return null;
+        return BuildEntry(id, data, StringProperty(data, "modelID") ?? "unknown",
+            sourceKey, fallbackCreatedMillis, timeZone);
+    }
+
+    private static UsageEntry? BuildEntry(
+        string id, JsonElement data, string model, string sourceKey,
+        long? fallbackCreatedMillis, TimeZoneInfo timeZone)
+    {
         if (!data.TryGetProperty("tokens", out var tokens) || tokens.ValueKind != JsonValueKind.Object) return null;
 
         var input = 0L;
@@ -105,7 +144,7 @@ public static class OpenCodeLogParser
             $"opencode|{sourceKey}|{id}",
             date,
             UsageAggregation.LocalDay(date, timeZone),
-            StringProperty(data, "modelID") ?? "unknown",
+            model,
             input,
             output,
             cacheWrite,

@@ -9,7 +9,17 @@ namespace PokeTokenBar.Application;
 
 public sealed class OpenCodeDbReader
 {
-    private const string Query = "SELECT id, time_created, data FROM message WHERE time_created >= $floor";
+    private const string MessageQuery =
+        "SELECT id, time_created, data FROM message WHERE time_created >= $floor";
+
+    /// <summary>
+    /// OpenCode v2 writes assistant usage to the event-sourced session_message projection;
+    /// the older message table remains useful for v1 history. The global time index keeps
+    /// this query bounded to the active usage window (upstream #363).
+    /// </summary>
+    private const string SessionMessageQuery =
+        "SELECT id, time_created, data FROM session_message WHERE type = 'assistant' AND time_created >= $floor";
+
     private const int CommandTimeoutSeconds = 15;
 
     private sealed record RemoteKey(FileFingerprint Db, FileFingerprint? Wal);
@@ -106,28 +116,47 @@ public sealed class OpenCodeDbReader
             };
             using var connection = new SqliteConnection(builder.ToString());
             connection.Open();
-            using var command = connection.CreateCommand();
-            command.CommandText = Query;
-            command.Parameters.AddWithValue("$floor", floorMillis);
-            using var reader = command.ExecuteReader();
-            List<UsageEntry> entries = [];
-            while (reader.Read())
+            var entries = ReadRows(connection, MessageQuery, floorMillis, sourceKey, timeZone,
+                (id, json, fallback) => OpenCodeLogParser.ParseMessage(id, json, sourceKey, fallback, timeZone));
+            try
             {
-                if (reader.IsDBNull(0) || reader.IsDBNull(2)) continue;
-                var id = reader.GetString(0);
-                var dataJson = reader.GetString(2);
-                long? fallbackMillis = reader.IsDBNull(1) ? null : reader.GetInt64(1);
-                if (OpenCodeLogParser.ParseMessage(id, dataJson, sourceKey, fallbackMillis, timeZone) is not { } entry)
-                    continue;
-                entries.Add(entry);
+                entries.AddRange(ReadRows(connection, SessionMessageQuery, floorMillis, sourceKey, timeZone,
+                    (id, json, fallback) =>
+                        OpenCodeLogParser.ParseSessionMessage(id, json, sourceKey, fallback, timeZone)));
             }
-            return entries;
+            catch (SqliteException)
+            {
+                // A v1 database has no session_message table — its history lives in `message`.
+            }
+            return UsageAggregation.DedupKeepMax(entries);
         }
         catch (Exception ex)
         {
             AppLog.Write($"opencode db read failed: {dbPath}: {ex.Message}");
             return null;
         }
+    }
+
+    private static List<UsageEntry> ReadRows(
+        SqliteConnection connection, string sql, long floorMillis, string sourceKey,
+        TimeZoneInfo timeZone, Func<string, string, long?, UsageEntry?> parse)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        command.Parameters.AddWithValue("$floor", floorMillis);
+        using var reader = command.ExecuteReader();
+        List<UsageEntry> entries = [];
+        while (reader.Read())
+        {
+            if (reader.IsDBNull(0) || reader.IsDBNull(2)) continue;
+            var id = reader.GetString(0);
+            var dataJson = reader.GetString(2);
+            long? fallbackMillis = reader.IsDBNull(1) ? null : reader.GetInt64(1);
+            if (parse(id, dataJson, fallbackMillis) is not { } entry)
+                continue;
+            entries.Add(entry);
+        }
+        return entries;
     }
 
     private static string ScratchName(string dbPath)

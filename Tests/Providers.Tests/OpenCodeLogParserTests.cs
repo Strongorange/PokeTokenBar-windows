@@ -15,6 +15,61 @@ public class OpenCodeLogParserTests
     private static UsageEntry? ParseRow(string json) =>
         OpenCodeLogParser.ParseRow(json, "fixture", Tz);
 
+    private static UsageEntry? ParseSession(string dataJson,
+        long fallbackMillis = 1767312000000) =>
+        OpenCodeLogParser.ParseSessionMessage("msg_v2", dataJson, "fixture", fallbackMillis, Tz);
+
+    /// <summary>
+    /// Port of the v2 session_message contract (upstream #363): the model is a nested
+    /// {id, providerID} object, tokens carry no `total`, and reasoning folds into output.
+    /// </summary>
+    [Fact]
+    public void SessionMessageParsesNestedModelAndFoldsReasoningIntoOutput()
+    {
+        if (ParseSession("""
+            {"model":{"id":"gpt-5","providerID":"openai"},"time":{"created":1767312000000},
+             "tokens":{"input":100,"output":50,"reasoning":30,"cache":{"read":10,"write":20}},
+             "cost":0.5}
+            """) is not { } entry)
+        {
+            Assert.Fail("the v2 session message should parse");
+            return;
+        }
+        Assert.Equal("gpt-5", entry.Model);
+        Assert.Equal(100, entry.Input);
+        Assert.Equal(80, entry.Output);
+        Assert.Equal(20, entry.CacheWrite);
+        Assert.Equal(10, entry.CacheRead);
+        Assert.Equal(210, entry.Total);
+        Assert.Equal(0.5, entry.ExplicitCost);
+        Assert.Equal(DateTimeOffset.FromUnixTimeMilliseconds(1767312000000), entry.Date);
+        Assert.Equal("opencode|fixture|msg_v2", entry.Id);
+    }
+
+    [Fact]
+    public void SessionMessageFallsBackToTheRowStampWithoutTime()
+    {
+        if (ParseSession("""
+            {"model":{"id":"gpt-5","providerID":"openai"},
+             "tokens":{"input":1,"output":1}}
+            """) is not { } entry)
+        {
+            Assert.Fail("the v2 session message without time should parse from the row stamp");
+            return;
+        }
+        Assert.Equal(DateTimeOffset.FromUnixTimeMilliseconds(1767312000000), entry.Date);
+    }
+
+    [Fact]
+    public void SessionMessageWithoutModelObjectOrProviderIDIsSkipped()
+    {
+        Assert.Null(ParseSession("""{"modelID":"gpt-5","tokens":{"input":1,"output":1}}"""));
+        Assert.Null(ParseSession("""{"model":{"id":"gpt-5"},"tokens":{"input":1,"output":1}}"""));
+        Assert.Null(ParseSession("""{"model":{"providerID":"openai"},"tokens":{"input":1,"output":1}}"""));
+        Assert.Null(ParseSession("""{"tokens":{"input":1,"output":1}}"""));
+        Assert.Null(ParseSession("not json"));
+    }
+
     [Fact]
     public void FixtureParsesToExpectedEntries()
     {
