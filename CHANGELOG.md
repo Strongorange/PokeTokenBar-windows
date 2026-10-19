@@ -6,6 +6,41 @@ Release notes for a version are generated from its section here (see
 edition lives in `CHANGELOG.ko.md` — keep both in sync; the publish script
 refuses to release when either one is missing the current version.
 
+## v0.27.0 — Forms, usage recap, backups
+
+- Collectible alternate forms for every generation 1-5 species with an
+  animated sprite — Unown's letters generalized to Castform, Deoxys,
+  Burmy/Wormadam, Cherrim, Shellos/Gastrodon, Rotom, Giratina, Shaymin,
+  Arceus, Basculin, Darmanitan, Deerling/Sawsbuck, the forces of nature,
+  Kyurem, Keldeo, Meloetta and Genesect. The form is drawn once per line
+  at hatch, resolved per species, shown in the Pokédex detail picker and
+  kept by the representative; saves still read the old Unown keys.
+- Usage recap opens from the usage tab: one calendar week, month or year
+  at a time with day meters (exact tokens on hover — a real zero reads
+  differently from "no data"), the change against the same days of the
+  previous period, best day, active days, best streak and the Pokémon
+  graduated in that period. Rendered as a Pokédex-style LCD card; a
+  rolling local ledger keeps day totals across months so history
+  survives log rotation and the 1st of the month.
+- The Pokédex and catch log gained search (names in any stored language
+  plus number), sorting (number/name/rarity, newest first for the log)
+  and a shiny-only filter; empty results offer a one-click reset.
+- Automatic local backups: a snapshot of your save is taken every 12
+  hours (keeping the newest ten) and a state file that no longer decodes
+  is moved aside and recovered from the newest snapshot on the next
+  launch. Settings gains a backup section with create/restore and a
+  history that starts collapsed.
+- OpenCode v2 support: assistant usage written to the session_message
+  projection is now read alongside the v1 message table, so upgrading
+  OpenCode no longer drops its usage to zero.
+
+- Fixed: the update checker's 30-minute cooldown now records only a
+  validated release — a failed fetch, unsafe URL or prerelease tag no
+  longer blocks the next attempt.
+- Fixed: compact token units promote at rounding boundaries (999,950
+  shows as 1M, not 1000K) and percent/cost tiers are picked from the
+  rounded value (79.96% reads as 80%, $99.96 as $100).
+
 ## v0.26.1 — Floating pet render self-heal
 
 - Fixed: the floating pet could turn permanently invisible when an
