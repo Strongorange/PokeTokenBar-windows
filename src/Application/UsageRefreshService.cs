@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json;
 using PokeTokenBar.Core;
 using PokeTokenBar.Platform.Windows;
 
@@ -42,6 +43,7 @@ public sealed class UsageRefreshService
     private readonly object _gate = new();
     private Task<UsageDisplayState>? _inFlight;
     private UsageDisplayState? _current;
+    private UsageLedger? _ledger;
 
     public UsageRefreshService(UsageRefreshOptions? options = null)
     {
@@ -58,6 +60,19 @@ public sealed class UsageRefreshService
         get
         {
             lock (_gate) return _current;
+        }
+    }
+
+    /// <summary>
+    /// Day-by-day history behind the usage recap. Copy-on-read: the refresh path mutates the
+    /// ledger on a background thread, and the recap reads a snapshot on the UI thread.
+    /// </summary>
+    public UsageLedger LedgerCopy()
+    {
+        lock (_gate)
+        {
+            _ledger ??= UsageLedgerFile.Load(UsageLedgerFile.PathFor(_options.CacheDirectory));
+            return UsageLedger.Read(JsonDocument.Parse(_ledger.Write().ToJsonString()).RootElement);
         }
     }
 
@@ -149,6 +164,7 @@ public sealed class UsageRefreshService
         var combinedMonthDaily = UsageAggregation.MonthDailySeries(combined, now, timeZone);
         var combinedYearDaily = UsageAggregation.YearDailySeries(combined, now, timeZone);
         var combinedTodayModels = UsageAggregation.Daily(combined, todayKey, includeModels: true);
+        RecordDailyLedger(combinedYearDaily, now, timeZone);
         return new UsageDisplayState(
             now,
             summaries,
@@ -164,6 +180,37 @@ public sealed class UsageRefreshService
             combinedWeek.CostCoverage,
             combinedMonth.CostCoverage,
             combinedYearDaily);
+    }
+
+    /// <summary>
+    /// Feeds the day-by-day ledger on the refresh background path (serialized by the
+    /// single-flight gate). The year series enumerates every day of the scan window, empty ones
+    /// included, so its merge vouches for real zeros; pruning keeps this year and last year —
+    /// the year view compares against last year and nothing reaches further back. The file is
+    /// written only when the merge actually changed anything (macOS UsageStore parity).
+    /// </summary>
+    private void RecordDailyLedger(List<DailyUsage> yearDaily, DateTimeOffset now, TimeZoneInfo timeZone)
+    {
+        var changed = false;
+        lock (_gate)
+        {
+            _ledger ??= UsageLedgerFile.Load(UsageLedgerFile.PathFor(_options.CacheDirectory));
+            var before = _ledger.Write().ToJsonString(CompanionStateFile.IndentedJson);
+            _ledger.Merge(yearDaily);
+            var localNow = TimeZoneInfo.ConvertTime(now, timeZone);
+            _ledger.Prune(new DateTime(localNow.Year - 1, 1, 1)
+                .ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+            changed = _ledger.Write().ToJsonString(CompanionStateFile.IndentedJson) != before;
+        }
+        if (!changed) return;
+        try
+        {
+            UsageLedgerFile.Save(UsageLedgerFile.PathFor(_options.CacheDirectory), _ledger);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Write($"usage ledger save failed: {ex.Message}");
+        }
     }
 
     private static ProviderUsageSummary Summarize(
