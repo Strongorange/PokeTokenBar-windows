@@ -11,6 +11,7 @@ public sealed record RecapView(
     RecapScope Scope,
     int Offset,
     string Title,
+    long TotalTokens,
     string TotalText,
     string? DeltaText,
     string? CompareNote,
@@ -18,6 +19,8 @@ public sealed record RecapView(
     bool IsInProgress,
     bool CanGoBack,
     IReadOnlyList<RecapBucketView> Buckets,
+    string? BestDayDateText,
+    string BestDayTokensText,
     string BestDayText,
     string ActiveDaysText,
     string StreakText,
@@ -102,6 +105,7 @@ public static class RecapQuery
             scope,
             offset,
             title,
+            recap.Total,
             TokenFormatter.Grouped(recap.Total),
             deltaText,
             recap.IsInProgress && recap.PreviousTotal is not null
@@ -111,6 +115,11 @@ public static class RecapQuery
             recap.IsInProgress,
             recap.CanGoBack,
             buckets,
+            recap.BestDay is { } best2
+                ? DateTime.ParseExact(best2.Key, "yyyy-MM-dd", CultureInfo.InvariantCulture)
+                    .ToString("m", culture)
+                : null,
+            recap.BestDay is { } best1 ? TokenFormatter.Compact(best1.Tokens) : "--",
             bestDayText,
             $"{recap.ActiveDays}/{recap.CountedDays}",
             DashboardText.RecapDays(lang, recap.BestStreak),

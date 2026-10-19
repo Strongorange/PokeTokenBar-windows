@@ -19,7 +19,7 @@ internal sealed class UsageHomeRenderer
     private readonly TextBlock _todayBigNumber;
     private readonly TextBlock _todayGroupedLabel;
     private readonly TextBlock _todayCostLabel;
-    private readonly StackPanel _weekMonthRow;
+    private readonly DockPanel _weekMonthRow;
     private readonly StackPanel _providerChips;
     private readonly StackPanel _providerDetail;
     private readonly TextBlock _providersUnavailableText;
@@ -35,6 +35,7 @@ internal sealed class UsageHomeRenderer
     private readonly Grid _trendAxisHost;
     private readonly FrameworkElement _yearSection;
     private readonly Grid _yearHeatHost;
+    private readonly Action _openRecap;
     private string? _selectedProviderId;
     private UsageDisplayState? _lastState;
     private AppLanguage _lastLang;
@@ -43,13 +44,13 @@ internal sealed class UsageHomeRenderer
     public UsageHomeRenderer(
         FrameworkElement theme,
         TextBlock todayCaptionLabel, TextBlock todayBigNumber, TextBlock todayGroupedLabel,
-        TextBlock todayCostLabel, StackPanel weekMonthRow,
+        TextBlock todayCostLabel, DockPanel weekMonthRow,
         StackPanel providerChips, StackPanel providerDetail,
         TextBlock providersUnavailableText, FrameworkElement providersSection,
         FrameworkElement trendSection, TextBlock trendCaptionLabel, TextBlock trendPeakLabel,
         TextBlock trendPeakValue, TextBlock trendReadout, StackPanel trendModelsHost,
         Grid trendBarsHost, Grid trendTicksHost, Grid trendAxisHost,
-        FrameworkElement yearSection, Grid yearHeatHost)
+        FrameworkElement yearSection, Grid yearHeatHost, Action? openRecap = null)
     {
         _theme = theme;
         _todayCaptionLabel = todayCaptionLabel;
@@ -72,6 +73,7 @@ internal sealed class UsageHomeRenderer
         _trendAxisHost = trendAxisHost;
         _yearSection = yearSection;
         _yearHeatHost = yearHeatHost;
+        _openRecap = openRecap;
     }
 
     public void Render(UsageDisplayState state, AppLanguage lang)
@@ -109,17 +111,33 @@ internal sealed class UsageHomeRenderer
         _todayCostLabel.Text = todayCost.Coverage.HasKnown ? todayCost.Text("", compact: true) : "";
 
         _weekMonthRow.Children.Clear();
-        if (state.WeekTokens > 0 || state.MonthTokens > 0)
+        // macOS parity: period totals and the recap stay reachable on quiet days too, so a
+        // fresh install can open its recap before the first token — no conditional on totals.
+        var recapButton = new Button
         {
-            _weekMonthRow.Children.Add(CreatePeriodLabel(
-                DashboardText.ThisWeekLabel(lang), state.WeekTokens,
-                new UsageCost(state.WeekCost, state.WeekCostCoverage)));
-            var monthLabel = CreatePeriodLabel(
-                DashboardText.ThisMonthLabel(lang), state.MonthTokens,
-                new UsageCost(state.MonthCost, state.MonthCostCoverage));
-            monthLabel.Margin = new Thickness(14, 0, 0, 0);
-            _weekMonthRow.Children.Add(monthLabel);
-        }
+            Content = "📊 " + DashboardText.RecapOpen(lang),
+            MinHeight = 22,
+            Padding = new Thickness(8, 1, 8, 1),
+            FontSize = 11,
+            VerticalAlignment = VerticalAlignment.Center,
+            Cursor = System.Windows.Input.Cursors.Hand,
+            ToolTip = DashboardText.RecapOpen(lang),
+        };
+        recapButton.Click += (_, _) => _openRecap();
+        // DockPanel trap: the right-docked element joins Children first.
+        DockPanel.SetDock(recapButton, Dock.Right);
+        _weekMonthRow.Children.Add(recapButton);
+        var weekLabel = CreatePeriodLabel(
+            DashboardText.ThisWeekLabel(lang), state.WeekTokens,
+            new UsageCost(state.WeekCost, state.WeekCostCoverage));
+        weekLabel.VerticalAlignment = VerticalAlignment.Center;
+        _weekMonthRow.Children.Add(weekLabel);
+        var monthLabel = CreatePeriodLabel(
+            DashboardText.ThisMonthLabel(lang), state.MonthTokens,
+            new UsageCost(state.MonthCost, state.MonthCostCoverage));
+        monthLabel.Margin = new Thickness(14, 0, 0, 0);
+        monthLabel.VerticalAlignment = VerticalAlignment.Center;
+        _weekMonthRow.Children.Add(monthLabel);
     }
 
     private TextBlock CreatePeriodLabel(string name, long tokens, UsageCost cost)

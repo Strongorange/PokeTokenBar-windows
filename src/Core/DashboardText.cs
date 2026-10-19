@@ -285,6 +285,13 @@ public static class DashboardText
         T(lang, "사용량 돌아보기", "Usage recap", "使用量のふりかえり", "Resumen de uso",
             "Récap d'utilisation", "Resumo de uso", "Nutzungsrückblick");
 
+    public static string CloseButton(AppLanguage lang) =>
+        T(lang, "닫기", "Close", "閉じる", "Cerrar", "Fermer", "Fechar", "Schließen");
+
+    public static string CopyToClipboard(AppLanguage lang) =>
+        T(lang, "요약 복사", "Copy summary", "概要をコピー", "Copiar resumen", "Copier le résumé",
+            "Copiar resumo", "Zusammenfassung kopieren");
+
     public static string RecapScopeName(AppLanguage lang, RecapScope scope) => scope switch
     {
         RecapScope.Week => T(lang, "주간", "Week", "週", "Semana", "Semaine", "Semana", "Woche"),

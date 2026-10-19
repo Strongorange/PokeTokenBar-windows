@@ -23,6 +23,7 @@ public partial class App : System.Windows.Application
     private string _announcedUpdate = "";
     private DashboardWindow? _dashboard;
     private SettingsWindow? _settingsWindow;
+    private RecapWindow? _recapWindow;
     private FloatingPetWindow? _pet;
     private readonly UsageRootOptions _rootOptions = new();
     private readonly CancellationTokenSource _shutdown = new();
@@ -342,6 +343,31 @@ public partial class App : System.Windows.Application
         {
             _settingsWindow = null;
             AppLog.Write($"settings window open failed: {ex}");
+        }
+    }
+
+    /// <summary>
+    /// Single-instance recap window: a stale-offset window must not linger behind a fresh open
+    /// (scope/offset reset happens on the new instance).
+    /// </summary>
+    public void ShowRecap()
+    {
+        try
+        {
+            if (_recapWindow is null)
+            {
+                _recapWindow = new RecapWindow(_service, _engine, _sprites);
+                if (_dashboard is not null) _recapWindow.Owner = _dashboard;
+                else _recapWindow.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+                _recapWindow.Closed += (_, _) => _recapWindow = null;
+            }
+            _recapWindow.Show();
+            _recapWindow.Activate();
+        }
+        catch (Exception ex)
+        {
+            _recapWindow = null;
+            AppLog.Write($"recap window open failed: {ex}");
         }
     }
 

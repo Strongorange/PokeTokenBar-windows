@@ -61,7 +61,7 @@
                                                VerticalAlignment="Bottom" />
                                 </StackPanel>
                             </DockPanel>
-                            <StackPanel x:Name="WeekMonthRow" Orientation="Horizontal" Margin="0,6,0,0" />
+                            <DockPanel x:Name="WeekMonthRow" Margin="0,6,0,0" LastChildFill="True" />
                         </StackPanel>
                     </Border>
                     <Border Grid.Row="1" Style="{StaticResource Card}" Margin="0,0,0,10"

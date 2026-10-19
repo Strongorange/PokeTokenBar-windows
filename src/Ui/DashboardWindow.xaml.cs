@@ -39,7 +39,7 @@ public partial class DashboardWindow : Window
             WeekMonthRow, ProviderChips, ProviderDetail, ProvidersUnavailableText,
             ProvidersSection, TrendSection, TrendCaptionLabel, TrendPeakLabel,
             TrendPeakValue, TrendReadout, TrendModelsHost, TrendBarsHost, TrendTicksHost,
-            TrendAxisHost, YearSection, YearHeatHost);
+            TrendAxisHost, YearSection, YearHeatHost, OpenRecap);
         _shopCards = new ShopCards(this, sprites, engine, _flow,
             () => UpdateGame(_engine.View()), BagCards, ShopCardsHost, SpendableAmount);
         _companionHeader = new CompanionHeader(
@@ -68,6 +68,11 @@ public partial class DashboardWindow : Window
     public void SelectDexTab()
     {
         MainTabs.SelectedIndex = 2;
+    }
+
+    private void OpenRecap()
+    {
+        if (System.Windows.Application.Current is App app) app.ShowRecap();
     }
 
     private void LocalizeStaticText(AppLanguage lang)

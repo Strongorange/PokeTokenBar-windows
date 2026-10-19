@@ -6,27 +6,27 @@
   PokeTokenBar.Core.Tests -> C:\Users\USER\my-pjts\poketoken-bars-windows\Tests\Core.Tests\bin\Debug\net10.0\PokeTokenBar.Core.Tests.dll
 C:\Users\USER\my-pjts\poketoken-bars-windows\Tests\Core.Tests\bin\Debug\net10.0\PokeTokenBar.Core.Tests.dll(.NETCoreApp,Version=v10.0)??????뚯뒪???ㅽ뻾
   PokeTokenBar.Application -> C:\Users\USER\my-pjts\poketoken-bars-windows\src\Application\bin\Debug\net10.0\PokeTokenBar.Application.dll
+  PokeTokenBar.Providers.Tests -> C:\Users\USER\my-pjts\poketoken-bars-windows\Tests\Providers.Tests\bin\Debug\net10.0\PokeTokenBar.Providers.Tests.dll
   PokeTokenBar.Platform.Windows.Tests -> C:\Users\USER\my-pjts\poketoken-bars-windows\Tests\Platform.Windows.Tests\bin\Debug\net10.0\PokeTokenBar.Platform.Windows.Tests.dll
+C:\Users\USER\my-pjts\poketoken-bars-windows\Tests\Providers.Tests\bin\Debug\net10.0\PokeTokenBar.Providers.Tests.dll(.NETCoreApp,Version=v10.0)??????뚯뒪???ㅽ뻾
 C:\Users\USER\my-pjts\poketoken-bars-windows\Tests\Platform.Windows.Tests\bin\Debug\net10.0\PokeTokenBar.Platform.Windows.Tests.dll(.NETCoreApp,Version=v10.0)??????뚯뒪???ㅽ뻾
-吏?뺣맂 ?⑦꽩怨??쇱튂??珥??뚯뒪???뚯씪 ?섎뒗 1媛쒖엯?덈떎.
 吏?뺣맂 ?⑦꽩怨??쇱튂??珥??뚯뒪???뚯씪 ?섎뒗 1媛쒖엯?덈떎.
   PokeTokenBar.Ui -> C:\Users\USER\my-pjts\poketoken-bars-windows\src\Ui\bin\Debug\net10.0-windows\PokeTokenBar.dll
   PokeTokenBar.Application.Tests -> C:\Users\USER\my-pjts\poketoken-bars-windows\Tests\Application.Tests\bin\Debug\net10.0\PokeTokenBar.Application.Tests.dll
 C:\Users\USER\my-pjts\poketoken-bars-windows\Tests\Application.Tests\bin\Debug\net10.0\PokeTokenBar.Application.Tests.dll(.NETCoreApp,Version=v10.0)??????뚯뒪???ㅽ뻾
-  PokeTokenBar.Providers.Tests -> C:\Users\USER\my-pjts\poketoken-bars-windows\Tests\Providers.Tests\bin\Debug\net10.0\PokeTokenBar.Providers.Tests.dll
 吏?뺣맂 ?⑦꽩怨??쇱튂??珥??뚯뒪???뚯씪 ?섎뒗 1媛쒖엯?덈떎.
-C:\Users\USER\my-pjts\poketoken-bars-windows\Tests\Providers.Tests\bin\Debug\net10.0\PokeTokenBar.Providers.Tests.dll(.NETCoreApp,Version=v10.0)??????뚯뒪???ㅽ뻾
+吏?뺣맂 ?⑦꽩怨??쇱튂??珥??뚯뒪???뚯씪 ?섎뒗 1媛쒖엯?덈떎.
+吏?뺣맂 ?⑦꽩怨??쇱튂??珥??뚯뒪???뚯씪 ?섎뒗 1媛쒖엯?덈떎.
   PokeTokenBar.Ui.Tests -> C:\Users\USER\my-pjts\poketoken-bars-windows\Tests\Ui.Tests\bin\Debug\net10.0-windows\PokeTokenBar.Ui.Tests.dll
 C:\Users\USER\my-pjts\poketoken-bars-windows\Tests\Ui.Tests\bin\Debug\net10.0-windows\PokeTokenBar.Ui.Tests.dll(.NETCoreApp,Version=v10.0)??????뚯뒪???ㅽ뻾
 吏?뺣맂 ?⑦꽩怨??쇱튂??珥??뚯뒪???뚯씪 ?섎뒗 1媛쒖엯?덈떎.
-吏?뺣맂 ?⑦꽩怨??쇱튂??珥??뚯뒪???뚯씪 ?섎뒗 1媛쒖엯?덈떎.
 
-?듦낵!  - ?ㅽ뙣:     0, ?듦낵:   257, 嫄대꼫?:     0, ?꾩껜:   257, 湲곌컙: 423 ms - PokeTokenBar.Core.Tests.dll (net10.0)
+?듦낵!  - ?ㅽ뙣:     0, ?듦낵:   275, 嫄대꼫?:     0, ?꾩껜:   275, 湲곌컙: 147 ms - PokeTokenBar.Core.Tests.dll (net10.0)
 
-?듦낵!  - ?ㅽ뙣:     0, ?듦낵:    65, 嫄대꼫?:     0, ?꾩껜:    65, 湲곌컙: 781 ms - PokeTokenBar.Platform.Windows.Tests.dll (net10.0)
+?듦낵!  - ?ㅽ뙣:     0, ?듦낵:   110, 嫄대꼫?:     0, ?꾩껜:   110, 湲곌컙: 369 ms - PokeTokenBar.Providers.Tests.dll (net10.0)
 
-?듦낵!  - ?ㅽ뙣:     0, ?듦낵:   110, 嫄대꼫?:     0, ?꾩껜:   110, 湲곌컙: 452 ms - PokeTokenBar.Providers.Tests.dll (net10.0)
+?듦낵!  - ?ㅽ뙣:     0, ?듦낵:    65, 嫄대꼫?:     0, ?꾩껜:    65, 湲곌컙: 428 ms - PokeTokenBar.Platform.Windows.Tests.dll (net10.0)
 
-?듦낵!  - ?ㅽ뙣:     0, ?듦낵:     9, 嫄대꼫?:     0, ?꾩껜:     9, 湲곌컙: 610 ms - PokeTokenBar.Ui.Tests.dll (net10.0)
+?듦낵!  - ?ㅽ뙣:     0, ?듦낵:    10, 嫄대꼫?:     0, ?꾩껜:    10, 湲곌컙: 480 ms - PokeTokenBar.Ui.Tests.dll (net10.0)
 
-?듦낵!  - ?ㅽ뙣:     0, ?듦낵:   227, 嫄대꼫?:     0, ?꾩껜:   227, 湲곌컙: 7 s - PokeTokenBar.Application.Tests.dll (net10.0)
+?듦낵!  - ?ㅽ뙣:     0, ?듦낵:   235, 嫄대꼫?:     0, ?꾩껜:   235, 湲곌컙: 9 s - PokeTokenBar.Application.Tests.dll (net10.0)
