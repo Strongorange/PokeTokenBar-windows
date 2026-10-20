@@ -236,8 +236,12 @@ public static class PokemonOdds
     public const ulong DittoDisguiseDenominator = 128;
     public const int DittoSpeciesID = 132;
 
+    /// <summary>Denominator the hatch roll actually used — the shiny notice reports it (#351).</summary>
+    public static ulong ShinyDenominatorFor(bool shinyCharmOwned) =>
+        shinyCharmOwned ? ShinyCharms.ShinyDenominator : ShinyDenominator;
+
     public static bool RollsShiny(ulong roll, bool shinyCharmOwned) =>
-        roll % (shinyCharmOwned ? ShinyCharms.ShinyDenominator : ShinyDenominator) == 0;
+        roll % ShinyDenominatorFor(shinyCharmOwned) == 0;
 
     public static bool DittoDisguiseHit(ulong roll) =>
         roll % DittoDisguiseDenominator == 0;

@@ -1051,11 +1051,14 @@ public static class DashboardText
 
     // Engine event / notice texts
 
-    public static string EventHatch(AppLanguage lang, string name, bool shiny) => shiny
-        ? T(lang, $"이로치 {KoreanParticles.Attach(KoreanParticle.Subject, name)} 알에서 태어났어요!", $"A shiny {name} hatched from the egg!",
-            $"色違いの {name} がタマゴから生まれました！", $"¡Nació un {name} variocolor del huevo!",
-            $"Un {name} chromatique est sorti de l'œuf !", $"Nasceu um {name} shiny do ovo!",
-            $"Ein schillerndes {name} ist aus dem Ei geschlüpft!")
+    public static string EventHatch(AppLanguage lang, string name, bool shiny, ulong odds) => shiny
+        ? T(lang, $"이로치 {KoreanParticles.Attach(KoreanParticle.Subject, name)} 알에서 태어났어요! (1/{odds})",
+            $"A shiny {name} hatched from the egg! (1 in {odds})",
+            $"色違いの {name} がタマゴから生まれました！(1/{odds})",
+            $"¡Nació un {name} variocolor del huevo! (1 entre {odds})",
+            $"Un {name} chromatique est sorti de l'œuf ! (1 sur {odds})",
+            $"Nasceu um {name} shiny do ovo! (1 em {odds})",
+            $"Ein schillerndes {name} ist aus dem Ei geschlüpft! (1/{odds})")
         : T(lang, $"알에서 {KoreanParticles.Attach(KoreanParticle.Subject, name)} 나왔어요!", $"{name} hatched from the egg!",
             $"タマゴから {name} が生まれました！", $"¡{name} salió del huevo!",
             $"{name} est sorti de l'œuf !", $"{name} saiu do ovo!",

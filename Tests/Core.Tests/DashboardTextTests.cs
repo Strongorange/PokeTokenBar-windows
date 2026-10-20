@@ -256,11 +256,13 @@ public class DashboardTextTests
     public void EventTextsAreLocalized()
     {
         Assert.Contains("알에서 꼬렛이 나왔어요",
-            DashboardText.EventHatch(AppLanguage.Ko, "꼬렛", false));
+            DashboardText.EventHatch(AppLanguage.Ko, "꼬렛", false, 64));
         Assert.Equal("Rattata hatched from the egg!",
-            DashboardText.EventHatch(AppLanguage.En, "Rattata", false));
-        Assert.Contains("이로치 꼬렛이 알에서",
-            DashboardText.EventHatch(AppLanguage.Ko, "꼬렛", true));
+            DashboardText.EventHatch(AppLanguage.En, "Rattata", false, 64));
+        Assert.Equal("A shiny Rattata hatched from the egg! (1 in 48)",
+            DashboardText.EventHatch(AppLanguage.En, "Rattata", true, 48));
+        Assert.Contains("이로치 꼬렛이 알에서 태어났어요! (1/64)",
+            DashboardText.EventHatch(AppLanguage.Ko, "꼬렛", true, 64));
         Assert.Contains("Evolved into Raticate",
             DashboardText.EventEvolve(AppLanguage.En, "Raticate"));
     }

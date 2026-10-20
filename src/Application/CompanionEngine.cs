@@ -429,6 +429,7 @@ public sealed class CompanionEngine
             var overflow = Math.Max(0, _state.EggUsage - EggHatchThresholdCore);
             _state.EggUsage = 0;
             _state.EggTier = null;
+            var shinyOdds = PokemonOdds.ShinyDenominatorFor(OwnsShinyCharm);
             var isShiny = PokemonOdds.RollsShiny(_options.NextRoll(), OwnsShinyCharm);
             var nature = PokemonNatures.All[(int)(_options.NextRoll() % (ulong)PokemonNatures.All.Length)];
             int? dittoDisguise = DittoDisguiseHit(line.Rarity, line.TotalForms, _options.NextRoll())
@@ -443,7 +444,7 @@ public sealed class CompanionEngine
                 isShiny, nature, profile, hasGrowthBoost, dittoDisguise, form: form);
             AppLog.Write($"hatch: base={line.BaseID} rarity={Rarities.Raw(line.Rarity)} shiny={isShiny} " +
                          $"forms={plan.Count} boost={hasGrowthBoost} ditto={dittoDisguise is not null}");
-            AddEvent(EventText.Hatch, DisplayName(line, line.BaseID, form), isShiny);
+            AddEvent(EventText.Hatch, DisplayName(line, line.BaseID, form), isShiny, shinyOdds);
             SetStatusLevelUpWindow(null);
             EnrichActiveProfile();
             if (overflow > 0) ApplyGrowth(overflow);
@@ -804,12 +805,12 @@ public sealed class CompanionEngine
     private string? FormLabel(int speciesID, PokemonForm? form) =>
         PokemonForms.Label(speciesID, form, _state.Language, formID => _options.Lines.FormNames(formID));
 
-    private void AddEvent(string kind, string name, bool shiny = false)
+    private void AddEvent(string kind, string name, bool shiny = false, ulong shinyOdds = 0)
     {
         var language = _state.Language;
         var text = kind switch
         {
-            EventText.Hatch => DashboardText.EventHatch(language, name, shiny),
+            EventText.Hatch => DashboardText.EventHatch(language, name, shiny, shinyOdds),
             EventText.Evolve => DashboardText.EventEvolve(language, name),
             EventText.Graduate => DashboardText.EventGraduate(language, name),
             EventText.DittoReveal => DashboardText.EventDittoReveal(language, name, shiny),

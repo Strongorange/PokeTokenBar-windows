@@ -47,9 +47,9 @@ public class KoreanParticleTests
     public void KoreanCopyUsesTheMatchingParticle()
     {
         Assert.Equal("알에서 유니란이 나왔어요!",
-            DashboardText.EventHatch(AppLanguage.Ko, "유니란", false));
-        Assert.Equal("이로치 뚜벅쵸가 알에서 태어났어요!",
-            DashboardText.EventHatch(AppLanguage.Ko, "뚜벅쵸", true));
+            DashboardText.EventHatch(AppLanguage.Ko, "유니란", false, 64));
+        Assert.Equal("이로치 뚜벅쵸가 알에서 태어났어요! (1/48)",
+            DashboardText.EventHatch(AppLanguage.Ko, "뚜벅쵸", true, 48));
         Assert.Equal("듀란으로 진화했어요!", DashboardText.EventEvolve(AppLanguage.Ko, "듀란"));
         Assert.Equal("란쿨루스로 진화했어요!",
             DashboardText.StatusEvolved(AppLanguage.Ko, "란쿨루스"));
@@ -66,7 +66,7 @@ public class KoreanParticleTests
     public void OtherLanguagesAreUntouched()
     {
         Assert.Equal("Unfezant hatched from the egg!",
-            DashboardText.EventHatch(AppLanguage.En, "Unfezant", false));
+            DashboardText.EventHatch(AppLanguage.En, "Unfezant", false, 64));
         Assert.Equal("デスカーン に進化しました！",
             DashboardText.EventEvolve(AppLanguage.Ja, "デスカーン"));
     }

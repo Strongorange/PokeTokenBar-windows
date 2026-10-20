@@ -252,6 +252,48 @@ public class CompanionEngineTests : IDisposable
         Assert.Equal(1_000_000, active.UsedAtStage);
     }
 
+    /// #351 — 샤이니 부화 알림은 실제 굴린 분모(부적 48 / 기본 64)를 문구에 붙인다.
+    [Fact]
+    public void ShinyHatchNoticeReportsTheDenominatorActuallyRolled()
+    {
+        var engine = BuildEngine(rng: new SequenceRng(1, 0));
+        engine.State.Language = AppLanguage.Ko;
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        engine.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+
+        Assert.True(engine.State.Active!.IsShiny);
+        Assert.Contains("(1/64)", HatchNoticeText(engine));
+
+        var charm = BuildEngine(rng: new SequenceRng(1, 0), fileName: "charm-state.json");
+        charm.State.Language = AppLanguage.Ko;
+        charm.State.Inventory[ItemKinds.Raw(ItemKind.ShinyCharm)] = 1;
+        charm.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        charm.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+
+        Assert.True(charm.State.Active!.IsShiny);
+        Assert.Contains("(1/48)", HatchNoticeText(charm));
+    }
+
+    /// 비-샤이니 부화에는 확률 문구가 붙지 않는다.
+    [Fact]
+    public void NonShinyHatchNoticeHasNoOddsSuffix()
+    {
+        var engine = BuildEngine();
+        engine.State.Language = AppLanguage.Ko;
+        engine.ApplyUsage(Map(("claude_code", 0)), "2026-09-23", true);
+        engine.ApplyUsage(Map(("claude_code", 5_000_000)), "2026-09-23", true);
+
+        Assert.False(engine.State.Active!.IsShiny);
+        Assert.DoesNotContain("(1/", HatchNoticeText(engine));
+    }
+
+    private static string HatchNoticeText(CompanionEngine engine)
+    {
+        var text = engine.DrainNotices().FirstOrDefault(notice => notice.Kind == "hatch")?.Text;
+        Assert.NotNull(text);
+        return text!;
+    }
+
     [Fact]
     public void HatchedProfileIsEnrichedWithCombatDetails()
     {
