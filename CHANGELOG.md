@@ -6,6 +6,26 @@ Release notes for a version are generated from its section here (see
 edition lives in `CHANGELOG.ko.md` — keep both in sync; the publish script
 refuses to release when either one is missing the current version.
 
+## v0.28.0 — Korean particles, type badges, shiny odds
+
+- Korean copy now picks the right particle automatically: hatch, shiny
+  hatch, evolution, level-up status, egg-swap confirmations and mint
+  feedback append 을/를, 이/가 and (으)로 by the name's final consonant
+  (a ㄹ coda takes 로), so "유니란이(가)" reads "유니란이". Names the app
+  can't measure (Unown markers, pre-load "#123", Latin names) keep the
+  parenthesized dual form — a wrong particle is worse than a
+  parenthetical.
+- Type badges with the classic type-chart colors: the companion home
+  card and the species detail header show one colored capsule per type
+  (localized label, white text). Types outside the 18 (stellar, shadow)
+  render as neutral gray instead of a guessed tint. The plain
+  "Grass/Poison" text segment left the home info line — the badge row
+  directly above shows the types now.
+- The shiny hatch notification reports the odds it actually rolled:
+  1/48 with a Shiny Charm owned, 1/64 without, in all seven languages.
+- Fixed: mint feedback showed the raw English nature name ("Jolly") in
+  every language; it now uses the localized nature name.
+
 ## v0.27.0 — Forms, usage recap, backups
 
 - Collectible alternate forms for every generation 1-5 species with an
