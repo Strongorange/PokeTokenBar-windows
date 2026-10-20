@@ -73,7 +73,7 @@ public sealed class ShopFlow
         {
             var nature = _engine.UseMint();
             Feedback = nature is { } picked
-                ? language => DashboardText.MintUsed(language, picked.ToString())
+                ? language => DashboardText.MintUsed(language, PokemonNatures.Name(picked, language))
                 : DashboardText.NoMint;
         }
         else

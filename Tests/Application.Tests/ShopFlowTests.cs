@@ -226,4 +226,26 @@ public class ShopFlowTests : IDisposable
         Assert.Equal((Rarity?) null, flow.EggConfirm.Tier);
         Assert.Equal(EggConfirmStage.None, flow.EggConfirm.Stage);
     }
+
+    /// 민트 피드백은 로케일별 성격 이름으로 만들어진다 — enum 이름("Jolly")이
+    /// 한국어 문구에 그대로 노출되면 조사 선택(#356)이 무력화된다.
+    [Fact]
+    public void MintFeedbackUsesLocalizedNatureName()
+    {
+        var engine = BuildEngine();
+        FundWallet(engine, 5_000_000);
+        engine.State.Inventory[ItemKinds.Raw(ItemKind.Mint)] = 1;
+        var flow = new ShopFlow(engine);
+
+        flow.BeginBagConfirm(ItemKind.Mint);
+        flow.CommitBagConfirm();
+
+        Assert.NotNull(flow.Feedback);
+        var ko = flow.Feedback!(AppLanguage.Ko);
+        var candidates = PokemonNatures.All
+            .Select(n => DashboardText.MintUsed(AppLanguage.Ko, PokemonNatures.Name(n, AppLanguage.Ko)))
+            .ToHashSet();
+        Assert.Contains(ko, candidates);
+        Assert.DoesNotContain("(", ko);
+    }
 }

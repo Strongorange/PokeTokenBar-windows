@@ -126,7 +126,7 @@ public class DashboardTextTests
         Assert.Contains("희귀 이상이 확정", DashboardText.EggDescription(AppLanguage.Ko, Rarity.Rare));
         Assert.Equal("지금 품고 있는 알이 부화하면 살 수 있어요.",
             DashboardText.EggShopLockedHint(AppLanguage.Ko));
-        Assert.Contains("리자몽을(를) 놓아주고", DashboardText.EggConfirm(AppLanguage.Ko, "리자몽", "희귀 알"));
+        Assert.Contains("리자몽을 놓아주고 희귀 알로 바꿀까요?", DashboardText.EggConfirm(AppLanguage.Ko, "리자몽", "희귀 알"));
         Assert.Contains("Send off Charizard", DashboardText.EggConfirm(AppLanguage.En, "Charizard", "Rare Egg"));
         Assert.Contains("이로치 포켓몬이에요", DashboardText.FreshEggShinyWarning(AppLanguage.Ko));
         Assert.Contains("shiny!", DashboardText.FreshEggShinyWarning(AppLanguage.En));
@@ -255,11 +255,11 @@ public class DashboardTextTests
     [Fact]
     public void EventTextsAreLocalized()
     {
-        Assert.Contains("알에서 꼬렛이(가) 나왔어요",
+        Assert.Contains("알에서 꼬렛이 나왔어요",
             DashboardText.EventHatch(AppLanguage.Ko, "꼬렛", false));
         Assert.Equal("Rattata hatched from the egg!",
             DashboardText.EventHatch(AppLanguage.En, "Rattata", false));
-        Assert.Contains("이로치 꼬렛이(가) 알에서",
+        Assert.Contains("이로치 꼬렛이 알에서",
             DashboardText.EventHatch(AppLanguage.Ko, "꼬렛", true));
         Assert.Contains("Evolved into Raticate",
             DashboardText.EventEvolve(AppLanguage.En, "Raticate"));
@@ -465,7 +465,7 @@ public class DashboardTextTests
             DashboardText.StatusLine(AppLanguage.En, CompanionStatusKind.Tired));
         Assert.Equal("지금은 자고 있어요.", DashboardText.StatusLine(AppLanguage.Ko, CompanionStatusKind.Sleep));
         Assert.Equal("Sleeping now.", DashboardText.StatusLine(AppLanguage.En, CompanionStatusKind.Sleep));
-        Assert.Equal("리자몽(으)로 진화했어요!",
+        Assert.Equal("리자몽으로 진화했어요!",
             DashboardText.StatusLine(AppLanguage.Ko, CompanionStatusKind.LevelUp, "리자몽"));
         Assert.Equal("Evolved into Charizard!",
             DashboardText.StatusLine(AppLanguage.En, CompanionStatusKind.LevelUp, "Charizard"));

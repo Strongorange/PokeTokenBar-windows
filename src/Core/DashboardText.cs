@@ -627,7 +627,7 @@ public static class DashboardText
             "Verfügbar, sobald dein aktuelles Ei geschlüpft ist.");
 
     public static string EggConfirm(AppLanguage lang, string monName, string eggName) =>
-        T(lang, $"{monName}을(를) 놓아주고 {eggName}(으)로 바꿀까요?",
+        T(lang, $"{KoreanParticles.Attach(KoreanParticle.Object, monName)} 놓아주고 {KoreanParticles.Attach(KoreanParticle.Direction, eggName)} 바꿀까요?",
             $"Send off {monName} for the {eggName}?",
             $"{monName} を手放して {eggName} にしますか？",
             $"¿Soltar a {monName} y cambiarlo por {eggName}?",
@@ -805,7 +805,7 @@ public static class DashboardText
             $"{count} Bonbons eingesetzt");
 
     public static string MintUsed(AppLanguage lang, string nature) =>
-        T(lang, $"민트 사용 — 성격이 {nature}(으)로 변했어요", $"Mint used — nature is now {nature}",
+        T(lang, $"민트 사용 — 성격이 {KoreanParticles.Attach(KoreanParticle.Direction, nature)} 변했어요", $"Mint used — nature is now {nature}",
             $"ミント使用 — 性格が{nature}になりました", $"Menta usada — naturaleza ahora {nature}",
             $"Menthe utilisée — nature désormais {nature}", $"Menta usada — natureza agora {nature}",
             $"Minze eingesetzt — Wesen ist jetzt {nature}");
@@ -1052,17 +1052,17 @@ public static class DashboardText
     // Engine event / notice texts
 
     public static string EventHatch(AppLanguage lang, string name, bool shiny) => shiny
-        ? T(lang, $"이로치 {name}이(가) 알에서 태어났어요!", $"A shiny {name} hatched from the egg!",
+        ? T(lang, $"이로치 {KoreanParticles.Attach(KoreanParticle.Subject, name)} 알에서 태어났어요!", $"A shiny {name} hatched from the egg!",
             $"色違いの {name} がタマゴから生まれました！", $"¡Nació un {name} variocolor del huevo!",
             $"Un {name} chromatique est sorti de l'œuf !", $"Nasceu um {name} shiny do ovo!",
             $"Ein schillerndes {name} ist aus dem Ei geschlüpft!")
-        : T(lang, $"알에서 {name}이(가) 나왔어요!", $"{name} hatched from the egg!",
+        : T(lang, $"알에서 {KoreanParticles.Attach(KoreanParticle.Subject, name)} 나왔어요!", $"{name} hatched from the egg!",
             $"タマゴから {name} が生まれました！", $"¡{name} salió del huevo!",
             $"{name} est sorti de l'œuf !", $"{name} saiu do ovo!",
             $"{name} ist aus dem Ei geschlüpft!");
 
     public static string EventEvolve(AppLanguage lang, string name) =>
-        T(lang, $"{name}(으)로 진화했어요!", $"Evolved into {name}!", $"{name} に進化しました！",
+        T(lang, $"{KoreanParticles.Attach(KoreanParticle.Direction, name)} 진화했어요!", $"Evolved into {name}!", $"{name} に進化しました！",
             $"¡Evolucionó a {name}!", $"A évolué en {name} !", $"Evoluiu para {name}!",
             $"Hat sich zu {name} entwickelt!");
 
@@ -1160,7 +1160,7 @@ public static class DashboardText
             "En train de dormir.", "Agora está dormindo.", "Schläft gerade.");
 
     public static string StatusEvolved(AppLanguage lang, string name) =>
-        T(lang, $"{name}(으)로 진화했어요!", $"Evolved into {name}!", $"{name} に進化しました！",
+        T(lang, $"{KoreanParticles.Attach(KoreanParticle.Direction, name)} 진화했어요!", $"Evolved into {name}!", $"{name} に進化しました！",
             $"¡Evolucionó a {name}!", $"A évolué en {name} !", $"Evoluiu para {name}!",
             $"Hat sich zu {name} entwickelt!");
 
