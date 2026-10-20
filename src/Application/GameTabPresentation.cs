@@ -100,7 +100,8 @@ public static class GameTabPresentation
                 parts.Add(raising.Ability + (raising.AbilityIsHidden
                     ? $" ({DashboardText.HiddenMark(lang)})" : ""));
         }
-        if (detail.Types.Count > 0) parts.Add(string.Join("/", detail.Types));
+        // Types moved to the colored badge row (#391) — the text line keeps the
+        // level/nature/ability/total facts.
         parts.Add($"{DashboardText.BaseTotalLabel(lang)} {detail.BaseStatTotal}");
         return string.Join(" · ", parts);
     }

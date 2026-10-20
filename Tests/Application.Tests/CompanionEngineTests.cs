@@ -350,7 +350,9 @@ public class CompanionEngineTests : IDisposable
         Assert.NotNull(detail);
         Assert.Equal("테스트몬", detail.Name);
         Assert.Equal(Rarity.Common, detail.Rarity);
-        Assert.Equal(["풀"], detail.Types);
+        var type = Assert.Single(detail.Types);
+        Assert.Equal("grass", type.Key);
+        Assert.Equal("풀", type.Name);
         Assert.Equal(318, detail.BaseStatTotal);
         Assert.Equal(45, detail.BaseStats[0].Base);
         var abilityNames = detail.Abilities.Select(ability => ability.Name).ToList();

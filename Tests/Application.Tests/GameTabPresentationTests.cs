@@ -166,14 +166,15 @@ public class GameTabPresentationTests
         Assert.Equal("", GameTabPresentation.CombatLine(View(hasActive: false), null));
     }
 
+    /// 타입은 #391 색상 배지 행으로 옮겨갔다 — 텍스트 줄에는 더 이상 없음.
     [Fact]
-    public void CombatLineJoinsLevelGenderNatureAbilityTypesAndTotal()
+    public void CombatLineJoinsLevelGenderNatureAbilityAndTotal()
     {
         var detail = Detail(
             Individual(level: 12, gender: "♂", nature: "Jolly", ability: "Overgrow"),
             Individual(isRaising: false));
         Assert.Equal(
-            "Lv. 12 · ♂ · Jolly · Overgrow · Grass/Poison · " +
+            "Lv. 12 · ♂ · Jolly · Overgrow · " +
             DashboardText.BaseTotalLabel(AppLanguage.En) + " 318",
             GameTabPresentation.CombatLine(View(hasActive: true), detail));
     }
@@ -185,7 +186,7 @@ public class GameTabPresentationTests
             level: 5, gender: "", nature: "", ability: "Chlorophyll", abilityHidden: true));
         Assert.Equal(
             "Lv. 5 · Chlorophyll (" + DashboardText.HiddenMark(AppLanguage.En) +
-            ") · Grass/Poison · " + DashboardText.BaseTotalLabel(AppLanguage.En) + " 318",
+            ") · " + DashboardText.BaseTotalLabel(AppLanguage.En) + " 318",
             GameTabPresentation.CombatLine(View(hasActive: true), detail));
     }
 
@@ -194,7 +195,7 @@ public class GameTabPresentationTests
     {
         var detail = Detail(Individual(isRaising: false));
         Assert.Equal(
-            "Grass/Poison · " + DashboardText.BaseTotalLabel(AppLanguage.En) + " 318",
+            DashboardText.BaseTotalLabel(AppLanguage.En) + " 318",
             GameTabPresentation.CombatLine(View(hasActive: true), detail));
     }
 
@@ -293,7 +294,8 @@ public class GameTabPresentationTests
 
     private static CompanionDetailSnapshot Detail(params CompanionDetailIndividual[] individuals) =>
         new(1, "Speciemon", Rarity.Rare,
-            ["Grass", "Poison"], 7, 69, 318, [], [], [],
+            [new CompanionDetailType("grass", "Grass"), new CompanionDetailType("poison", "Poison")],
+            7, 69, 318, [], [], [],
             individuals.ToList(), [], AppLanguage.En);
 
     private static CompanionGameView View(

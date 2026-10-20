@@ -18,6 +18,7 @@ internal sealed class CompanionHeader
     private readonly TextBlock _name;
     private readonly Border _rarityCapsule;
     private readonly TextBlock _rarityCapsuleText;
+    private readonly StackPanel _typeBadges;
     private readonly TextBlock _detail;
     private readonly Border _statusCapsule;
     private readonly TextBlock _statusCapsuleText;
@@ -32,6 +33,7 @@ internal sealed class CompanionHeader
     public CompanionHeader(
         FrameworkElement theme, SpriteStore sprites,
         TextBlock name, Border rarityCapsule, TextBlock rarityCapsuleText,
+        StackPanel typeBadges,
         TextBlock detail, Border statusCapsule, TextBlock statusCapsuleText,
         TextBlock combatText, TextBlock progressLabel, ProgressBar progressBar,
         TextBlock statusText, FrameworkElement evolutionScroll, StackPanel evolutionLine,
@@ -42,6 +44,7 @@ internal sealed class CompanionHeader
         _name = name;
         _rarityCapsule = rarityCapsule;
         _rarityCapsuleText = rarityCapsuleText;
+        _typeBadges = typeBadges;
         _detail = detail;
         _statusCapsule = statusCapsule;
         _statusCapsuleText = statusCapsuleText;
@@ -100,6 +103,7 @@ internal sealed class CompanionHeader
             : Token("TextSecondaryBrush");
 
         RenderEvolutionLine(view);
+        RenderTypeBadges(view, detail);
         if (view.HasActive)
             _companionSprite.Update(_sprites, view.ActiveSpeciesID, true, view.IsShiny,
                 view.ActiveForm, "❔");
@@ -108,6 +112,40 @@ internal sealed class CompanionHeader
 
         _combatText.Text = GameTabPresentation.CombatLine(view, detail);
         _statusText.Text = DashboardText.StatusLine(lang, view.Status, view.StatusEvolvedName);
+    }
+
+    /// <summary>
+    /// Type badge row (#391) — game-chart colored capsules under the name,
+    /// only for a hatched companion with species details. Types outside the
+    /// 18 (stellar, shadow) render as neutral gray rather than a guessed tint.
+    /// </summary>
+    private void RenderTypeBadges(CompanionGameView view, CompanionDetailSnapshot? detail)
+    {
+        _typeBadges.Children.Clear();
+        var visible = view.HasActive && detail is { Types.Count: > 0 };
+        _typeBadges.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+        if (!visible || detail is null) return;
+        for (var i = 0; i < detail.Types.Count; i++)
+        {
+            var (key, name) = detail.Types[i];
+            var brush = PokemonTypes.FromApiName(key) is { } type
+                ? Paint.HexBrush($"#{PokemonTypes.Hex(type):X6}")
+                : Brushes.Gray;
+            _typeBadges.Children.Add(new Border
+            {
+                CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(6, 1, 6, 1),
+                Margin = new Thickness(0, 0, i == detail.Types.Count - 1 ? 0 : 5, 0),
+                Background = brush,
+                Child = new TextBlock
+                {
+                    Text = name.ToUpperInvariant(),
+                    FontSize = 8,
+                    FontWeight = FontWeights.Bold,
+                    Foreground = Brushes.White,
+                },
+            });
+        }
     }
 
     private void RenderEvolutionLine(CompanionGameView view)

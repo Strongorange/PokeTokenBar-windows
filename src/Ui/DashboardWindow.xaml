@@ -181,6 +181,7 @@
                                     <TextBlock x:Name="CompanionName" Text="Token Egg" FontSize="18"
                                                FontWeight="SemiBold" />
                                 </DockPanel>
+                                <StackPanel x:Name="TypeBadges" Orientation="Horizontal" Margin="0,3,0,0" />
                                 <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
                                     <TextBlock x:Name="CompanionDetail" FontSize="12"
                                                Foreground="{DynamicResource TextSecondaryBrush}" />

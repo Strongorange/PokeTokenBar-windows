@@ -45,6 +45,7 @@ public partial class DashboardWindow : Window
         _companionHeader = new CompanionHeader(
             this, sprites,
             CompanionName, RarityCapsule, RarityCapsuleText,
+            TypeBadges,
             CompanionDetail, StatusCapsule, StatusCapsuleText,
             CombatText, ProgressLabel, ProgressBar, CompanionStatusText,
             EvolutionScroll, EvolutionLine, CompanionSprite, CompanionSpritePlaceholder);

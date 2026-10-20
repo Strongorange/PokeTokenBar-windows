@@ -91,11 +91,14 @@ public sealed record CompanionDetailIndividual(
     IReadOnlyList<CompanionDetailStat> Stats,
     IReadOnlyList<CompanionDetailKnownMove> Moves);
 
+/// <summary>A species type: the canonical PokeAPI key (badge color) and localized name (label).</summary>
+public readonly record struct CompanionDetailType(string Key, string Name);
+
 public sealed record CompanionDetailSnapshot(
     int SpeciesID,
     string Name,
     Rarity? Rarity,
-    IReadOnlyList<string> Types,
+    IReadOnlyList<CompanionDetailType> Types,
     int Height,
     int Weight,
     int BaseStatTotal,
@@ -1334,7 +1337,8 @@ public sealed class CompanionEngine
             speciesID,
             name,
             rarity,
-            details.Types.Select(type => _options.Lines.ResourceName(PokemonResourceKinds.Type, type, language)).ToList(),
+            details.Types.Select(type => new CompanionDetailType(
+                type, _options.Lines.ResourceName(PokemonResourceKinds.Type, type, language))).ToList(),
             details.Height,
             details.Weight,
             details.BaseStatTotal,

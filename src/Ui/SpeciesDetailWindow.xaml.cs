@@ -90,6 +90,8 @@ public partial class SpeciesDetailWindow : Window
         AddTitle($"{detail.Name}  ·  #{detail.SpeciesID}");
         if (detail.Rarity is { } rarity)
             AddSecondary(ContentRoot, DashboardText.RarityLabel(lang, rarity), header: true);
+        if (detail.Types.Count > 0)
+            AddTypeCapsules(detail.Types);
         _shinyLine = new TextBlock { FontSize = 11, Margin = new Thickness(0, 2, 0, 0) };
         _raisingLine = new TextBlock
         {
@@ -124,8 +126,6 @@ public partial class SpeciesDetailWindow : Window
     private void BuildSpeciesData(CompanionDetailSnapshot detail, AppLanguage lang)
     {
         AddSection(ContentRoot, DashboardText.SpeciesDataTitle(lang));
-        if (detail.Types.Count > 0)
-            AddTypeCapsules(detail.Types);
         AddValuePairs(ContentRoot,
             (DashboardText.HeightLabel(lang), $"{detail.Height / 10.0:0.0} m"),
             (DashboardText.WeightLabel(lang), $"{detail.Weight / 10.0:0.0} kg"),
@@ -388,30 +388,39 @@ public partial class SpeciesDetailWindow : Window
             Margin = new Thickness(0, 10, 0, 2)
         });
 
-    private void AddTypeCapsules(IReadOnlyList<string> types)
+    /// <summary>
+    /// Type capsules in the identity header (#391) — game-chart colors keyed by
+    /// the canonical PokeAPI name; unknown types fall back to neutral gray.
+    /// </summary>
+    private void AddTypeCapsules(IReadOnlyList<CompanionDetailType> types)
     {
         var row = new StackPanel
         {
             Orientation = Orientation.Horizontal,
-            Margin = new Thickness(0, 2, 0, 0)
+            Margin = new Thickness(0, 4, 0, 0)
         };
-        foreach (var type in types)
+        for (var i = 0; i < types.Count; i++)
         {
+            var (key, name) = types[i];
+            var brush = PokemonTypes.FromApiName(key) is { } type
+                ? Paint.HexBrush($"#{PokemonTypes.Hex(type):X6}")
+                : Brushes.Gray;
             row.Children.Add(new Border
             {
                 CornerRadius = new CornerRadius(9),
-                Padding = new Thickness(6, 3, 6, 3),
-                Margin = new Thickness(0, 0, 5, 0),
-                Background = Token("AccentSoftBrush"),
+                Padding = new Thickness(7, 2, 7, 2),
+                Margin = new Thickness(0, 0, i == types.Count - 1 ? 0 : 5, 0),
+                Background = brush,
                 Child = new TextBlock
                 {
-                    Text = type.ToUpperInvariant(),
+                    Text = name.ToUpperInvariant(),
                     FontSize = 9,
                     FontWeight = FontWeights.Bold,
+                    Foreground = Brushes.White,
                 },
             });
         }
-        ContentRoot.Children.Add(row);
+        HeaderRoot.Children.Add(row);
     }
 
     private void AddValuePairs(StackPanel target, params (string Label, string Value)[] pairs)
