@@ -6,6 +6,17 @@ Release notes for a version are generated from its section here (see
 edition lives in `CHANGELOG.ko.md` — keep both in sync; the publish script
 refuses to release when either one is missing the current version.
 
+## v0.29.0 — Floating companion in the dex
+
+- Opening the Pokédex now finds your floating companion for you. The tile
+  of the species currently on your desktop — the representative when one
+  is pinned, otherwise the companion you are raising — gets a soft accent
+  background, and the grid scrolls that tile into the middle of the view.
+  Entering the dex tab, "Choose in Pokédex…" from settings and coming
+  back from the catch log all land on it; the tile's tooltip says why it
+  is tinted. A lone floating egg has no dex row, so nothing is
+  highlighted.
+
 ## v0.28.0 — Korean particles, type badges, shiny odds
 
 - Korean copy now picks the right particle automatically: hatch, shiny
