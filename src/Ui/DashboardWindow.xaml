@@ -35,7 +35,7 @@
                 </StackPanel>
             </StackPanel>
         </Border>
-        <TabControl Grid.Row="1" x:Name="MainTabs">
+        <TabControl Grid.Row="1" x:Name="MainTabs" SelectionChanged="OnMainTabsSelectionChanged">
             <TabItem Header="_Usage">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -296,8 +296,10 @@
                                 </ItemsPanelTemplate>
                             </ListBox.ItemsPanel>
                             <ListBox.ItemContainerStyle>
-                                <!-- macOS parity: representative tile = tinted background, just-clicked
-                                     tile = accent border (CompanionView.DexSpeciesCell). The constant
+                                <!-- macOS parity: floating-subject tile (representative when
+                                     pinned, else the active companion) = tinted background in
+                                     CreateDexTile, just-clicked tile = accent border
+                                     (CompanionView.DexSpeciesCell). The constant
                                      transparent border keeps selection from shifting tile layout. -->
                                 <Style TargetType="ListBoxItem"
                                        BasedOn="{StaticResource {x:Type ListBoxItem}}">

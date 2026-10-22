@@ -73,32 +73,31 @@ public partial class FloatingPetWindow : Window
 
     public void Update(CompanionGameView view)
     {
-        var representativeID = view.RepresentativeSpeciesID;
-        var speciesID = representativeID ?? view.ActiveSpeciesID;
-        var shiny = representativeID is not null ? view.RepresentativeIsShiny : view.IsShiny;
-        var form = representativeID is not null ? view.RepresentativeForm : view.ActiveForm;
-        var egg = view.IsEgg && representativeID is null;
-        var subject = (egg, speciesID, shiny, form);
+        // Same decision the dex grid highlights — DexFocus owns it, so the
+        // pet can never float a species the grid would not tint.
+        var current = DexFocus.Resolve(view);
+        var subject = (current.Egg, current.SpeciesID, current.Shiny, current.Form);
         if (_lastSubject == subject) return;
         _lastSubject = subject;
         var version = ++_renderVersion;
 
-        var animated = !egg && PokemonAssets.HasAnimatedSprite(speciesID);
-        var cached = egg
+        var animated = !current.Egg && PokemonAssets.HasAnimatedSprite(current.SpeciesID);
+        var cached = current.Egg
             ? WrapEgg(_store.CachedEgg())
-            : _store.CachedSubject(speciesID, animated, shiny, form);
+            : _store.CachedSubject(current.SpeciesID, animated, current.Shiny, current.Form);
         if (cached is not null)
         {
             Render(cached);
-            if (animated && !cached.Animated) UpgradeToAnimated(version, speciesID, shiny, form);
+            if (animated && !cached.Animated)
+                UpgradeToAnimated(version, current.SpeciesID, current.Shiny, current.Form);
             return;
         }
-        ShowPlaceholder(egg ? "🥚" : "❔");
+        ShowPlaceholder(current.Egg ? "🥚" : "❔");
         Task.Run(() =>
         {
-            var fetched = egg
+            var fetched = current.Egg
                 ? WrapEgg(_store.Egg())
-                : _store.Subject(speciesID, animated, shiny, form);
+                : _store.Subject(current.SpeciesID, animated, current.Shiny, current.Form);
             if (fetched is null) return;
             Dispatcher.BeginInvoke(() =>
             {

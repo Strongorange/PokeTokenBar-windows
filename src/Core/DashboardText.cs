@@ -1021,6 +1021,10 @@ public static class DashboardText
         T(lang, "대표", "Representative", "代表", "Representante", "Représentatif", "Representante",
             "Repräsentativ");
 
+    public static string FloatingNowBadge(AppLanguage lang) =>
+        T(lang, "플로팅 중", "floating now", "フローティング中", "flotando ahora", "sur le bureau",
+            "flutuando agora", "schwebt gerade");
+
     // Usage home
 
     public static string TodayTokensHeader(AppLanguage lang) =>

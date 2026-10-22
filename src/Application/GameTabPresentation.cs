@@ -116,15 +116,20 @@ public static class GameTabPresentation
         $"{DashboardText.CatchLogTitle(view.Language)} · " +
         DashboardText.DexTotalCount(view.Language, view.CatchRows.Count);
 
-    public static string TileTooltip(CompanionDexRow row, bool isRepresentative, AppLanguage lang)
+    public static string TileTooltip(CompanionDexRow row, bool isRepresentative, AppLanguage lang,
+        bool isFloating = false)
     {
         var star = row.IsShiny ? " ✨" : "";
         var raising = row.IsRaising ? $"  ← {DashboardText.RaisingLabel(lang)}" : "";
         var forms = row.FormsTotal > 1
             ? $" · {DashboardText.FormsCollected(lang, row.FormsOwned, row.FormsTotal)}" : "";
         var representative = isRepresentative ? $" · {DashboardText.RepresentativeBadge(lang)}" : "";
+        // The representative badge already explains why its tile floats; the
+        // floating badge disambiguates the tint on the unpinned active tile.
+        var floating = isFloating && !isRepresentative
+            ? $" · {DashboardText.FloatingNowBadge(lang)}" : "";
         return $"#{row.SpeciesID} {row.Name}{star} · " +
-               $"{DashboardText.RarityLabel(lang, row.Rarity)}{raising}{forms}{representative}";
+               $"{DashboardText.RarityLabel(lang, row.Rarity)}{raising}{forms}{representative}{floating}";
     }
 
     public static string TileName(CompanionDexRow row) =>

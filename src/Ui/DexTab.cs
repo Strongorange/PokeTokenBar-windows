@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
+using System.Windows.Threading;
 using PokeTokenBar.Application;
 using PokeTokenBar.Core;
 
@@ -144,6 +145,29 @@ internal sealed class DexTab
 
     public void ShowLog(bool showLog) => _showLog = showLog;
 
+    /// <summary>
+    /// Scrolls the floating subject's tile to the middle of the dex grid.
+    /// Call only on dex screen entry (tab or mode switch) — a background
+    /// refresh re-renders on every engine change, and revealing on each of
+    /// those would keep resetting the user's own scrolling.
+    /// </summary>
+    public void RevealFloatingSubject()
+    {
+        // Tab content realizes lazily; queue behind the layout pass so the
+        // grid has real tile positions before the offset math runs.
+        _list.Dispatcher.BeginInvoke(DispatcherPriority.Loaded, CenterOnFloatingSubject);
+    }
+
+    private void CenterOnFloatingSubject()
+    {
+        if (_lastView is not { } view || _showLog || !_list.IsVisible) return;
+        // Recomputed here, not at queue time: a refresh may have re-filtered
+        // or re-sorted the rows between queueing and this callback.
+        if (DexFocus.VisibleRowIndex(_visibleRows, DexFocus.DexSpeciesID(view)) is not { } index)
+            return;
+        DexScroll.CenterOn(_list, index);
+    }
+
     public CompanionDexRow? RowAt(int index) =>
         index >= 0 && index < _visibleRows.Count ? _visibleRows[index] : null;
 
@@ -229,9 +253,14 @@ internal sealed class DexTab
             _rarityFilter.Visibility = _rarityFilter.Children.Count > 0
                 ? Visibility.Visible
                 : Visibility.Collapsed;
+            // Tinted tile = what floats on the desktop now (representative when
+            // pinned, otherwise the active companion) — DexFocus keeps the pet
+            // window and this grid on the same subject.
+            var floatingID = DexFocus.DexSpeciesID(view);
             foreach (var row in _visibleRows)
                 _list.Items.Add(CreateDexTile(row, lang,
-                    row.SpeciesID == view.RepresentativeSpeciesID));
+                    row.SpeciesID == view.RepresentativeSpeciesID,
+                    row.SpeciesID == floatingID));
             RestoreSelection();
             _footer.Visibility = Visibility.Visible;
         }
@@ -425,13 +454,14 @@ internal sealed class DexTab
         return capsule;
     }
 
-    private UIElement CreateDexTile(CompanionDexRow row, AppLanguage lang, bool isRepresentative)
+    private UIElement CreateDexTile(CompanionDexRow row, AppLanguage lang, bool isRepresentative,
+        bool isFloating)
     {
         var tile = new Grid
         {
             Width = 76,
             Margin = new Thickness(1),
-            ToolTip = GameTabPresentation.TileTooltip(row, isRepresentative, lang),
+            ToolTip = GameTabPresentation.TileTooltip(row, isRepresentative, lang, isFloating),
         };
         for (var i = 0; i < 3; i++) tile.RowDefinitions.Add(new RowDefinition());
 
@@ -500,7 +530,7 @@ internal sealed class DexTab
         Grid.SetRow(name, 2);
         tile.Children.Add(name);
         tile.ContextMenu = BuildTileMenu(row, lang, isRepresentative);
-        if (!isRepresentative) return tile;
+        if (!isFloating) return tile;
         return new Border
         {
             Background = Token("AccentSoftBrush"),

@@ -246,6 +246,27 @@ public class GameTabPresentationTests
     }
 
     [Fact]
+    public void TileTooltipMarksTheFloatingSubjectOnlyWhenUnpinned()
+    {
+        var floating = GameTabPresentation.TileTooltip(
+            new CompanionDexRow(25, "Speciemon", Rarity.Rare, false, true),
+            false, AppLanguage.En, isFloating: true);
+        Assert.EndsWith(" · " + DashboardText.FloatingNowBadge(AppLanguage.En), floating);
+
+        // The representative is the floating subject by definition — the
+        // representative badge already says so, no duplicated badge.
+        var pinned = GameTabPresentation.TileTooltip(
+            new CompanionDexRow(25, "Speciemon", Rarity.Rare, false, true),
+            true, AppLanguage.En, isFloating: true);
+        Assert.EndsWith(" · " + DashboardText.RepresentativeBadge(AppLanguage.En), pinned);
+
+        var plain = GameTabPresentation.TileTooltip(
+            new CompanionDexRow(25, "Speciemon", Rarity.Rare, false, true),
+            false, AppLanguage.En, isFloating: false);
+        Assert.DoesNotContain(DashboardText.FloatingNowBadge(AppLanguage.En), plain);
+    }
+
+    [Fact]
     public void TileNamePrefixesRaisingAndSuffixesFormCount()
     {
         Assert.Equal("Speciemon", GameTabPresentation.TileName(

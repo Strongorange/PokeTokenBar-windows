@@ -68,7 +68,18 @@ public partial class DashboardWindow : Window
 
     public void SelectDexTab()
     {
-        MainTabs.SelectedIndex = 2;
+        if (MainTabs.SelectedIndex == 2)
+            _dexTab.RevealFloatingSubject(); // already on the dex tab — no event fires
+        else
+            MainTabs.SelectedIndex = 2; // the selection change triggers the reveal
+    }
+
+    /// <summary>Entering the dex screen centers the floating subject's tile,
+    /// so the desktop companion is one glance away instead of a grid hunt.</summary>
+    private void OnMainTabsSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (((TabControl) sender).SelectedIndex == 2)
+            _dexTab.RevealFloatingSubject();
     }
 
     private void OpenRecap()
@@ -171,6 +182,10 @@ public partial class DashboardWindow : Window
         _dexTab.ShowLog(ReferenceEquals(sender, DexModeLogRadio));
         if (_lastView is { } view)
             UpdateGame(view);
+        // Returning from the catch log rebuilt the grid from scratch (scroll
+        // resets) — re-center on the floating subject like a fresh entry.
+        if (!ReferenceEquals(sender, DexModeLogRadio))
+            _dexTab.RevealFloatingSubject();
     }
 
     private void OnDexDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
