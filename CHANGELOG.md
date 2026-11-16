@@ -6,6 +6,20 @@ Release notes for a version are generated from its section here (see
 edition lives in `CHANGELOG.ko.md` — keep both in sync; the publish script
 refuses to release when either one is missing the current version.
 
+## v0.30.0 — Usage scanning runs outside the app
+
+- On every refresh the app starts a short-lived copy of itself
+  (`PokeTokenBar.exe --scan`) that reads the usage logs and prints only the
+  totals. The app process now stays around 170–180 MB instead of 500 MB or
+  more; the scan process runs for a few seconds every five minutes and
+  exits. If the scan process fails, that refresh runs inside the app as
+  before.
+- Providers hand over per-day totals instead of every usage entry, and the
+  app compacts its memory after each refresh.
+- Fixed: requesting a refresh right after one finished could return the
+  finished result instead of starting a new refresh.
+- During a refresh, Task Manager briefly shows two PokeTokenBar processes.
+
 ## v0.29.1 — Lower memory use
 
 - Usage logs are no longer read into memory whole. Claude Code and Codex
