@@ -6,6 +6,20 @@ Release notes for a version are generated from its section here (see
 edition lives in `CHANGELOG.ko.md` — keep both in sync; the publish script
 refuses to release when either one is missing the current version.
 
+## v0.29.1 — Lower memory use
+
+- Usage logs are no longer read into memory whole. Claude Code and Codex
+  logs are read line by line, lines without usage are skipped before they
+  are decoded, and an active session is read from where the previous
+  refresh stopped. On a machine with about 7 GB of logs, memory after
+  startup dropped from about 1.4 GB to about 340 MB, and a 200 MB session
+  no longer costs over 1 GB on every refresh.
+- The usage cache is read and written as a stream instead of one large
+  string.
+- The first launch after upgrading rebuilds the usage cache by reading
+  every log again, so the first refresh takes longer than usual (about
+  40 seconds for 7 GB of logs on the test machine).
+
 ## v0.29.0 — Floating companion in the dex
 
 - Opening the Pokédex now finds your floating companion for you. The tile
