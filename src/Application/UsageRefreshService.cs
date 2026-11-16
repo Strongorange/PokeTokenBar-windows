@@ -30,6 +30,12 @@ public sealed class UsageRefreshOptions
     /// <summary>Runs on the refresh thread after each successful refresh, e.g. to give memory back.</summary>
     public Action? AfterRefresh { get; init; }
 
+    /// <summary>
+    /// Computes the display state somewhere else, e.g. in a short-lived scan process. When it fails the
+    /// service computes in process for that round. Providers and their caches load only on that fallback.
+    /// </summary>
+    public Func<CancellationToken, UsageDisplayState>? Compute { get; init; }
+
     public static string DefaultCacheDirectory() =>
         Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -42,7 +48,7 @@ public sealed class UsageRefreshService
     private readonly Func<DateTimeOffset> _clock;
     private readonly Func<TimeSpan, CancellationToken, Task> _delay;
     private readonly IUsageRootSource _rootSource;
-    private readonly IReadOnlyList<ProviderRegistration> _providers;
+    private readonly Lazy<IReadOnlyList<ProviderRegistration>> _providers;
     private readonly object _gate = new();
     private Task<UsageDisplayState>? _inFlight;
     private UsageDisplayState? _current;
@@ -54,8 +60,8 @@ public sealed class UsageRefreshService
         _clock = _options.Clock ?? (static () => DateTimeOffset.UtcNow);
         _delay = _options.Delay ?? Task.Delay;
         _rootSource = _options.RootSource ?? new DiscoveryUsageRootSource(_options.RootOptions);
-        _providers = _options.Providers ??
-            ProviderCatalog.Default(_options.CacheDirectory, _options.FileSystem);
+        _providers = new Lazy<IReadOnlyList<ProviderRegistration>>(() => _options.Providers ??
+            ProviderCatalog.Default(_options.CacheDirectory, _options.FileSystem));
     }
 
     public UsageDisplayState? Current
@@ -74,6 +80,8 @@ public sealed class UsageRefreshService
     {
         lock (_gate)
         {
+            // 바깥 프로세스가 계산하면 usage-ledger.json 도 그쪽이 고쳐서, 메모리에 둔 사본은 낡음
+            if (_options.Compute is not null) _ledger = null;
             _ledger ??= UsageLedgerFile.Load(UsageLedgerFile.PathFor(_options.CacheDirectory));
             return UsageLedger.Read(JsonDocument.Parse(_ledger.Write().ToJsonString()).RootElement);
         }
@@ -117,32 +125,51 @@ public sealed class UsageRefreshService
     private async Task RefreshOnceAsync(
         TaskCompletionSource<UsageDisplayState> completion, CancellationToken cancellationToken)
     {
-        UsageDisplayState? state = null;
+        UsageDisplayState state;
         try
         {
             state = await Task.Run(() =>
             {
-                var refreshed = RefreshAll(cancellationToken);
+                var refreshed = Compute(cancellationToken);
                 _options.AfterRefresh?.Invoke();
                 return refreshed;
             }, CancellationToken.None);
-            lock (_gate) _current = state;
-            completion.SetResult(state);
         }
         catch (Exception ex)
         {
             AppLog.Write($"refresh failed: {ex.GetType().Name}: {ex.Message}");
+            lock (_gate) _inFlight = null;
             completion.SetException(ex);
             return;
         }
-        finally
+        // 완료를 알리기 전에 진행 중 표시를 지워야, 기다리던 쪽이 바로 다시 부를 때 새 갱신이 돎
+        lock (_gate)
         {
-            lock (_gate) _inFlight = null;
+            _current = state;
+            _inFlight = null;
         }
+        completion.SetResult(state);
         StateChanged?.Invoke(state);
     }
 
-    private UsageDisplayState RefreshAll(CancellationToken cancellationToken)
+    private UsageDisplayState Compute(CancellationToken cancellationToken)
+    {
+        if (_options.Compute is { } external)
+        {
+            try
+            {
+                return external(cancellationToken);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                AppLog.Write($"out-of-process refresh failed, computing in process: {ex.GetType().Name}: {ex.Message}");
+            }
+        }
+        return RefreshAll(cancellationToken);
+    }
+
+    /// <summary>Scans every provider and builds the display state in this process.</summary>
+    public UsageDisplayState RefreshAll(CancellationToken cancellationToken = default)
     {
         var now = _clock();
         var timeZone = _options.TimeZone ?? TimeZoneInfo.Local;
@@ -157,7 +184,7 @@ public sealed class UsageRefreshService
 
         var summaries = new List<ProviderUsageSummary>();
         var combined = new DailyUsageTable();
-        foreach (var provider in _providers)
+        foreach (var provider in _providers.Value)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var providerRoots = roots.Where(root => provider.RootKinds.Contains(root.Kind)).ToList();

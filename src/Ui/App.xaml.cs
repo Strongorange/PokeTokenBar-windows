@@ -49,6 +49,10 @@ public partial class App : System.Windows.Application
         {
             RootOptions = _rootOptions,
             AfterRefresh = ManagedMemory.ReturnFreedMemory,
+            Compute = cancellationToken => UsageScanProcess.Run(
+                Environment.ProcessPath ?? throw new InvalidOperationException("process path unavailable"),
+                UsageScanProcess.DefaultTimeout,
+                cancellationToken),
         });
         _service.StateChanged += OnStateChanged;
         _rateFeed = new ModelRateFeed();
