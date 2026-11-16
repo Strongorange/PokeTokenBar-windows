@@ -6,6 +6,13 @@ Release notes for a version are generated from its section here (see
 edition lives in `CHANGELOG.ko.md` — keep both in sync; the publish script
 refuses to release when either one is missing the current version.
 
+## v0.30.1 — Software rendering
+
+- The app now draws with WPF's software renderer. Hardware rendering made
+  the graphics driver hold memory of its own: about 30 MB more with only
+  the companion on screen and about 50 MB more with the dashboard and the
+  Pokédex open. CPU use can rise slightly while the dashboard is open.
+
 ## v0.30.0 — Usage scanning runs outside the app
 
 - On every refresh the app starts a short-lived copy of itself

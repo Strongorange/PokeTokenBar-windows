@@ -9,7 +9,7 @@
     <AssemblyName>PokeTokenBar</AssemblyName>
     <RootNamespace>PokeTokenBar.Ui</RootNamespace>
     <StartupObject>PokeTokenBar.Ui.Program</StartupObject>
-    <Version>0.30.0</Version>
+    <Version>0.30.1</Version>
     <ApplicationIcon>..\..\assets\pokeball.ico</ApplicationIcon>
   </PropertyGroup>
 
