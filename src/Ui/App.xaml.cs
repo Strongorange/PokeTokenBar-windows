@@ -45,7 +45,11 @@ public partial class App : System.Windows.Application
             ShopDifficulty = _settings.ShopDifficulty,
         });
         _engine.Changed += OnCompanionChanged;
-        _service = new UsageRefreshService(new UsageRefreshOptions { RootOptions = _rootOptions });
+        _service = new UsageRefreshService(new UsageRefreshOptions
+        {
+            RootOptions = _rootOptions,
+            AfterRefresh = ManagedMemory.ReturnFreedMemory,
+        });
         _service.StateChanged += OnStateChanged;
         _rateFeed = new ModelRateFeed();
         _rateFeed.LoadCached();

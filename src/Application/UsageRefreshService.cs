@@ -27,6 +27,9 @@ public sealed class UsageRefreshOptions
 
     public IReadOnlyList<ProviderRegistration>? Providers { get; init; }
 
+    /// <summary>Runs on the refresh thread after each successful refresh, e.g. to give memory back.</summary>
+    public Action? AfterRefresh { get; init; }
+
     public static string DefaultCacheDirectory() =>
         Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -117,7 +120,12 @@ public sealed class UsageRefreshService
         UsageDisplayState? state = null;
         try
         {
-            state = await Task.Run(() => RefreshAll(cancellationToken), CancellationToken.None);
+            state = await Task.Run(() =>
+            {
+                var refreshed = RefreshAll(cancellationToken);
+                _options.AfterRefresh?.Invoke();
+                return refreshed;
+            }, CancellationToken.None);
             lock (_gate) _current = state;
             completion.SetResult(state);
         }
