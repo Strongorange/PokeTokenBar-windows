@@ -148,22 +148,22 @@ public sealed class UsageRefreshService
             .ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
         var summaries = new List<ProviderUsageSummary>();
-        var combined = new List<UsageEntry>();
+        var combined = new DailyUsageTable();
         foreach (var provider in _providers)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var providerRoots = roots.Where(root => provider.RootKinds.Contains(root.Kind)).ToList();
             var outcome = provider.Refresh(now, timeZone, providerRoots);
             summaries.Add(Summarize(outcome, todayKey, monthKey, monthFrom, weekKey));
-            combined.AddRange(outcome.Snapshot.Entries);
+            combined.AddRange(outcome.Days);
         }
 
-        var combinedToday = UsageAggregation.Daily(combined, todayKey);
-        var combinedMonth = UsageAggregation.Period(combined, monthKey, monthFrom, todayKey);
-        var combinedWeek = UsageAggregation.Period(combined, weekKey, weekKey, todayKey);
-        var combinedMonthDaily = UsageAggregation.MonthDailySeries(combined, now, timeZone);
-        var combinedYearDaily = UsageAggregation.YearDailySeries(combined, now, timeZone);
-        var combinedTodayModels = UsageAggregation.Daily(combined, todayKey, includeModels: true);
+        var combinedToday = combined.Daily(todayKey);
+        var combinedMonth = combined.Period(monthKey, monthFrom, todayKey);
+        var combinedWeek = combined.Period(weekKey, weekKey, todayKey);
+        var combinedMonthDaily = combined.MonthDailySeries(now, timeZone);
+        var combinedYearDaily = combined.YearDailySeries(now, timeZone);
+        var combinedTodayModels = combined.Daily(todayKey, includeModels: true);
         RecordDailyLedger(combinedYearDaily, now, timeZone);
         return new UsageDisplayState(
             now,
@@ -220,12 +220,12 @@ public sealed class UsageRefreshService
         string monthFrom,
         string weekFrom)
     {
-        var today = UsageAggregation.Daily(outcome.Snapshot.Entries, todayKey, includeModels: true);
-        var month = UsageAggregation.Period(outcome.Snapshot.Entries, monthKey, monthFrom, todayKey);
-        var week = UsageAggregation.Period(outcome.Snapshot.Entries, monthKey, weekFrom, todayKey);
+        var today = outcome.Days.Daily(todayKey, includeModels: true);
+        var month = outcome.Days.Period(monthKey, monthFrom, todayKey);
+        var week = outcome.Days.Period(monthKey, weekFrom, todayKey);
         return new ProviderUsageSummary(
-            outcome.Snapshot.ProviderId,
-            outcome.Snapshot.DisplayName,
+            outcome.ProviderId,
+            outcome.DisplayName,
             outcome.Available,
             today?.TotalTokens ?? 0,
             today?.TotalCost ?? 0,

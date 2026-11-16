@@ -47,11 +47,11 @@ public static class ProviderCatalog
             {
                 var available = roots.Count > 0;
                 if (!available)
-                    return new ProviderRefreshOutcome(false, EmptySnapshot(provider));
+                    return ProviderRefreshOutcome.From(false, EmptySnapshot(provider));
                 var floor = UsageAggregation.HeatmapScanStart(now, timeZone);
                 var files = scanner.Scan(roots.Select(root => root.Path), floor, ClaudeParser(timeZone));
                 var snapshot = provider.BuildSnapshot(files.Select(file => file.Payload ?? []));
-                return new ProviderRefreshOutcome(true, snapshot);
+                return ProviderRefreshOutcome.From(true, snapshot);
             });
     }
 
@@ -71,7 +71,7 @@ public static class ProviderCatalog
             {
                 var available = roots.Count > 0;
                 if (!available)
-                    return new ProviderRefreshOutcome(false, EmptySnapshot(provider));
+                    return ProviderRefreshOutcome.From(false, EmptySnapshot(provider));
                 var rootPaths = roots.Select(root => root.Path).ToList();
                 var floor = UsageAggregation.HeatmapScanStart(now, timeZone);
                 var allFiles = CodexRolloutEnumeration.EnumerateAll(fileSystem, rootPaths);
@@ -86,8 +86,7 @@ public static class ProviderCatalog
                     probe);
                 var entries = CodexRolloutResolver.Resolve(rollouts, includedPaths);
                 cache.Save();
-                return new ProviderRefreshOutcome(true,
-                    new UsageProviderSnapshot(provider.ProviderId, provider.DisplayName, entries));
+                return new ProviderRefreshOutcome(true, provider.ProviderId, provider.DisplayName, DailyUsageTable.From(entries));
             });
     }
 
@@ -103,12 +102,12 @@ public static class ProviderCatalog
             {
                 var available = roots.Count > 0;
                 if (!available)
-                    return new ProviderRefreshOutcome(false, EmptySnapshot(provider));
+                    return ProviderRefreshOutcome.From(false, EmptySnapshot(provider));
                 var floorMillis = UsageAggregation.HeatmapScanStart(now, timeZone).ToUnixTimeMilliseconds();
                 var payloads = roots
                     .Select(root => reader.ReadEntries(root.Path, fileSystem, floorMillis, timeZone, scratchDirectory))
                     .ToList();
-                return new ProviderRefreshOutcome(true, provider.BuildSnapshot(payloads));
+                return ProviderRefreshOutcome.From(true, provider.BuildSnapshot(payloads));
             });
     }
 

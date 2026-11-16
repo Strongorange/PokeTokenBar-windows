@@ -55,6 +55,16 @@ public class UsageBucket
         }
     }
 
+    public void Merge(UsageBucket other)
+    {
+        Input += other.Input;
+        Output += other.Output;
+        CacheWrite += other.CacheWrite;
+        CacheRead += other.CacheRead;
+        Cost += other.Cost;
+        CostCoverage = CostCoverage.Merge(other.CostCoverage);
+    }
+
     public DailyUsage ToDaily(string date) =>
         new(date, Input, Output, CacheWrite, CacheRead, Total, Cost, costCoverage: CostCoverage);
 }
@@ -81,23 +91,8 @@ public static class UsageAggregation
         return byId.Values.ToList();
     }
 
-    public static DailyUsage? Daily(IEnumerable<UsageEntry> entries, string localDay, bool includeModels = false)
-    {
-        var bucket = new UsageBucket();
-        Dictionary<string, long>? models = includeModels ? [] : null;
-        foreach (var e in entries)
-        {
-            if (e.LocalDay != localDay) continue;
-            bucket.Add(e);
-            if (includeModels)
-            {
-                models![e.Model] = models.TryGetValue(e.Model, out var sum) ? sum + e.Total : e.Total;
-            }
-        }
-        if (bucket.Total <= 0) return null;
-        return new DailyUsage(localDay, bucket.Input, bucket.Output, bucket.CacheWrite, bucket.CacheRead,
-            bucket.Total, bucket.Cost, models, bucket.CostCoverage);
-    }
+    public static DailyUsage? Daily(IEnumerable<UsageEntry> entries, string localDay, bool includeModels = false) =>
+        DailyUsageTable.From(entries.Where(e => e.LocalDay == localDay)).Daily(localDay, includeModels);
 
     public static PeriodUsage Period(IEnumerable<UsageEntry> entries, string periodKey, string fromDay, string toDay)
     {
@@ -111,79 +106,18 @@ public static class UsageAggregation
     }
 
     public static List<DailyUsage> MonthDailySeries(IEnumerable<UsageEntry> entries, DateTimeOffset now,
-        TimeZoneInfo? timeZone = null)
-    {
-        var tz = timeZone ?? TimeZoneInfo.Local;
-        var localNow = TimeZoneInfo.ConvertTime(now, tz);
-        var monthStart = new DateTime(localNow.Year, localNow.Month, 1);
-        var lastDay = localNow.Date;
+        TimeZoneInfo? timeZone = null) =>
+        DailyUsageTable.From(entries).MonthDailySeries(now, timeZone);
 
-        var days = new List<string>();
-        var cursor = monthStart;
-        while (cursor <= lastDay)
-        {
-            days.Add(cursor.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
-            cursor = cursor.AddDays(1);
-        }
-
-        var inMonth = days.ToHashSet();
-        var buckets = new Dictionary<string, UsageBucket>();
-        foreach (var e in entries)
-        {
-            if (!inMonth.Contains(e.LocalDay)) continue;
-            if (!buckets.TryGetValue(e.LocalDay, out var bucket))
-            {
-                bucket = new UsageBucket();
-                buckets[e.LocalDay] = bucket;
-            }
-            bucket.Add(e);
-        }
-
-        return days.Select(day => buckets.TryGetValue(day, out var b)
-            ? b.ToDaily(day)
-            : new UsageBucket().ToDaily(day)).ToList();
-    }
-
-    /// 잔디 히트맵(1년) 창. 깃허브처럼 53주 — 오늘-364일이 속한 주의 일요일에
-    /// 그리드를 시작해 열을 주 단위로 맞춘다(HeatRow/HeatColumn과 정합).
+    // 잔디 히트맵(1년) 창. 깃허브처럼 53주이고, 오늘-364일이 속한 주의 일요일부터 그려 열을 주 단위로 맞춤
     public static readonly TimeSpan HeatmapWindow = TimeSpan.FromDays(365);
 
     public static DateTime YearGridStart(DateTime localToday) =>
         StartOfWeek(localToday.AddDays(-364), CultureInfo.InvariantCulture);
 
     public static List<DailyUsage> YearDailySeries(IEnumerable<UsageEntry> entries, DateTimeOffset now,
-        TimeZoneInfo? timeZone = null)
-    {
-        var tz = timeZone ?? TimeZoneInfo.Local;
-        var localNow = TimeZoneInfo.ConvertTime(now, tz);
-        var firstDay = YearGridStart(localNow.Date);
-        var lastDay = localNow.Date;
-
-        var days = new List<string>();
-        var cursor = firstDay;
-        while (cursor <= lastDay)
-        {
-            days.Add(cursor.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
-            cursor = cursor.AddDays(1);
-        }
-
-        var inRange = days.ToHashSet();
-        var buckets = new Dictionary<string, UsageBucket>();
-        foreach (var e in entries)
-        {
-            if (!inRange.Contains(e.LocalDay)) continue;
-            if (!buckets.TryGetValue(e.LocalDay, out var bucket))
-            {
-                bucket = new UsageBucket();
-                buckets[e.LocalDay] = bucket;
-            }
-            bucket.Add(e);
-        }
-
-        return days.Select(day => buckets.TryGetValue(day, out var b)
-            ? b.ToDaily(day)
-            : new UsageBucket().ToDaily(day)).ToList();
-    }
+        TimeZoneInfo? timeZone = null) =>
+        DailyUsageTable.From(entries).YearDailySeries(now, timeZone);
 
     public static BlockUsage? ActiveBlock(IEnumerable<UsageEntry> entries, DateTimeOffset now)
     {

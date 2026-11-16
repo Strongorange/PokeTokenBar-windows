@@ -40,7 +40,7 @@ public class UsageRecapServiceTests : IDisposable
             [
                 new ProviderRegistration("fixture", "Fixture",
                     new HashSet<UsageRootKind>(),
-                    (now, timeZone, roots) => new ProviderRefreshOutcome(true,
+                    (now, timeZone, roots) => ProviderRefreshOutcome.From(true,
                         new UsageProviderSnapshot("fixture", "Fixture", entries))),
             ],
         });
