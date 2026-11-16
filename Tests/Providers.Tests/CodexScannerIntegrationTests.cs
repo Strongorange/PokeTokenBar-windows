@@ -38,6 +38,8 @@ public class CodexScannerIntegrationTests : IDisposable
         var target = Path.Combine(_dir, relativePath);
         Directory.CreateDirectory(Path.GetDirectoryName(target)!);
         File.Copy(FixturePath(fixtureName), target);
+        // File.Copy 는 원본 수정 시각을 가져와서, checkout 이 30일을 넘기면 ScanFloor 밖으로 밀려남
+        File.SetLastWriteTimeUtc(target, DateTime.UtcNow);
         return target;
     }
 

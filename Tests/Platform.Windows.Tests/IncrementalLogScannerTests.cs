@@ -49,6 +49,8 @@ public class IncrementalLogScannerTests : IDisposable
         {
             var target = Path.Combine(fixture.Contains("codex") ? codexRoot : claudeRoot, Path.GetFileName(fixture));
             File.Copy(fixture, target);
+            // File.Copy 는 원본 수정 시각을 가져와서, checkout 이 30일을 넘기면 ScanFloor 밖으로 밀려남
+            File.SetLastWriteTimeUtc(target, DateTime.UtcNow);
             expectedTotal += File.ReadAllText(target).Split('\n').Length - 1;
         }
 

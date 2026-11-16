@@ -688,6 +688,14 @@ read_when:
   실패하므로, 아키텍처별 빌드 + `lipo -create` 로 합친다. 회귀 가드: `build-app.sh` 의 `lipo -verify_arch`
   와 release.sh 4/8 의 `lipo -verify_arch arm64 x86_64` 하드 게이트(릴리스는 `PTB_NATIVE_ARCH_ONLY` 금지).
 
+- **fixture 를 복사해 스캔하는 테스트는 복사본의 수정 시각을 지금으로 맞춘다.** (Windows 포트, 2026-11-16.)
+  `File.Copy` 는 원본의 LastWriteTime 을 그대로 가져온다. 스캐너 테스트의 `ScanFloor` 는 "지금 − 30일"이라
+  checkout 한 지 30일이 지난 작업 폴더에서는 fixture 가 전부 기준일 밖으로 밀려나, 스캐너 통합 테스트 17개가
+  "빈 결과"로 실패했다. **왜 못 걸렀나:** CI 는 매번 새로 checkout 해 수정 시각이 "방금"이라 늘 통과했다.
+  부류 스윕: `File.Copy` 와 `ScanFloor` 를 같이 쓰는 세 파일(`IncrementalLogScannerTests`,
+  `ClaudeScannerIntegrationTests`, `CodexScannerIntegrationTests`)에 `File.SetLastWriteTimeUtc` 를 넣었다.
+  새 스캐너 테스트도 fixture 를 복사하면 같은 처리가 필요하다.
+
 ## 자격증명·Keychain
 
 - **앱 소유 keychain 항목 금지.** 앱이 만든 keychain 항목은 코드서명(cdhash)이 바뀔 때마다(로컬 재빌드·
