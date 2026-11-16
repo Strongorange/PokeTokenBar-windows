@@ -26,8 +26,11 @@ public class CodexScannerIntegrationTests : IDisposable
 
     private string CachePath => Path.Combine(_dir, "usage-cache.json");
 
-    private static CodexParsedRollout ParseUtc(string path, IReadOnlyList<string> lines) =>
-        CodexLogParser.Parse(path, lines, Tz);
+    private static readonly LogParser<CodexParsedRollout> ParseUtc =
+        new(CodexLogParser.MightMatter, (path, lines, resumeFrom) => CodexLogParser.Parse(path, lines, Tz, resumeFrom));
+
+    private static readonly LogParser<CodexParsedRollout> ParseLocal =
+        new(CodexLogParser.MightMatter, (path, lines, resumeFrom) => CodexLogParser.Parse(path, lines, null, resumeFrom));
 
     private IncrementalLogScanner<CodexParsedRollout> NewScanner(int parserVersion) => new(
         PhysicalFileSystemSource.Instance,
@@ -192,12 +195,12 @@ public class CodexScannerIntegrationTests : IDisposable
     }
 
     [Fact]
-    public void BareMethodGroupWiringScansFixture()
+    public void LocalTimeZoneParserScansFixture()
     {
         CopyFixture("windows-codex.jsonl", @"logs\rollout.jsonl");
         var root = Path.Combine(_dir, "logs");
 
-        var files = NewScanner(CodexLogParser.ParserVersion).Scan([root], ScanFloor, CodexLogParser.Parse);
+        var files = NewScanner(CodexLogParser.ParserVersion).Scan([root], ScanFloor, ParseLocal);
 
         Assert.Single(files);
         var snapshot = SnapshotOf(files);

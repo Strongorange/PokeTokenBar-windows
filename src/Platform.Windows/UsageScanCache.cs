@@ -4,17 +4,24 @@ using PokeTokenBar.Core;
 
 namespace PokeTokenBar.Platform.Windows;
 
+/// <summary>Where a later scan can continue reading an append-only log.</summary>
+public readonly record struct LogResumePoint(long Offset, ulong Anchor)
+{
+    public static readonly LogResumePoint Start = default;
+}
+
 public sealed class UsageScanCache<TPayload>
 {
-    public const int CurrentFormatVersion = 1;
-    /// 히트맵이 1년치 로그를 스캔하므로 캐시도 1년+을 유지 — 짧게 두면 매 사이클
-    /// 지난 파일을 재파싱한다(프루닝이 스캔 창보다 길어야 증분 스캔이 성립).
+    public const int CurrentFormatVersion = 2;
+    // 히트맵이 1년치 로그를 스캔해서 캐시도 1년 넘게 둠. 스캔 창보다 짧으면 매번 지난 파일을 다시 파싱함
     public static readonly TimeSpan BlobRetention = TimeSpan.FromDays(400);
 
     private sealed class CacheEntry
     {
         public long MtimeUtcTicks { get; set; }
         public long Size { get; set; }
+        public long ReadOffset { get; set; }
+        public ulong Anchor { get; set; }
         public TPayload? Payload { get; set; }
     }
 
@@ -74,7 +81,20 @@ public sealed class UsageScanCache<TPayload>
         }
     }
 
-    public void Put(string path, FileFingerprint fingerprint, TPayload? payload)
+    public bool TryGetResume(string path, out TPayload? payload, out LogResumePoint resume)
+    {
+        lock (_gate)
+        {
+            payload = default;
+            resume = LogResumePoint.Start;
+            if (!_entries.TryGetValue(path, out var entry)) return false;
+            payload = entry.Payload;
+            resume = new LogResumePoint(entry.ReadOffset, entry.Anchor);
+            return true;
+        }
+    }
+
+    public void Put(string path, FileFingerprint fingerprint, TPayload? payload, LogResumePoint resume = default)
     {
         lock (_gate)
         {
@@ -82,6 +102,8 @@ public sealed class UsageScanCache<TPayload>
             {
                 MtimeUtcTicks = fingerprint.MtimeUtc.UtcTicks,
                 Size = fingerprint.Size,
+                ReadOffset = resume.Offset,
+                Anchor = resume.Anchor,
                 Payload = payload,
             };
             _dirty = true;
@@ -93,7 +115,9 @@ public sealed class UsageScanCache<TPayload>
         try
         {
             if (!File.Exists(_filePath)) return;
-            var dto = JsonSerializer.Deserialize<CacheFile>(File.ReadAllText(_filePath), JsonOptions);
+            CacheFile? dto;
+            using (var stream = File.OpenRead(_filePath))
+                dto = JsonSerializer.Deserialize<CacheFile>(stream, JsonOptions);
             if (dto is null) return;
             if (dto.FormatVersion != CurrentFormatVersion || dto.ParserVersion != _parserVersion)
             {
@@ -131,7 +155,8 @@ public sealed class UsageScanCache<TPayload>
                 var directory = Path.GetDirectoryName(_filePath);
                 if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
                 var temp = _filePath + ".tmp";
-                File.WriteAllText(temp, JsonSerializer.Serialize(dto, JsonOptions));
+                using (var stream = File.Create(temp))
+                    JsonSerializer.Serialize(stream, dto, JsonOptions);
                 File.Move(temp, _filePath, overwrite: true);
                 _dirty = false;
             }

@@ -27,7 +27,8 @@ public class IncrementalLogScannerTests : IDisposable
     private IncrementalLogScanner<int> NewScanner(int parserVersion = 1) => new(
         PhysicalFileSystemSource.Instance, new UsageScanCache<int>(CachePath, parserVersion));
 
-    private static int LineCount(string path, IReadOnlyList<string> lines) => lines.Count;
+    private static readonly LogParser<int> LineCount =
+        new(static _ => true, (_, lines, resumeFrom) => resumeFrom + lines.Count());
 
     private string WriteLog(string relativePath, string content)
     {
@@ -153,13 +154,13 @@ public class IncrementalLogScannerTests : IDisposable
         WriteLog(@"logs\claude\sub\c.jsonl", "one\n");
         WriteLog(@"logs\codex\d.jsonl", "one\n");
         var parsedCalls = 0;
-        int CountingParse(string path, IReadOnlyList<string> lines)
+        var countingParse = new LogParser<int>(static _ => true, (_, lines, resumeFrom) =>
         {
             parsedCalls++;
-            return lines.Count;
-        }
+            return resumeFrom + lines.Count();
+        });
         var logs = Path.Combine(_dir, "logs");
-        var results = NewScanner().Scan([logs, Path.Combine(logs, "claude")], ScanFloor, CountingParse);
+        var results = NewScanner().Scan([logs, Path.Combine(logs, "claude")], ScanFloor, countingParse);
         Assert.Equal(4, results.Count);
         Assert.Equal(4, parsedCalls);
     }
@@ -193,48 +194,5 @@ public class IncrementalLogScannerTests : IDisposable
         Assert.Equal(2, NewScanner(parserVersion: 1).Scan([root], ScanFloor, LineCount).Count);
         var afterUpgrade = NewScanner(parserVersion: 2).Scan([root], ScanFloor, LineCount);
         Assert.Equal(2, afterUpgrade.Count(r => r.Status == ScannedFileStatus.Parsed));
-    }
-}
-
-public class SplitLinesTests
-{
-    [Fact]
-    public void EmptyTextYieldsNoLines()
-    {
-        var lines = IncrementalLogScanner<int>.SplitLines("", out var dropped);
-        Assert.Empty(lines);
-        Assert.False(dropped);
-    }
-
-    [Fact]
-    public void TrailingNewlineMeansNoPartialLine()
-    {
-        var lines = IncrementalLogScanner<int>.SplitLines("a\nb\n", out var dropped);
-        Assert.Equal(["a", "b"], lines);
-        Assert.False(dropped);
-    }
-
-    [Fact]
-    public void MissingTrailingNewlineDropsPartialFinalLine()
-    {
-        var lines = IncrementalLogScanner<int>.SplitLines("a\nb", out var dropped);
-        Assert.Equal(["a"], lines);
-        Assert.True(dropped);
-    }
-
-    [Fact]
-    public void CarriageReturnsAreTrimmed()
-    {
-        var lines = IncrementalLogScanner<int>.SplitLines("a\r\nb\r\n", out var dropped);
-        Assert.Equal(["a", "b"], lines);
-        Assert.False(dropped);
-    }
-
-    [Fact]
-    public void BlankLinesArePreserved()
-    {
-        var lines = IncrementalLogScanner<int>.SplitLines("a\n\nb\n", out var dropped);
-        Assert.Equal(["a", "", "b"], lines);
-        Assert.False(dropped);
     }
 }

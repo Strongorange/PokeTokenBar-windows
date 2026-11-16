@@ -34,10 +34,19 @@ public sealed record CodexUsageEvent(
     CodexUsageState? UsageState,
     string? SessionID);
 
+/// <summary>Parser state at the end of the bytes read so far, so an appended rollout continues where it stopped.</summary>
+public sealed record CodexResumeState(
+    string? CurrentSessionID,
+    string? PreviousUsageSessionID,
+    CodexUsageState? PreviousUsageState,
+    string Model,
+    int Turn);
+
 public sealed record CodexParsedRollout(
     string Path,
     string? SessionID,
     string? ParentSessionID,
     DateTimeOffset? ForkedAt,
     bool IsSubagent,
-    List<CodexUsageEvent> Events);
+    List<CodexUsageEvent> Events,
+    CodexResumeState? Resume = null);

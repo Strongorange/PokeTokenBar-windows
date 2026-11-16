@@ -609,6 +609,15 @@ read_when:
   부류이긴 하다(실기기 Claude jsonl 863개, 최대 90MB). 회귀 가드: `CodexLargeRolloutPerformanceTests` —
   **opt-in(`POKETOKENBAR_RUN_LARGE_PERF=1` / `scripts/perf-codex-large-rollout.sh`)이라 CI 는 돌리지 않는다.**
   자동으로 막히지 않으므로 이 부류를 건드리면 직접 돌린다. (#184)
+- **Windows 포트도 같은 부류였다 — 사용량 로그는 줄 단위로, 덧붙은 부분만 읽는다.** (Windows 포트, 2026-11-16.)
+  Claude · Codex 모두 `ReadToEnd` 로 파일 전체를 읽고, 사용량 캐시도 JSON 하나를 문자열로 읽고 썼다. 앱이 켜질 때
+  약 2GB 를 할당해 Private 이 1.6GB 까지 올랐고, 205MB 세션 하나가 바뀔 때마다 1.2GB 를 할당했다. 앱 기본 메모리는
+  113MB 였고 나머지는 큰 문자열을 만들었다 버린 LOH 빈 공간이었다. 전환: `LogLineReader`(바이트 `0x0A` 분할, 파서별
+  바이트 필터로 쓸모없는 줄은 문자열로 만들지 않음, 오프셋 · 앞 64바이트 지문으로 덧붙은 부분만 읽음)와 캐시 스트림
+  읽기 · 쓰기. 측정과 설계는 `docs/usage-memory-redesign.md`. **왜 못 걸렀나:** 큰 입력의 메모리를 보는 테스트가 없었고,
+  fixture 는 수 KB 였다. 회귀 가드: `UsageScanMemoryBudgetTests`(CI 에서 돎) — 64MB 가짜 기록의 처음 읽기 할당 상한과,
+  덧붙인 뒤 파서에 넘어간 줄 수가 덧붙인 줄 수와 같은지. 이어 읽기는 할당량으로 못 잡는다(필터 덕에 다시 읽어도 할당이
+  작음). 줄 수 확인을 지우지 마라.
 - **Windows 에서 남이 쓰고 있는 로그를 `FileShare.Read` 로 열면 안 된다 — 생산 코드의 외부 로그 open 은 `FileShare.ReadWrite | FileShare.Delete` 로 통일한다.** (Windows 포트,
   2026-10-01 리포트 "모든 프로바이더에서 사용량이 갱신되지 않음".) Codex CLI 는 활성 세션 `.jsonl` 을
   쓰기 핸들로 계속 쥐고 있는데, `FileShare.Read` 는 "내가 연 동안 다른 프로세스는 읽기만 된다"는 선언이라

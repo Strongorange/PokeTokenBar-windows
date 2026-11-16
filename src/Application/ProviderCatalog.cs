@@ -1,4 +1,3 @@
-using System.Text;
 using PokeTokenBar.Core;
 using PokeTokenBar.Platform.Windows;
 using PokeTokenBar.Providers;
@@ -50,10 +49,7 @@ public static class ProviderCatalog
                 if (!available)
                     return new ProviderRefreshOutcome(false, EmptySnapshot(provider));
                 var floor = UsageAggregation.HeatmapScanStart(now, timeZone);
-                var files = scanner.Scan(
-                    roots.Select(root => root.Path),
-                    floor,
-                    (_, lines) => ClaudeLogParser.Parse(lines, timeZone));
+                var files = scanner.Scan(roots.Select(root => root.Path), floor, ClaudeParser(timeZone));
                 var snapshot = provider.BuildSnapshot(files.Select(file => file.Payload ?? []));
                 return new ProviderRefreshOutcome(true, snapshot);
             });
@@ -80,11 +76,12 @@ public static class ProviderCatalog
                 var floor = UsageAggregation.HeatmapScanStart(now, timeZone);
                 var allFiles = CodexRolloutEnumeration.EnumerateAll(fileSystem, rootPaths);
                 var windowFiles = allFiles.Where(file => file.MtimeUtc >= floor).ToList();
-                scanner.Scan(rootPaths, floor, (path, lines) => CodexLogParser.Parse(path, lines, timeZone));
+                var parser = CodexParser(timeZone);
+                scanner.Scan(rootPaths, floor, parser);
                 var (rollouts, includedPaths) = CodexParentClosure.Expand(
                     windowFiles,
                     allFiles,
-                    file => LoadThroughCache(cache, file, timeZone),
+                    file => LoadRollout(scanner, parser, file, timeZone),
                     _ => CodexSessionIdKnowledge.Unknown,
                     probe);
                 var entries = CodexRolloutResolver.Resolve(rollouts, includedPaths);
@@ -118,36 +115,21 @@ public static class ProviderCatalog
     private static UsageProviderSnapshot EmptySnapshot<TPayload>(IUsageProvider<TPayload> provider) =>
         new(provider.ProviderId, provider.DisplayName, []);
 
-    private static CodexParsedRollout LoadThroughCache(
-        UsageScanCache<CodexParsedRollout> cache, CodexRolloutFile file, TimeZoneInfo timeZone)
-    {
-        var fingerprint = new FileFingerprint(file.MtimeUtc, file.Size);
-        if (cache.TryGet(file.Path, fingerprint, out var cached) && cached is not null)
-            return cached;
-        List<string> lines;
-        try
-        {
-            lines = ReadLogLines(file.Path);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            AppLog.Write($"log read failed, keeping previous data: {file.Path}: {ex.Message}");
-            if (cache.TryGetAny(file.Path, out var stale) && stale is not null)
-                return stale;
-            return CodexLogParser.Parse(file.Path, [], timeZone);
-        }
-        var rollout = CodexLogParser.Parse(file.Path, lines, timeZone);
-        cache.Put(file.Path, fingerprint, rollout);
-        return rollout;
-    }
+    public static LogParser<List<UsageEntry>> ClaudeParser(TimeZoneInfo timeZone) => new(
+        ClaudeLogParser.MightMatter,
+        (_, lines, resumeFrom) => ClaudeLogParser.Parse(lines, timeZone, resumeFrom));
 
-    private static List<string> ReadLogLines(string path)
-    {
-        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-        using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-        var text = reader.ReadToEnd();
-        return IncrementalLogScanner<CodexParsedRollout>.SplitLines(text, out _);
-    }
+    public static LogParser<CodexParsedRollout> CodexParser(TimeZoneInfo timeZone) => new(
+        CodexLogParser.MightMatter,
+        (path, lines, resumeFrom) => CodexLogParser.Parse(path, lines, timeZone, resumeFrom));
+
+    private static CodexParsedRollout LoadRollout(
+        IncrementalLogScanner<CodexParsedRollout> scanner,
+        LogParser<CodexParsedRollout> parser,
+        CodexRolloutFile file,
+        TimeZoneInfo timeZone) =>
+        scanner.Load(file.Path, new FileFingerprint(file.MtimeUtc, file.Size), parser)?.Payload
+        ?? CodexLogParser.Parse(file.Path, [], timeZone);
 }
 
 internal static class CodexRolloutEnumeration

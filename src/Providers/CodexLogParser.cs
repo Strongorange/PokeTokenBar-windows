@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using PokeTokenBar.Core;
 
@@ -19,22 +20,38 @@ public static class CodexLogParser
 
     private sealed record ParsedToken(UsageEntry Entry, CodexUsageState? UsageState);
 
-    public static CodexParsedRollout Parse(string path, IReadOnlyList<string> lines) =>
+    private static readonly byte[] SessionMetaMarkerBytes = Encoding.UTF8.GetBytes(SessionMetaMarker);
+    private static readonly byte[] ModelMarkerBytes = Encoding.UTF8.GetBytes(ModelMarker);
+    private static readonly byte[] TokenCountMarkerBytes = Encoding.UTF8.GetBytes(TokenCountMarker);
+
+    /// <summary>Same test as the string markers in <see cref="Parse(string, IEnumerable{string}, TimeZoneInfo?, CodexParsedRollout?)"/>, on raw bytes.</summary>
+    public static bool MightMatter(ReadOnlySpan<byte> line) =>
+        line.IndexOf(SessionMetaMarkerBytes) >= 0 ||
+        line.IndexOf(ModelMarkerBytes) >= 0 ||
+        line.IndexOf(TokenCountMarkerBytes) >= 0;
+
+    public static CodexParsedRollout Parse(string path, IEnumerable<string> lines) =>
         Parse(path, lines, timeZone: null);
 
-    public static CodexParsedRollout Parse(string path, IReadOnlyList<string> lines, TimeZoneInfo? timeZone)
+    /// <param name="resumeFrom">Result of parsing the earlier part of the same file; parsing continues from its state.</param>
+    public static CodexParsedRollout Parse(
+        string path, IEnumerable<string> lines, TimeZoneInfo? timeZone, CodexParsedRollout? resumeFrom = null)
     {
         var tz = timeZone ?? TimeZoneInfo.Local;
         var fileName = Path.GetFileName(path);
-        List<CodexUsageEvent>? events = null;
-        string? sessionID = null;
-        string? parentSessionID = null;
-        string? currentSessionID = null;
-        DateTimeOffset? forkedAt = null;
-        var isSubagent = false;
-        (string SessionId, CodexUsageState State)? previousUsageState = null;
-        var model = "codex";
-        var turn = 0;
+        var resume = resumeFrom?.Resume;
+        List<CodexUsageEvent>? events = resumeFrom is { Events.Count: > 0 } ? [.. resumeFrom.Events] : null;
+        var sessionID = resumeFrom?.SessionID;
+        var parentSessionID = resumeFrom?.ParentSessionID;
+        var currentSessionID = resume?.CurrentSessionID;
+        var forkedAt = resumeFrom?.ForkedAt;
+        var isSubagent = resumeFrom?.IsSubagent ?? false;
+        (string SessionId, CodexUsageState State)? previousUsageState =
+            resume is { PreviousUsageSessionID: { } previousSession, PreviousUsageState: { } previousState }
+                ? (previousSession, previousState)
+                : null;
+        var model = resume?.Model ?? "codex";
+        var turn = resume?.Turn ?? 0;
         foreach (var line in lines)
         {
             if (line.Contains(SessionMetaMarker, StringComparison.Ordinal) &&
@@ -73,7 +90,9 @@ public static class CodexLogParser
             events ??= [];
             events.Add(new CodexUsageEvent(token.Entry, token.UsageState, currentSessionID));
         }
-        return new CodexParsedRollout(path, sessionID, parentSessionID, forkedAt, isSubagent, events ?? []);
+        var endState = new CodexResumeState(
+            currentSessionID, previousUsageState?.SessionId, previousUsageState?.State, model, turn);
+        return new CodexParsedRollout(path, sessionID, parentSessionID, forkedAt, isSubagent, events ?? [], endState);
     }
 
     internal static CodexSessionMeta? TryParseSessionMeta(string line)

@@ -7,7 +7,7 @@ public static class OpenCodeLogParser
 {
     public const int ParserVersion = 2;
 
-    public static List<UsageEntry> Parse(string path, IReadOnlyList<string> lines, TimeZoneInfo? timeZone = null)
+    public static List<UsageEntry> Parse(string path, IEnumerable<string> lines, TimeZoneInfo? timeZone = null)
     {
         var tz = timeZone ?? TimeZoneInfo.Local;
         var sourceKey = Path.GetFileName(path);

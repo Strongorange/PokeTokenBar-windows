@@ -26,8 +26,11 @@ public class ClaudeScannerIntegrationTests : IDisposable
 
     private string CachePath => Path.Combine(_dir, "usage-cache.json");
 
-    private static List<UsageEntry> ParseUtc(string path, IReadOnlyList<string> lines) =>
-        ClaudeLogParser.Parse(lines, Tz);
+    private static readonly LogParser<List<UsageEntry>> ParseUtc =
+        new(ClaudeLogParser.MightMatter, (_, lines, resumeFrom) => ClaudeLogParser.Parse(lines, Tz, resumeFrom));
+
+    private static readonly LogParser<List<UsageEntry>> ParseLocal =
+        new(ClaudeLogParser.MightMatter, (_, lines, resumeFrom) => ClaudeLogParser.Parse(lines, null, resumeFrom));
 
     private IncrementalLogScanner<List<UsageEntry>> NewScanner(int parserVersion) => new(
         PhysicalFileSystemSource.Instance,
@@ -51,7 +54,7 @@ public class ClaudeScannerIntegrationTests : IDisposable
     {
         var root = Path.Combine(_dir, "win-root");
         CopyFixture("windows-claude.jsonl", @"win-root\project\session.jsonl");
-        var files = NewScanner(ClaudeLogParser.ParserVersion).Scan([root], ScanFloor, ClaudeLogParser.Parse);
+        var files = NewScanner(ClaudeLogParser.ParserVersion).Scan([root], ScanFloor, ParseLocal);
 
         var file = Assert.Single(files);
         Assert.Equal(ScannedFileStatus.Parsed, file.Status);

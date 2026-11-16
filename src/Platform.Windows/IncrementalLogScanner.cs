@@ -1,4 +1,3 @@
-using System.Text;
 using PokeTokenBar.Core;
 
 namespace PokeTokenBar.Platform.Windows;
@@ -17,10 +16,17 @@ public sealed record ScannedFile<TPayload>(
     ScannedFileStatus Status,
     TPayload? Payload);
 
+/// <summary>
+/// Parses the lines of one log. <paramref name="resumeFrom"/> is the payload of the bytes already read when
+/// the scanner continues an appended file, and null when it starts from the beginning.
+/// </summary>
+public delegate TPayload ParseLogLines<TPayload>(string path, IEnumerable<string> lines, TPayload? resumeFrom);
+
+/// <param name="Filter">Byte-level prefilter; lines it rejects are never decoded or handed to the parser.</param>
+public sealed record LogParser<TPayload>(LogLineFilter Filter, ParseLogLines<TPayload> Parse);
+
 public sealed class IncrementalLogScanner<TPayload>
 {
-    public delegate TPayload ParseFile(string path, IReadOnlyList<string> lines);
-
     private readonly IFileSystemSource _fileSystem;
     private readonly UsageScanCache<TPayload> _cache;
 
@@ -30,7 +36,8 @@ public sealed class IncrementalLogScanner<TPayload>
         _cache = cache;
     }
 
-    public IReadOnlyList<ScannedFile<TPayload>> Scan(IEnumerable<string> roots, DateTimeOffset modifiedSince, ParseFile parse)
+    public IReadOnlyList<ScannedFile<TPayload>> Scan(
+        IEnumerable<string> roots, DateTimeOffset modifiedSince, LogParser<TPayload> parser)
     {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var results = new List<ScannedFile<TPayload>>();
@@ -41,67 +48,82 @@ public sealed class IncrementalLogScanner<TPayload>
                 var normalized = PathNormalizer.Normalize(file);
                 if (normalized is null) continue;
                 if (!seen.Add(normalized)) continue;
-                ScanOne(normalized, modifiedSince, parse, results);
+                if (Fingerprint(normalized) is not { } fingerprint) continue;
+                if (fingerprint.MtimeUtc < modifiedSince) continue;
+                if (Load(normalized, fingerprint, parser) is { } scanned) results.Add(scanned);
             }
         }
         _cache.Save();
         return results;
     }
 
-    private void ScanOne(string path, DateTimeOffset modifiedSince, ParseFile parse, List<ScannedFile<TPayload>> results)
+    /// <summary>
+    /// Brings one file's cached payload up to date, reading only the bytes appended since the last read.
+    /// Returns null when the file cannot be read and nothing was cached for it.
+    /// </summary>
+    public ScannedFile<TPayload>? Load(string path, FileFingerprint fingerprint, LogParser<TPayload> parser)
     {
-        FileFingerprint fingerprint;
-        try
-        {
-            var probe = _fileSystem.GetFingerprint(path);
-            if (probe is null) return;
-            fingerprint = probe.Value;
-        }
-        catch (Exception ex)
-        {
-            AppLog.Write($"file stat failed: {path}: {ex.Message}");
-            return;
-        }
-        if (fingerprint.MtimeUtc < modifiedSince) return;
         if (_cache.TryGet(path, fingerprint, out var cached))
-        {
-            results.Add(new ScannedFile<TPayload>(path, fingerprint.MtimeUtc, fingerprint.Size, ScannedFileStatus.Cached, cached));
-            return;
-        }
-        List<string>? lines = null;
+            return new ScannedFile<TPayload>(path, fingerprint.MtimeUtc, fingerprint.Size, ScannedFileStatus.Cached, cached);
+
+        _cache.TryGetResume(path, out var previous, out var resume);
+        var canResume = previous is not null && IsAppendOf(path, fingerprint, resume);
+        var reader = new LogLineReader(path, canResume ? resume.Offset : 0, parser.Filter);
+        TPayload payload;
         try
         {
-            lines = ReadAllLines(path);
+            payload = parser.Parse(path, reader.Lines(), canResume ? previous : default);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             AppLog.Write($"log read failed, keeping previous data: {path}: {ex.Message}");
-        }
-        if (lines is null)
-        {
-            AddStale(path, fingerprint, results);
-            return;
-        }
-        TPayload? payload;
-        try
-        {
-            payload = parse(path, lines);
+            return Stale(path, fingerprint);
         }
         catch (Exception ex)
         {
             AppLog.Write($"log parse failed, keeping previous data: {path}: {ex.Message}");
-            AddStale(path, fingerprint, results);
-            return;
+            return Stale(path, fingerprint);
         }
-        _cache.Put(path, fingerprint, payload);
-        results.Add(new ScannedFile<TPayload>(path, fingerprint.MtimeUtc, fingerprint.Size, ScannedFileStatus.Parsed, payload));
+        if (reader.DroppedPartialFinalLine)
+            AppLog.Write($"partial final line skipped: {path}");
+        _cache.Put(path, fingerprint, payload, new LogResumePoint(reader.EndOffset, AnchorOrZero(path, reader.EndOffset)));
+        return new ScannedFile<TPayload>(path, fingerprint.MtimeUtc, fingerprint.Size, ScannedFileStatus.Parsed, payload);
     }
 
-    private void AddStale(string path, FileFingerprint fingerprint, List<ScannedFile<TPayload>> results)
+    private FileFingerprint? Fingerprint(string path)
     {
-        if (!_cache.TryGetAny(path, out var stale)) return;
-        results.Add(new ScannedFile<TPayload>(path, fingerprint.MtimeUtc, fingerprint.Size, ScannedFileStatus.ReadFailed, stale));
+        try
+        {
+            return _fileSystem.GetFingerprint(path);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Write($"file stat failed: {path}: {ex.Message}");
+            return null;
+        }
     }
+
+    private static bool IsAppendOf(string path, FileFingerprint fingerprint, LogResumePoint resume) =>
+        resume.Offset > 0 &&
+        fingerprint.Size >= resume.Offset &&
+        AnchorOrZero(path, resume.Offset) == resume.Anchor;
+
+    private static ulong AnchorOrZero(string path, long offset)
+    {
+        try
+        {
+            return LogLineReader.AnchorAt(path, offset);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return 0;
+        }
+    }
+
+    private ScannedFile<TPayload>? Stale(string path, FileFingerprint fingerprint) =>
+        _cache.TryGetAny(path, out var stale)
+            ? new ScannedFile<TPayload>(path, fingerprint.MtimeUtc, fingerprint.Size, ScannedFileStatus.ReadFailed, stale)
+            : null;
 
     private IEnumerable<string> EnumerateLogFiles(string root)
     {
@@ -151,34 +173,5 @@ public sealed class IncrementalLogScanner<TPayload>
     {
         var name = Path.GetFileName(path);
         return name.Length == 0 || name[0] == '.';
-    }
-
-    private static List<string> ReadAllLines(string path)
-    {
-        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-        using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-        var text = reader.ReadToEnd();
-        var lines = SplitLines(text, out var droppedPartialFinalLine);
-        if (droppedPartialFinalLine)
-            AppLog.Write($"partial final line skipped: {path}");
-        return lines;
-    }
-
-    public static List<string> SplitLines(string text, out bool droppedPartialFinalLine)
-    {
-        droppedPartialFinalLine = false;
-        var lines = new List<string>();
-        if (string.IsNullOrEmpty(text)) return lines;
-        var start = 0;
-        for (var i = 0; i < text.Length; i++)
-        {
-            if (text[i] != '\n') continue;
-            var end = i;
-            if (end > start && text[end - 1] == '\r') end--;
-            lines.Add(text[start..end]);
-            start = i + 1;
-        }
-        if (start < text.Length) droppedPartialFinalLine = true;
-        return lines;
     }
 }
