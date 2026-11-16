@@ -209,5 +209,5 @@ public interface IUsageQuery
 
 ## 참고
 
-- 측정 프로그램 · 힙 덤프: `C:\Users\USER\Downloads\poketoken-measure\` (레포 밖, 커밋 안 함)
+- 측정 방법: 실제 부품을 단계마다 새 프로세스에서 돌려 `GC.GetTotalAllocatedBytes` · 최대 WS 를 잰 일회성 프로그램, 실행 중인 앱의 `dotnet-gcdump` · `dotnet-counters`. 프로그램과 덤프는 레포 밖에 두었다가 지움
 - 측정 대상 코드: `src/Platform.Windows/UsageScanCache.cs`, `src/Platform.Windows/IncrementalLogScanner.cs`, `src/Application/ProviderCatalog.cs`, `src/Application/UsageRefreshService.cs`, `src/Core/UsageAggregation.cs`
