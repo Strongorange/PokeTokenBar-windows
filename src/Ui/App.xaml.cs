@@ -31,6 +31,8 @@ public partial class App : System.Windows.Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        // 하드웨어 렌더링은 그래픽 드라이버가 메모리를 따로 잡아서, 펫 · 대시보드 · 도감 모두 소프트웨어 쪽이 덜 씀
+        System.Windows.Media.RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;
         DispatcherUnhandledException += (_, args) =>
         {
             AppLog.Write($"ui unhandled exception: {args.Exception}");

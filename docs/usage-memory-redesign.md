@@ -195,7 +195,10 @@ public interface IUsageQuery
 | 스캔 프로세스 분리(`UsageScanProcess`) | 168~183MB | 갱신마다 `PokeTokenBar.exe --scan` 을 띄워 상태 JSON 만 받음. 실패하면 그 회차는 UI 프로세스에서 스캔. 스캔 프로세스는 5분마다 몇 초, 최대 WS 396MB |
 
 - 스캔 분리 뒤 UI 프로세스 177MB 의 구성: .NET 힙 42MB(살아 있는 객체 약 25MB), 네이티브 약 135MB. 네이티브에는 WPF 하드웨어 렌더링이 불러온 그래픽 드라이버 몫이 들어 있음
-- 소프트웨어 렌더링(`RenderMode.SoftwareOnly`) 실험: Private 168MB → 139MB, 펫만 떠 있을 때 CPU 0.06% → 0.05%. 대시보드를 연 상태의 CPU 는 안 잼. 적용 안 함
+- 소프트웨어 렌더링(`RenderMode.SoftwareOnly`): 0.30.1 에서 적용. 같은 동작으로 각 1회 비교
+  - 펫만 떠 있음(5분 반 평균): Private 168MB → 139MB, CPU 0.06% → 0.05%
+  - 대시보드 홈 → 도감 스크롤(약 46초): Private 평균 242 → 189MB, 최대 257 → 200MB, CPU 평균 0.44% → 0.62%
+  - 그림이 많은 도감에서도 줄어서, 그래픽 메모리 대신 일반 메모리로 합성하는 비용보다 드라이버 몫이 큼. 대가는 대시보드를 연 동안 CPU 0.2%p 안팎
 - 옛 · 새 계산의 날짜 · 모델별 합계 비교는 1단계에서 했고, 2단계는 같은 계산을 표로 옮긴 것이라 `DailyUsageTableTests` 로 대조함
 
 ## 위험
