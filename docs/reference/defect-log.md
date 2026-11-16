@@ -705,6 +705,12 @@ read_when:
   `ClaudeScannerIntegrationTests`, `CodexScannerIntegrationTests`)에 `File.SetLastWriteTimeUtc` 를 넣었다.
   새 스캐너 테스트도 fixture 를 복사하면 같은 처리가 필요하다.
 
+- **완료를 알리기 전에 "진행 중" 표시부터 지운다.** (Windows 포트, 2026-11-16.) `UsageRefreshService.RefreshOnceAsync`
+  는 `completion.SetResult` 뒤 `finally` 에서 `_inFlight` 를 지웠다. 기다리던 쪽이 끝나자마자 `RefreshAsync` 를 다시 부르면
+  이미 끝난 작업을 돌려받아 갱신이 한 번 빠졌다. `RunContinuationsAsynchronously` 라 대개는 늦게 실행돼 드러나지 않았다.
+  **왜 못 걸렀나:** 연달아 두 번 갱신하고 횟수를 세는 테스트가 없었다. 새 테스트(`AfterRefreshRunsOnceForEachSuccessfulRefresh`)가
+  간헐적으로 실패하며 드러났다. 수정 뒤 Application 테스트를 5번 연속 돌려 통과를 확인했다.
+
 ## 자격증명·Keychain
 
 - **앱 소유 keychain 항목 금지.** 앱이 만든 keychain 항목은 코드서명(cdhash)이 바뀔 때마다(로컬 재빌드·

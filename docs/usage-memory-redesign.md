@@ -163,10 +163,10 @@ public interface IUsageQuery
 각 단계는 따로 머지하고 릴리스할 수 있습니다.
 
 0. 기본 메모리 측정: 2026-11-16 측정함(113MB, 위 "측정 결과")
-1. 줄 단위 파서 계약과 `LogLineReader`, 캐시 스트림 읽기 · 쓰기, 메모리 예산 테스트: 구현함(아래 "1단계 결과")
-2. `SqliteUsageStore` 로 Claude 저장 이전, `IUsageQuery` 도입
-3. Codex 저장 이전과 묶음 단위 재계산
-4. `UsageRefreshService` 를 `IUsageQuery` 로 전환. `UsageProviderSnapshot.Entries`, `UsageScanCache`, `IncrementalLogScanner` 삭제
+1. 줄 단위 파서 계약과 `LogLineReader`, 캐시 스트림 읽기 · 쓰기, 메모리 예산 테스트: 구현함, 0.29.1(아래 "1단계 결과")
+2. 1단계 뒤 측정으로 계획을 바꿈(아래 "2단계 결과"). 날짜별 합계 표, 갱신 뒤 압축 GC, 스캔 프로세스 분리: 구현함, 0.30.0
+3. Codex 저장을 SQLite 로 옮기고 묶음 단위 재계산: 보류. 스캔을 분리해서 UI 메모리에는 효과가 없고, 5분마다 뜨는 스캔 프로세스의 순간 메모리와 CPU 시간만 줄어듦
+4. 원래 4단계(화면이 합계 질의를 씀)는 2단계의 날짜별 합계 표로 대신함. Claude SQLite 는 줄일 수 있는 양이 26MB / 5분이라 하지 않음
 
 ## 1단계 결과 (2026-11-16, 실제 기록, 1회)
 
@@ -182,6 +182,21 @@ public interface IUsageQuery
 
 - 옛 코드(`main`)와 새 코드로 실제 기록을 새로 스캔해 날짜 · 모델별 합계를 비교했습니다. 측정 당일을 뺀 376행이 모두 같았습니다. 당일 행은 두 실행 사이에 진행 중인 세션이 사용량을 더 써서 새 코드 쪽만 늘었습니다.
 - 캐시 형식 버전을 2로 올려서, 새 버전 첫 실행은 기록을 처음부터 다시 읽습니다(위 42초).
+
+## 2단계 결과 (2026-11-16, 1회)
+
+1단계 뒤 5분 갱신 355MB 를 제공자별로 나누니 Claude 26MB, Codex 205MB, OpenCode 71MB 였습니다. 원래 2단계(Claude SQLite)로 줄일 수 있는 건 26MB 뿐이라 계획을 바꿨습니다. 또 18분 켜 둔 0.29.1 의 Private 530MB 중 228MB 는 버렸는데 돌려주지 않은 공간이었습니다(LOH 빈 공간 92MB 포함).
+
+| 변경 | UI Private | 내용 |
+|---|---|---|
+| 0.29.1 | 515~530MB | |
+| 날짜별 합계 표(`DailyUsageTable`) | 5분 갱신 355MB → 304MB | 제공자가 이벤트 목록 대신 날짜별 합계를 넘기고, 갱신 서비스는 표를 합침. 비용은 이벤트마다 더해서 장문 단가(272k 초과)가 그대로 적용됨 |
+| 갱신 뒤 압축 GC(`ManagedMemory.ReturnFreedMemory`, `System.GC.ConserveMemory=5`) | 313~328MB | LOH 까지 압축해 버린 공간을 돌려줌 |
+| 스캔 프로세스 분리(`UsageScanProcess`) | 168~183MB | 갱신마다 `PokeTokenBar.exe --scan` 을 띄워 상태 JSON 만 받음. 실패하면 그 회차는 UI 프로세스에서 스캔. 스캔 프로세스는 5분마다 몇 초, 최대 WS 396MB |
+
+- 스캔 분리 뒤 UI 프로세스 177MB 의 구성: .NET 힙 42MB(살아 있는 객체 약 25MB), 네이티브 약 135MB. 네이티브에는 WPF 하드웨어 렌더링이 불러온 그래픽 드라이버 몫이 들어 있음
+- 소프트웨어 렌더링(`RenderMode.SoftwareOnly`) 실험: Private 168MB → 139MB, 펫만 떠 있을 때 CPU 0.06% → 0.05%. 대시보드를 연 상태의 CPU 는 안 잼. 적용 안 함
+- 옛 · 새 계산의 날짜 · 모델별 합계 비교는 1단계에서 했고, 2단계는 같은 계산을 표로 옮긴 것이라 `DailyUsageTableTests` 로 대조함
 
 ## 위험
 
